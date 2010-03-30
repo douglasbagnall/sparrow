@@ -41,9 +41,13 @@
 #include <gst/video/video.h>
 
 #include "gstsparrow.h"
+//#include <liboil/liboil.h>
+#include <string.h>
+#include <math.h>
 
-GST_DEBUG_CATEGORY_STATIC (gst_sparrow_debug);
-#define GST_CAT_DEFAULT gst_sparrow_debug
+
+GST_DEBUG_CATEGORY_STATIC (sparrow_debug);
+#define GST_CAT_DEFAULT sparrow_debug
 
 /* Filter signals and args */
 enum
@@ -56,6 +60,7 @@ enum
 {
   PROP_0,
   PROP_SILENT
+  /* FILL ME (properties?) */
 };
 
 /* the capabilities of the inputs and outputs.
