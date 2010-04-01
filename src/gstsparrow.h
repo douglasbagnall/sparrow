@@ -1,9 +1,9 @@
-/*
- * GStreamer
- * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
- * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
- * Copyright (C) 2010 Douglas Bagnall <<douglas@halo.gen.nz>>
- * 
+/* GStreamer
+ * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
+ * Copyright (C) <2003> David Schleef <ds@schleef.org>
+ * Copyright (C) 2003 Arwed v. Merkatz <v.merkatz@gmx.net>
+ * Copyright (C) 2006 Mark Nauwelaerts <manauw@skynet.be>
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
@@ -20,29 +20,36 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GST_SPARROW_H__
-#define __GST_SPARROW_H__
+
+#ifndef __GST_VIDEO_SPARROW_H__
+#define __GST_VIDEO_SPARROW_H__
 
 #include <gst/video/gstvideofilter.h>
 
+#include "sparrowconfig.h"
+
 G_BEGIN_DECLS
 
-/* #defines don't like whitespacey bits */
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
 #define GST_SPARROW(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_SPARROW,Gstsparrow))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_SPARROW,GstSparrow))
 #define GST_SPARROW_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_SPARROW,GstsparrowClass))
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_SPARROW,GstSparrowClass))
 #define GST_IS_SPARROW(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_SPARROW))
 #define GST_IS_SPARROW_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
-typedef struct _Gstsparrow      Gstsparrow;
-typedef struct _GstsparrowClass GstsparrowClass;
+typedef struct _GstSparrow GstSparrow;
+typedef struct _GstSparrowClass GstSparrowClass;
 
-struct _Gstsparrow
+/**
+ * GstSparrow:
+ *
+ * Opaque data structure.
+ */
+struct _GstSparrow
 {
   GstVideoFilter videofilter;
 
@@ -52,19 +59,19 @@ struct _Gstsparrow
   gint size;
 
   /* properties */
-
+  double sparrow;
 
   /* tables */
-
+  guint8 sparrow_table[256];
 };
 
-struct _GstsparrowClass 
+struct _GstSparrowClass
 {
   GstVideoFilterClass parent_class;
 };
 
-GType gst_sparrow_get_type (void);
+GType gst_sparrow_get_type(void);
 
 G_END_DECLS
 
-#endif /* __GST_SPARROW_H__ */
+#endif /* __GST_VIDEO_SPARROW_H__ */

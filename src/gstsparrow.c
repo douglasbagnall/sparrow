@@ -1,8 +1,7 @@
-/*
- * GStreamer
- * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
- * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
- * Copyright (C) 2010 Douglas Bagnall <<douglas@halo.gen.nz>>
+/* GStreamer
+ * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
+ * Copyright (C) <2003> David Schleef <ds@schleef.org>
+ * Copyright (C) <2010> Douglas Bagnall <douglas@halo.gen.nz>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -20,28 +19,30 @@
  * Boston, MA 02111-1307, USA.
  */
 
+
 /**
  * SECTION:element-sparrow
  *
- * Plugin to show pictures of sparrows.
+ * Performs sparrow correction on a video stream.
  *
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch -v -m fakesrc ! sparrow ! fakesink silent=TRUE
+ * gst-launch videotestsrc ! ffmpegcolorspace ! sparrow ! ximagesink
  * ]|
  * </refsect2>
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#include <gst/gst.h>
+#include "gstsparrow.h"
+#include <gst/video/gstvideofilter.h>
 #include <gst/video/video.h>
 
-#include "gstsparrow.h"
-//#include <liboil/liboil.h>
+#ifdef HAVE_LIBOIL
+#include <liboil/liboil.h>
+#include <liboil/liboilcpu.h>
+#include <liboil/liboilfunction.h>
+#endif
+
 #include <string.h>
 #include <math.h>
 
@@ -49,7 +50,7 @@
 GST_DEBUG_CATEGORY_STATIC (sparrow_debug);
 #define GST_CAT_DEFAULT sparrow_debug
 
-/* Filter signals and args */
+/* GstSparrow signals and args */
 enum
 {
   /* FILL ME */
@@ -60,8 +61,9 @@ enum
 {
   PROP_0,
   PROP_SILENT
-  /* FILL ME (properties?) */
+      /* FILL ME */
 };
+
 
 /* the capabilities of the inputs and outputs.
  *
@@ -81,185 +83,207 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
         GST_VIDEO_CAPS_xBGR "; " GST_VIDEO_CAPS_xRGB)
     );
 
-GST_BOILERPLATE (Gstsparrow, gst_sparrow, GstVideoFilter,
-    GST_TYPE_VIDEO_FILTER);
 
 static void gst_sparrow_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
 static void gst_sparrow_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
 
-static gboolean gst_sparrow_set_caps (GstPad * pad, GstCaps * caps);
-static GstFlowReturn gst_sparrow_chain (GstPad * pad, GstBuffer * buf);
+static gboolean gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
+    GstCaps * outcaps);
+static GstFlowReturn gst_sparrow_transform_ip (GstBaseTransform * transform,
+    GstBuffer * buf);
 
-/* GObject vmethod implementations */
+static void gst_sparrow_RGB_ip (GstSparrow * sparrow, guint8 * data, gint size);
+
+GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
+
 
 static void
-gst_sparrow_base_init (gpointer gclass)
+gst_sparrow_base_init (gpointer g_class)
 {
-  GstElementClass *element_class = GST_ELEMENT_CLASS (gclass);
+  GstElementClass *element_class = GST_ELEMENT_CLASS (g_class);
 
-  gst_element_class_set_details_simple(element_class,
-    "sparrow",
-    "Filter/Video",
-    "Add sparrows",
-    "Douglas Bagnall <<douglas@halo.gen.nz>>");
+  gst_element_class_set_details_simple (element_class, "Video sparrow correction",
+					"Filter/Effect/Video",
+					"Adds sparrows to a video stream",
+					"Douglas Bagnall <douglas@halo.gen.nz>");
 
-  gst_element_class_add_pad_template (element_class,
-      gst_static_pad_template_get (&src_factory));
   gst_element_class_add_pad_template (element_class,
       gst_static_pad_template_get (&sink_factory));
+  gst_element_class_add_pad_template (element_class,
+      gst_static_pad_template_get (&src_factory));
 }
 
-/* initialize the sparrow's class */
 static void
-gst_sparrow_class_init (GstsparrowClass * klass)
+gst_sparrow_class_init (GstSparrowClass * g_class)
 {
   GObjectClass *gobject_class;
-  GstElementClass *gstelement_class;
+  GstBaseTransformClass *trans_class;
 
-  gobject_class = (GObjectClass *) klass;
-  gstelement_class = (GstElementClass *) klass;
+  gobject_class = G_OBJECT_CLASS (g_class);
+  trans_class = GST_BASE_TRANSFORM_CLASS (g_class);
 
   gobject_class->set_property = gst_sparrow_set_property;
   gobject_class->get_property = gst_sparrow_get_property;
 
-  g_object_class_install_property (gobject_class, PROP_SILENT,
-      g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?",
-          FALSE, G_PARAM_READWRITE));
-}
-
-/* initialize the new element
- * instantiate pads and add them to element
- * set pad calback functions
- * initialize instance structure
- */
-static void
-gst_sparrow_init (Gstsparrow * filter,
-    GstsparrowClass * gclass)
-{
-  filter->sinkpad = gst_pad_new_from_static_template (&sink_factory, "sink");
-  gst_pad_set_setcaps_function (filter->sinkpad,
-                                GST_DEBUG_FUNCPTR(gst_sparrow_set_caps));
-  gst_pad_set_getcaps_function (filter->sinkpad,
-                                GST_DEBUG_FUNCPTR(gst_pad_proxy_getcaps));
-  gst_pad_set_chain_function (filter->sinkpad,
-                              GST_DEBUG_FUNCPTR(gst_sparrow_chain));
-
-  filter->srcpad = gst_pad_new_from_static_template (&src_factory, "src");
-  gst_pad_set_getcaps_function (filter->srcpad,
-                                GST_DEBUG_FUNCPTR(gst_pad_proxy_getcaps));
-
-  gst_element_add_pad (GST_ELEMENT (filter), filter->sinkpad);
-  gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
-  filter->silent = FALSE;
+  /*
+  g_object_class_install_property (gobject_class, PROP_SPARROW,
+				   g_param_spec_double ("sparrow", "Sparrow", "sparrow",
+							0.01, 10, DEFAULT_PROP_SPARROW,
+							G_PARAM_READWRITE));
+  */
+  trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
+  trans_class->transform_ip = GST_DEBUG_FUNCPTR (gst_sparrow_transform_ip);
 }
 
 static void
-gst_sparrow_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec)
+gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
-  Gstsparrow *filter = GST_SPARROW (object);
+  GST_DEBUG_OBJECT (sparrow, "gst_sparrow_init");
+}
 
+static void
+gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
+    GParamSpec * pspec)
+{
+  GstSparrow *sparrow;
+
+  g_return_if_fail (GST_IS_SPARROW (object));
+  sparrow = GST_SPARROW (object);
+
+  GST_DEBUG ("gst_sparrow_set_property");
   switch (prop_id) {
-    case PROP_SILENT:
-      filter->silent = g_value_get_boolean (value);
+  case PROP_SILENT:
+      //do something;
       break;
-    default:
+  default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
 
 static void
-gst_sparrow_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec)
+gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
+    GParamSpec * pspec)
 {
-  Gstsparrow *filter = GST_SPARROW (object);
+  GstSparrow *sparrow;
+
+  g_return_if_fail (GST_IS_SPARROW (object));
+  sparrow = GST_SPARROW (object);
 
   switch (prop_id) {
-    case PROP_SILENT:
-      g_value_set_boolean (value, filter->silent);
+    /*case PROP_SPARROW:
+      g_value_set_double (value, sparrow->sparrow);
       break;
+    */
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
 
-/* GstElement vmethod implementations */
 
-/* this function handles the link with other elements */
-static gboolean
-gst_sparrow_set_caps (GstPad * pad, GstCaps * caps)
+#ifndef HAVE_LIBOIL
+static void
+oil_tablelookup_u8 (guint8 * dest, int dstr, guint8 * src, int sstr,
+    guint8 * table, int tstr, int n)
 {
-  Gstsparrow *filter;
-  GstPad *otherpad;
+  int i;
 
-  filter = GST_SPARROW (gst_pad_get_parent (pad));
-  otherpad = (pad == filter->srcpad) ? filter->sinkpad : filter->srcpad;
-  gst_object_unref (filter);
-
-  return gst_pad_set_caps (otherpad, caps);
+  for (i = 0; i < n; i++) {
+    *dest = table[*src * tstr];
+    dest += dstr;
+    src += sstr;
+  }
 }
-
-/* chain function
- * this function does the actual processing
- */
-static GstFlowReturn
-gst_sparrow_chain (GstPad * pad, GstBuffer * buf)
-{
-  Gstsparrow *filter;
-
-  filter = GST_SPARROW (GST_OBJECT_PARENT (pad));
-
-  if (filter->silent == FALSE)
-    g_print ("I'm plugged, therefore I'm in.\n");
-
-  /* just push out the incoming buffer without touching it */
-  return gst_pad_push (filter->srcpad, buf);
-}
-
-
-/* entry point to initialize the plug-in
- * initialize the plug-in itself
- * register the element factories and other features
- */
-static gboolean
-sparrow_init (GstPlugin * sparrow)
-{
-  /* debug category for fltering log messages
-   *
-   * exchange the string 'Template sparrow' with your description
-   */
-  GST_DEBUG_CATEGORY_INIT (gst_sparrow_debug, "sparrow",
-      0, "Show pictures of sparrows or other birds");
-
-  return gst_element_register (sparrow, "sparrow", GST_RANK_NONE,
-      GST_TYPE_SPARROW);
-}
-
-/* PACKAGE: this is usually set by autotools depending on some _INIT macro
- * in configure.ac and then written into and defined in config.h, but we can
- * just set it ourselves here in case someone doesn't use autotools to
- * compile this code. GST_PLUGIN_DEFINE needs PACKAGE to be defined.
- */
-#ifndef PACKAGE
-#define PACKAGE "myfirstsparrow"
 #endif
 
-/* gstreamer looks for this structure to register sparrows
- *
- * exchange the string 'Template sparrow' with your sparrow description
- */
-GST_PLUGIN_DEFINE (
-    GST_VERSION_MAJOR,
+/* Useful macros */
+#define GST_VIDEO_I420_Y_ROWSTRIDE(width) (GST_ROUND_UP_4(width))
+#define GST_VIDEO_I420_U_ROWSTRIDE(width) (GST_ROUND_UP_8(width)/2)
+#define GST_VIDEO_I420_V_ROWSTRIDE(width) ((GST_ROUND_UP_8(GST_VIDEO_I420_Y_ROWSTRIDE(width)))/2)
+
+#define GST_VIDEO_I420_Y_OFFSET(w,h) (0)
+#define GST_VIDEO_I420_U_OFFSET(w,h) (GST_VIDEO_I420_Y_OFFSET(w,h)+(GST_VIDEO_I420_Y_ROWSTRIDE(w)*GST_ROUND_UP_2(h)))
+#define GST_VIDEO_I420_V_OFFSET(w,h) (GST_VIDEO_I420_U_OFFSET(w,h)+(GST_VIDEO_I420_U_ROWSTRIDE(w)*GST_ROUND_UP_2(h)/2))
+#define GST_VIDEO_I420_SIZE(w,h)     (GST_VIDEO_I420_V_OFFSET(w,h)+(GST_VIDEO_I420_V_ROWSTRIDE(w)*GST_ROUND_UP_2(h)/2))
+
+static gboolean
+gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
+    GstCaps * outcaps)
+{
+  GstSparrow *this;
+  GstStructure *structure;
+  gboolean res;
+
+  this = GST_SPARROW (base);
+
+  GST_DEBUG_OBJECT (this,
+      "set_caps: in %" GST_PTR_FORMAT " out %" GST_PTR_FORMAT, incaps, outcaps);
+
+  structure = gst_caps_get_structure (incaps, 0);
+
+  res = gst_structure_get_int (structure, "width", &this->width);
+  res &= gst_structure_get_int (structure, "height", &this->height);
+  if (!res)
+    goto done;
+
+  this->size = GST_VIDEO_I420_SIZE (this->width, this->height);
+
+done:
+  return res;
+}
+
+static void
+gst_sparrow_planar411_ip (GstSparrow * sparrow, guint8 * data, gint size)
+{
+  oil_tablelookup_u8 (data, 1, data, 1, sparrow->sparrow_table, 1, size);
+}
+
+static GstFlowReturn
+gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
+{
+  GstSparrow *sparrow;
+  guint8 *data;
+  guint size;
+
+  sparrow = GST_SPARROW (base);
+
+  if (base->passthrough)
+    goto done;
+
+  data = GST_BUFFER_DATA (outbuf);
+  size = GST_BUFFER_SIZE (outbuf);
+
+  if (size != sparrow->size)
+    goto wrong_size;
+
+  gst_sparrow_planar411_ip (sparrow, data,
+      sparrow->height * GST_VIDEO_I420_Y_ROWSTRIDE (sparrow->width));
+
+done:
+  return GST_FLOW_OK;
+
+  /* ERRORS */
+wrong_size:
+  {
+    GST_ELEMENT_ERROR (sparrow, STREAM, FORMAT,
+        (NULL), ("Invalid buffer size %d, expected %d", size, sparrow->size));
+    return GST_FLOW_ERROR;
+  }
+}
+
+static gboolean
+plugin_init (GstPlugin * plugin)
+{
+  GST_DEBUG_CATEGORY_INIT (sparrow_debug, "sparrow", 0, "sparrow");
+
+  return gst_element_register (plugin, "sparrow", GST_RANK_NONE, GST_TYPE_SPARROW);
+}
+
+GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
     "sparrow",
-    "Obliterate with sparrows",
-    sparrow_init,
-    VERSION,
-    "LGPL",
-    "GStreamer",
-    "http://gstreamer.net/"
-)
+    "Changes sparrow on video images",
+    plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN);
