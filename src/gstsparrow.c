@@ -102,6 +102,11 @@ static void gst_sparrow_RGB_ip (GstSparrow * sparrow, guint8 * data, gint size);
 
 GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
 
+/* plugin_init    - registers plugin (once)
+   XXX_base_init  - for the gobject class (once)
+   XXX_class_init - for global state (once)
+   XXX_init       - for each plugin instance
+*/
 
 static void
 gst_sparrow_base_init (gpointer g_class)
@@ -109,9 +114,9 @@ gst_sparrow_base_init (gpointer g_class)
   GstElementClass *element_class = GST_ELEMENT_CLASS (g_class);
 
   gst_element_class_set_details_simple (element_class, "Video sparrow correction",
-					"Filter/Effect/Video",
-					"Adds sparrows to a video stream",
-					"Douglas Bagnall <douglas@halo.gen.nz>");
+      "Filter/Effect/Video",
+      "Adds sparrows to a video stream",
+      "Douglas Bagnall <douglas@halo.gen.nz>");
 
   gst_element_class_add_pad_template (element_class,
       gst_static_pad_template_get (&sink_factory));
@@ -227,6 +232,7 @@ simple_negation(guint8 * bytes, guint size){
 static void
 gamma_negation(guint8 * bytes, guint size){
   guint i;
+  //XXX  could try oil_tablelookup_u8
   for (i = 0; i < size; i++){
     bytes[i] = sparrow_rgb_gamma_full_range_REVERSE[bytes[i]];
   }
