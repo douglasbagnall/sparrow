@@ -37,11 +37,13 @@
 #include <gst/video/gstvideofilter.h>
 #include <gst/video/video.h>
 
+/*
 #ifdef HAVE_LIBOIL
 #include <liboil/liboil.h>
 #include <liboil/liboilcpu.h>
 #include <liboil/liboilfunction.h>
 #endif
+*/
 
 #include <string.h>
 #include <math.h>
@@ -183,32 +185,6 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
   }
 }
 
-
-#ifndef HAVE_LIBOIL
-static void
-oil_tablelookup_u8 (guint8 * dest, int dstr, guint8 * src, int sstr,
-    guint8 * table, int tstr, int n)
-{
-  int i;
-
-  for (i = 0; i < n; i++) {
-    *dest = table[*src * tstr];
-    dest += dstr;
-    src += sstr;
-  }
-}
-#endif
-
-/* Useful macros */
-#define GST_VIDEO_I420_Y_ROWSTRIDE(width) (GST_ROUND_UP_4(width))
-#define GST_VIDEO_I420_U_ROWSTRIDE(width) (GST_ROUND_UP_8(width)/2)
-#define GST_VIDEO_I420_V_ROWSTRIDE(width) ((GST_ROUND_UP_8(GST_VIDEO_I420_Y_ROWSTRIDE(width)))/2)
-
-#define GST_VIDEO_I420_Y_OFFSET(w,h) (0)
-#define GST_VIDEO_I420_U_OFFSET(w,h) (GST_VIDEO_I420_Y_OFFSET(w,h)+(GST_VIDEO_I420_Y_ROWSTRIDE(w)*GST_ROUND_UP_2(h)))
-#define GST_VIDEO_I420_V_OFFSET(w,h) (GST_VIDEO_I420_U_OFFSET(w,h)+(GST_VIDEO_I420_U_ROWSTRIDE(w)*GST_ROUND_UP_2(h)/2))
-#define GST_VIDEO_I420_SIZE(w,h)     (GST_VIDEO_I420_V_OFFSET(w,h)+(GST_VIDEO_I420_V_ROWSTRIDE(w)*GST_ROUND_UP_2(h)/2))
-
 static gboolean
 gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
     GstCaps * outcaps)
@@ -229,16 +205,21 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   if (!res)
     goto done;
 
-  this->size = GST_VIDEO_I420_SIZE (this->width, this->height);
+  this->size = this->width * this->height * 4;
 
 done:
   return res;
 }
 
+
 static void
-gst_sparrow_planar411_ip (GstSparrow * sparrow, guint8 * data, gint size)
-{
-  oil_tablelookup_u8 (data, 1, data, 1, sparrow->sparrow_table, 1, size);
+simple_negation(guint8 * bytes, guint size){
+  guint i;
+  guint32 * data = (guint32 *)bytes;
+  //could use sse for superspeed
+  for (i = 0; i < size / 4; i++){
+    data[i] = ~data[i];
+  }
 }
 
 static GstFlowReturn
@@ -259,8 +240,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   if (size != sparrow->size)
     goto wrong_size;
 
-  gst_sparrow_planar411_ip (sparrow, data,
-      sparrow->height * GST_VIDEO_I420_Y_ROWSTRIDE (sparrow->width));
+  simple_negation(data, size);
 
 done:
   return GST_FLOW_OK;
@@ -273,6 +253,7 @@ wrong_size:
     return GST_FLOW_ERROR;
   }
 }
+
 
 static gboolean
 plugin_init (GstPlugin * plugin)
