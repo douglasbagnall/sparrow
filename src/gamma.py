@@ -20,6 +20,30 @@ def gamma_table(start=0, stop=256, gamma=0.45):
     return lut
 
 
+def srgb_to_linear_table():
+    lut = []
+    a = 0.055
+    for point in range(256):
+        p = point / 255.0
+        if p <= 0.4545:
+            p /= 12.92
+        else:
+            p = ((p + a) / (1 + a)) ** 2.4
+        lut.append(int(p * 255))
+    return lut
+
+def linear_to_srgb_table():
+    lut = []
+    a = 0.055
+    for point in range(256):
+        p = point / 255.0
+        if p <= 0.0031308:
+            p *= 12.92
+        else:
+            p = (1 + a) * (p ** (1 / 2.4)) - a
+        lut.append(int(p * 255))
+    return lut
+
 
 def cformat(table, name="SOME_TABLE", wrap=75):
     table = list(table)
