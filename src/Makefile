@@ -239,10 +239,18 @@ sparrow_gamma_lut.h: gamma.py
 gstsparrow.c: sparrow_gamma_lut.h
 
 test: all
-#	gst-launch  --gst-plugin-path=/usr/local/lib/gstreamer-0.10 v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
 	gst-launch  --gst-plugin-path=.libs v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
 
+test-pattern: all
+	gst-launch  --gst-plugin-path=.libs videotestsrc ! ffmpegcolorspace  ! sparrow ! ximagesink
 
+#TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
+TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
+
+test-file: all
+	gst-launch  --gst-plugin-path=/usr/local/lib/gstreamer-0.10 \
+	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
+	! ffmpegcolorspace ! sparrow ! ximagesink
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -551,7 +559,8 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-pluginLTLIBRARIES
+	tags uninstall uninstall-am uninstall-pluginLTLIBRARIES \
+	test test-pattern test-file
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
