@@ -37,6 +37,8 @@
 #include <gst/video/gstvideofilter.h>
 #include <gst/video/video.h>
 
+#include "sparrow_gamma_lut.h"
+
 /*
 #ifdef HAVE_LIBOIL
 #include <liboil/liboil.h>
@@ -222,6 +224,15 @@ simple_negation(guint8 * bytes, guint size){
   }
 }
 
+static void
+gamma_negation(guint8 * bytes, guint size){
+  guint i;
+  for (i = 0; i < size; i++){
+    bytes[i] = sparrow_rgb_gamma_full_range_REVERSE[bytes[i]];
+  }
+}
+
+
 static GstFlowReturn
 gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 {
@@ -240,7 +251,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   if (size != sparrow->size)
     goto wrong_size;
 
-  simple_negation(data, size);
+  gamma_negation(data, size);
 
 done:
   return GST_FLOW_OK;

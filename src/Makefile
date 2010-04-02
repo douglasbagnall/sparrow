@@ -230,8 +230,19 @@ libgstsparrow_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstsparrow_la_LIBTOOLFLAGS = --tag=disable-static
 
 # headers we need but don't want installed
-noinst_HEADERS = gstsparrow.h sparrowconfig.h
+noinst_HEADERS = gstsparrow.h sparrowconfig.h sparrow_gamma_lut.h
 all: all-am
+
+sparrow_gamma_lut.h: gamma.py
+	python $< > $@
+
+gstsparrow.c: sparrow_gamma_lut.h
+
+test: all
+#	gst-launch  --gst-plugin-path=/usr/local/lib/gstreamer-0.10 v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
+	gst-launch  --gst-plugin-path=.libs v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
+
+
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
