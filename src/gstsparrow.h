@@ -1,8 +1,9 @@
 /* GStreamer
  * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
  * Copyright (C) <2003> David Schleef <ds@schleef.org>
- * Copyright (C) 2003 Arwed v. Merkatz <v.merkatz@gmx.net>
- * Copyright (C) 2006 Mark Nauwelaerts <manauw@skynet.be>
+ * Copyright (C) <2003> Arwed v. Merkatz <v.merkatz@gmx.net>
+ * Copyright (C) <2006> Mark Nauwelaerts <manauw@skynet.be>
+ * Copyright (C) <2010> Douglas Bagnall <douglas@halo.gen.nz>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -59,10 +60,7 @@ struct _GstSparrow
   gint size;
 
   /* properties */
-  double sparrow;
-
   /* tables */
-  guint8 sparrow_table[256];
 };
 
 struct _GstSparrowClass
