@@ -64,10 +64,11 @@ enum
 enum
 {
   PROP_0,
-  PROP_SILENT
+  PROP_CALIBRATE
       /* FILL ME */
 };
 
+#define DEFAULT_PROP_CALIBRATE FALSE
 
 /* the capabilities of the inputs and outputs.
  *
@@ -136,12 +137,10 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
   gobject_class->set_property = gst_sparrow_set_property;
   gobject_class->get_property = gst_sparrow_get_property;
 
-  /*
-  g_object_class_install_property (gobject_class, PROP_SPARROW,
-				   g_param_spec_double ("sparrow", "Sparrow", "sparrow",
-							0.01, 10, DEFAULT_PROP_SPARROW,
-							G_PARAM_READWRITE));
-  */
+  g_object_class_install_property (gobject_class, PROP_CALIBRATE,
+      g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection",
+          DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
   trans_class->transform_ip = GST_DEBUG_FUNCPTR (gst_sparrow_transform_ip);
 }
@@ -163,8 +162,10 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
 
   GST_DEBUG ("gst_sparrow_set_property");
   switch (prop_id) {
-  case PROP_SILENT:
-      //do something;
+  case PROP_CALIBRATE:
+      sparrow->calibrate = g_value_get_boolean (value);
+      g_print ("Calibrate argument was changed to %s\n",
+	       sparrow->calibrate ? "true" : "false");
       break;
   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -182,10 +183,9 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
   sparrow = GST_SPARROW (object);
 
   switch (prop_id) {
-    /*case PROP_SPARROW:
-      g_value_set_double (value, sparrow->sparrow);
+    case PROP_CALIBRATE:
+      g_value_set_boolean (value, sparrow->calibrate);
       break;
-    */
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;

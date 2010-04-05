@@ -60,6 +60,7 @@ struct _GstSparrow
   gint size;
 
   /* properties */
+  gint calibrate;
   /* tables */
 };
 
