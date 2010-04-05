@@ -238,19 +238,33 @@ sparrow_gamma_lut.h: gamma.py
 
 gstsparrow.c: sparrow_gamma_lut.h
 
+TEST_GST_ARGS =   --gst-plugin-path=.libs --gst-debug=myelement:5
+
 test: all
-	gst-launch  --gst-plugin-path=.libs v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow ! xvimagesink
 
 test-pattern: all
-	gst-launch  --gst-plugin-path=.libs videotestsrc ! ffmpegcolorspace  ! sparrow ! ximagesink
+	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow ! ximagesink
 
 #TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
 TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 
 test-file: all
-	gst-launch  --gst-plugin-path=/usr/local/lib/gstreamer-0.10 \
+	gst-launch $(TEST_GST_ARGS) \
 	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
-	! ffmpegcolorspace ! sparrow ! ximagesink
+	! ffmpegcolorspace ! sparrow ! autovideosink
+
+#show filtered and unfiltered video side by side
+test-tee: all
+	gst-launch  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
+	! queue ! ffmpegcolorspace  ! sparrow ! ximagesink \
+	vid2. ! queue ! ffmpegcolorspace ! ximagesink
+
+test-tee2: all
+	gst-launch  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
+	! queue  ! sparrow ! xvimagesink \
+	vid2. ! queue ! fdsink  | \
+	gst-launch fdsrc ! queue !  fakesink #xvimagesink
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
