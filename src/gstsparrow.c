@@ -77,15 +77,17 @@ enum
 static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_BGRx "; " GST_VIDEO_CAPS_RGBx ";"
-        GST_VIDEO_CAPS_xBGR "; " GST_VIDEO_CAPS_xRGB)
+    GST_STATIC_CAPS (
+      GST_VIDEO_CAPS_xBGR "; " GST_VIDEO_CAPS_xRGB "; "
+      GST_VIDEO_CAPS_BGRx "; " GST_VIDEO_CAPS_RGBx)
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_BGRx "; " GST_VIDEO_CAPS_RGBx ";"
-        GST_VIDEO_CAPS_xBGR "; " GST_VIDEO_CAPS_xRGB)
+    GST_STATIC_CAPS (
+      GST_VIDEO_CAPS_xBGR "; " GST_VIDEO_CAPS_xRGB "; "
+      GST_VIDEO_CAPS_BGRx "; " GST_VIDEO_CAPS_RGBx)
     );
 
 
