@@ -45,10 +45,14 @@ def linear_to_srgb_table():
     return lut
 
 
-def cformat(table, name="SOME_TABLE", wrap=75):
+def cformat(table, name="SOME_TABLE", wrap=75, unused=True):
     table = list(table)
-    outs = ["static guint8 %s [%s] = {" % (name, len(table)),
-            '    %s' % table[0]]
+    outs = []
+    if unused:
+        outs.append('UNUSED')
+
+    outs.extend(("static guint8 %s [%s] = {" % (name, len(table)),
+                 '    %s' % table[0]))
     for v in table[1:]:
         if len(outs[-1]) >= wrap:
             outs[-1] += ','

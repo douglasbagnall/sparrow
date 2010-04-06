@@ -29,6 +29,8 @@
 
 #include "sparrowconfig.h"
 
+#define UNUSED __attribute__ ((unused))
+
 G_BEGIN_DECLS
 
 #define GST_TYPE_SPARROW \

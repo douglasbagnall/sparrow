@@ -99,7 +99,7 @@ static gboolean gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 static GstFlowReturn gst_sparrow_transform_ip (GstBaseTransform * transform,
     GstBuffer * buf);
 
-static void gst_sparrow_RGB_ip (GstSparrow * sparrow, guint8 * data, gint size);
+//static void gst_sparrow_RGB_ip (GstSparrow * sparrow, guint8 * data, gint size);
 
 GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
 
@@ -218,7 +218,7 @@ done:
   return res;
 }
 
-
+UNUSED
 static void
 simple_negation(guint8 * bytes, guint size){
   guint i;
