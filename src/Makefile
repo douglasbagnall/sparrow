@@ -6,7 +6,7 @@ ALL_CFLAGS = $(CFLAGS)   -O3 -Wall -pipe  -DHAVE_CONFIG_H $(INCLUDES)
 ALL_LDFLAGS = $(LDFLAGS)
 
 
-GST_LIBS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0  
+GST_LIBS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0
 GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex _*\(gst_\|Gst\|GST_\).*
 
 
@@ -16,10 +16,11 @@ AR = ar
 INSTALL = install
 
 
-GST_SHARED = /usr/lib/libgstbase-0.10.so /usr/lib/libgstcontroller-0.10.so \
-	/usr/lib/libgstreamer-0.10.so /usr/lib/libgobject-2.0.so /usr/lib/libgmodule-2.0.so\
-	 /usr/lib/libgthread-2.0.so -lrt /usr/lib/libxml2.so /usr/lib/libglib-2.0.so 
-GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2 
+#GST_SHARED = /usr/lib/libgstbase-0.10.so /usr/lib/libgstcontroller-0.10.so \
+#	/usr/lib/libgstreamer-0.10.so /usr/lib/libgobject-2.0.so /usr/lib/libgmodule-2.0.so\
+#	 /usr/lib/libgthread-2.0.so -lrt /usr/lib/libxml2.so /usr/lib/libglib-2.0.so
+
+GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
 INCLUDES = -I. -I..  $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.3
 
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
@@ -28,9 +29,9 @@ LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o 
+libgstsparrow.so: gstsparrow.o
 	$(CC) -shared -Wl,-O1 $< $(GST_SHARED)  $(INCLUDES) $(LINKS) -Wl,-soname -Wl,$@ \
-	  -o $@ 
+	  -o $@
 
 clean:
 	rm -f *.so *.o *.a *.la
@@ -45,12 +46,10 @@ sparrow_gamma_lut.h: gamma.py
 gstsparrow.c: sparrow_gamma_lut.h
 
 
-
-
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=myelement:5
 
 test: all
-	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow ! xvimagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
 
 test-pattern: all
 	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow ! ximagesink
@@ -61,7 +60,7 @@ TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 test-file: all
 	gst-launch $(TEST_GST_ARGS) \
 	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
-	! ffmpegcolorspace ! sparrow ! xvimagesink
+	! ffmpegcolorspace ! sparrow ! ximagesink
 
 #show filtered and unfiltered video side by side
 test-tee: all
@@ -71,9 +70,9 @@ test-tee: all
 
 test-tee2: all
 	gst-launch  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
-	! queue  ! sparrow ! xvimagesink \
+	! queue  ! sparrow ! ximagesink \
 	vid2. ! queue ! fdsink  | \
-	gst-launch fdsrc ! queue !  fakesink #xvimagesink
+	gst-launch fdsrc ! queue !  ximagesink
 
 
 
