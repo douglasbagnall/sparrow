@@ -13,4 +13,9 @@ missing
 stamp-*
 my-plugin-*.tar.*
 *~
-
+*.d
+*.pyc
+TAGS
+.deps
+.libs
+.emacs*
