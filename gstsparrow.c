@@ -165,9 +165,8 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   GST_DEBUG ("gst_sparrow_set_property");
   switch (prop_id) {
   case PROP_CALIBRATE:
-      sparrow->calibrate = g_value_get_boolean (value);
-      g_print ("Calibrate argument was changed to %s\n",
-	       sparrow->calibrate ? "true" : "false");
+      sparrow->calibrate = g_value_get_boolean(value);
+      g_print ("Calibrate argument is %d\n", sparrow->calibrate);
       break;
   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -216,6 +215,9 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 
   this->size = this->width * this->height * 4;
 
+  g_print ("Calibrate is %d\n", this->calibrate);
+
+
 done:
   return res;
 }
@@ -241,6 +243,18 @@ gamma_negation(guint8 * bytes, guint size){
 }
 
 
+static guint32 calibrate_offset = 1;
+
+static void
+calibrate(guint8 * bytes, GstSparrow *sparrow){
+  memset(bytes, 0, sparrow->size);
+  calibrate_offset = ((calibrate_offset + 3) * 11) % sparrow->height;
+  memset(bytes + sparrow->width * calibrate_offset * 4,
+    255, sparrow->width * 4);
+}
+
+
+
 static GstFlowReturn
 gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 {
@@ -259,8 +273,12 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   if (size != sparrow->size)
     goto wrong_size;
 
-  gamma_negation(data, size);
-
+  if (sparrow->calibrate){
+    calibrate(data, sparrow);
+  }
+  else {
+    gamma_negation(data, size);
+  }
 done:
   return GST_FLOW_OK;
 
