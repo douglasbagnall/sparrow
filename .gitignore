@@ -1,17 +1,4 @@
-aclocal.m4
-autom4te.cache
-autoregen.sh
-config.*
-configure
-libtool
 INSTALL
-Makefile.in
-depcomp
-install-sh
-ltmain.sh
-missing
-stamp-*
-my-plugin-*.tar.*
 *~
 *.d
 *.pyc
@@ -19,3 +6,4 @@ TAGS
 .deps
 .libs
 .emacs*
+junk/

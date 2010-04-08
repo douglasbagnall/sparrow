@@ -74,5 +74,6 @@ test-tee2: all
 	vid2. ! queue ! fdsink  | \
 	gst-launch fdsrc ! queue !  ximagesink
 
-
+TAGS:
+	etags *.c *.h
 
