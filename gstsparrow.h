@@ -25,9 +25,12 @@
 #ifndef __GST_VIDEO_SPARROW_H__
 #define __GST_VIDEO_SPARROW_H__
 
+#define DSFMT_MEXP 19937
+
 #include <gst/video/gstvideofilter.h>
 
 #include "sparrowconfig.h"
+#include "dSFMT/dSFMT.h"
 
 #define UNUSED __attribute__ ((unused))
 
@@ -64,6 +67,10 @@ struct _GstSparrow
   /* properties */
   gint calibrate;
   /* tables */
+
+  /* stuff */
+  dsfmt_t dsfmt __attribute__ ((aligned));
+  gboolean rng_has_init = FALSE;
 };
 
 struct _GstSparrowClass
@@ -73,6 +80,19 @@ struct _GstSparrowClass
 
 GType gst_sparrow_get_type(void);
 
-G_END_DECLS
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+G_END_DECLS
 #endif /* __GST_VIDEO_SPARROW_H__ */

@@ -222,6 +222,40 @@ done:
   return res;
 }
 
+/*RNG code */
+
+/*seed with -1 for automatic seed choice */
+static void rng_init(GstSparrow *sparrow, unsigned int seed){
+    if (seed == -1)
+	seed = (unsigned int) time(0) + (unsigned int) clock();
+    if (seed == 0)
+	seed = 12345;
+    dsfmt_init_gen_rand(&(sparrow->dsfmt), seed);
+    sparrow->rng_has_init = TRUE;
+}
+
+static UNUSED void
+rng_maybe_init(GstSparrow *sparrow, unsigned int seed){
+    if (! sparrow->rng_has_init)
+      rng_init(sparrow, seed);
+}
+
+static inline UNUSED gint32
+rng_uniform_int(GstSparrow *sparrow, int limit){
+  return (gint32) (dsfmt_genrand_close_open(&(sparrow->dsfmt)) * limit);
+}
+
+static inline UNUSED double
+rng_uniform_double(GstSparrow *sparrow, double limit){
+    return dsfmt_genrand_close_open(&(sparrow->dsfmt)) * limit;
+}
+
+#define rng_uniform() dsfmt_genrand_close_open(&(sparrow->dsfmt))
+
+
+
+/* here we go */
+
 UNUSED
 static void
 simple_negation(guint8 * bytes, guint size){
