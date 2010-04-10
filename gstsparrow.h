@@ -59,10 +59,13 @@ struct _GstSparrow
 {
   GstVideoFilter videofilter;
 
+
   /* format */
   gint width;
   gint height;
   gint size;
+
+  guint32 calibrate_offset = 1;
 
   /* properties */
   gint calibrate;

@@ -101,7 +101,6 @@ static gboolean gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 static GstFlowReturn gst_sparrow_transform_ip (GstBaseTransform * transform,
     GstBuffer * buf);
 
-//static void gst_sparrow_RGB_ip (GstSparrow * sparrow, guint8 * data, gint size);
 
 GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
 
@@ -277,16 +276,13 @@ gamma_negation(guint8 * bytes, guint size){
 }
 
 
-static guint32 calibrate_offset = 1;
-
 static void
-calibrate(guint8 * bytes, GstSparrow *sparrow){
+calibrate(guint8 * bytes, GstSparrow * sparrow){
   memset(bytes, 0, sparrow->size);
-  calibrate_offset = ((calibrate_offset + 3) * 11) % sparrow->height;
-  memset(bytes + sparrow->width * calibrate_offset * 4,
+  calibrate_offset = ((sparrow->calibrate_offset + 3) * 11) % sparrow->height;
+  memset(bytes + sparrow->width * sparrow->calibrate_offset * 4,
     255, sparrow->width * 4);
 }
-
 
 
 static GstFlowReturn
