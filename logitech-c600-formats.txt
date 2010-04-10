@@ -1,0 +1,38 @@
+0x0808 9 Logitech Webcam C600
+         Format   Resolution  Maximum frame rate
+         MJPG     1600x1200   10 fps
+                  1600x1000   10 fps
+                  1600x904    10 fps
+                  1280x800    25 fps
+                  1280x720    30 fps
+                  960x720     30 fps
+                  864x480     30 fps
+                  800x600     30 fps
+                  800x504     30 fps
+                  800x456     30 fps
+                  768x480     30 fps
+                  640x480     30 fps
+                  640x400     30 fps
+                  640x360     30 fps
+                  352x288     30 fps
+                  320x240     30 fps
+                  176x144     30 fps
+                  160x120     30 fps
+         YUYV     1600x1200   5 fps
+                  1600x1000   5 fps
+                  1600x904    5 fps
+                  1280x800    7.5 fps
+                  1280x720    7.5 fps
+                  960x720     15 fps
+                  864x480     25 fps
+                  800x600     25 fps
+                  800x504     25 fps
+                  800x456     25 fps
+                  768x480     25 fps
+                  640x480     30 fps
+                  640x400     30 fps
+                  640x360     30 fps
+                  352x288     30 fps
+                  320x240     30 fps
+                  176x144     30 fps
+                  160x120     30 fps
