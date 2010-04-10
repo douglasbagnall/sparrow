@@ -21,7 +21,7 @@ INSTALL = install
 #	 /usr/lib/libgthread-2.0.so -lrt /usr/lib/libxml2.so /usr/lib/libglib-2.0.so
 
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
-INCLUDES = -I. -I..  $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.3
+INCLUDES = -I.   $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.3
 
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10
@@ -34,7 +34,7 @@ libgstsparrow.so: gstsparrow.o
 	  -o $@
 
 clean:
-	rm -f *.so *.o *.a *.la
+	rm -f *.so *.o *.a
 
 .c.o:
 	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
@@ -60,7 +60,7 @@ TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 test-file: all
 	gst-launch $(TEST_GST_ARGS) \
 	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
-	! ffmpegcolorspace ! sparrow ! ximagesink
+	! ffmpegcolorspace ! sparrow $(TEST_OPTIONS) ! ximagesink
 
 #show filtered and unfiltered video side by side
 test-tee: all
@@ -74,6 +74,9 @@ test-tee2: all
 	vid2. ! queue ! fdsink  | \
 	gst-launch fdsrc ! queue !  ximagesink
 
-TAGS:
-	etags *.c *.h
 
+TAGS:
+	$(RM) TAGS
+	find  -name "*.[ch]" | xargs etags -a
+
+.PHONY: TAGS all
