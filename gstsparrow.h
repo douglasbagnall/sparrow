@@ -105,6 +105,12 @@ struct _GstSparrow
   /* stuff */
   gboolean rng_has_init;
   dsfmt_t dsfmt __attribute__ ((aligned));
+
+  gint calibrate_x;
+  gint calibrate_y;
+  gint calibrate_size;
+  gint calibrate_state;
+  gint calibrate_wait;
 };
 
 struct _GstSparrowClass

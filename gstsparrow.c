@@ -238,7 +238,7 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   if (!res)
     goto done;
 
-  this->size = this->width * this->height * 4;
+  this->size = this->width * this->height * PIXSIZE;
 
   LOG("Calibrate is %d\n", this->calibrate);
 
@@ -266,9 +266,13 @@ rng_maybe_init(GstSparrow *sparrow, unsigned int seed){
       rng_init(sparrow, seed);
 }
 
-static inline UNUSED gint32
-rng_uniform_int(GstSparrow *sparrow, int limit){
-  return (gint32) (dsfmt_genrand_close_open(&(sparrow->dsfmt)) * limit);
+static inline UNUSED guint32
+rng_uniform_int(GstSparrow *sparrow, guint32 limit){
+  double d = dsfmt_genrand_close_open(&(sparrow->dsfmt));
+  double d2 = d * limit;
+  guint32 i = (guint32)d2;
+  LOG("RNG int between 0 and %u: %u (from %f, %f)\n", limit, i, d2, d);
+  return i;
 }
 
 static inline UNUSED double
@@ -302,13 +306,41 @@ gamma_negation(guint8 * bytes, guint size){
   }
 }
 
+#define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
+
+static void calibrate_new_state(GstSparrow *sparrow){
+  sparrow->calibrate_size = RANDINT(sparrow, 1, 8);
+  sparrow->calibrate_x  = RANDINT(sparrow, 0, sparrow->width - sparrow->calibrate_size);
+  sparrow->calibrate_y  = RANDINT(sparrow, 0, sparrow->height - sparrow->calibrate_size);
+  sparrow->calibrate_state = ! sparrow->calibrate_state;
+  sparrow->calibrate_wait = RANDINT(sparrow, 4, 25);
+
+  LOG("Calibrate:\nsize: %d\nx: %d\ny: %d\nstate: %d\nwait: %d",
+      sparrow->calibrate_size,
+      sparrow->calibrate_x,
+      sparrow->calibrate_y,
+      sparrow->calibrate_state,
+      sparrow->calibrate_wait);
+
+}
+
 
 static void
 calibrate(guint8 * bytes, GstSparrow * sparrow){
   memset(bytes, 0, sparrow->size);
-  calibrate_offset = ((sparrow->calibrate_offset + 3) * 11) % sparrow->height;
-  memset(bytes + sparrow->width * sparrow->calibrate_offset * 4,
-    255, sparrow->width * 4);
+  guint y;
+  if (! sparrow->calibrate_wait){
+    calibrate_new_state(sparrow);
+  }
+  sparrow->calibrate_wait--;
+  if (sparrow->calibrate_state){
+    guint stride = sparrow->width * PIXSIZE;
+    guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
+    for(y = 0; y < sparrow->calibrate_size; y++){
+      memset(line, 255, sparrow->calibrate_size * PIXSIZE);
+      line += stride;
+    }
+  }
 }
 
 
