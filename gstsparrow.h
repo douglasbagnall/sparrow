@@ -34,6 +34,37 @@
 
 #define UNUSED __attribute__ ((unused))
 
+
+#ifdef GST_DISABLE_GST_DEBUG
+
+#undef GEST_DEBUG
+
+static FILE *_sparrow_bloody_debug_flags = NULL;
+
+static void
+LOG(char *msg, ...){
+  if (! _sparrow_bloody_debug_flags){
+    _sparrow_bloody_debug_flags = fopen("/tmp/sparrow.log", "wb");
+    if (! _sparrow_bloody_debug_flags){
+      exit(1);
+    }
+  }
+  va_list argp;
+  va_start(argp, msg);
+  vfprintf(_sparrow_bloody_debug_flags, msg, argp);
+  va_end(argp);
+  fflush(_sparrow_bloody_debug_flags);
+}
+
+#else
+#define LOG GST_DEBUG
+#endif
+
+    //#define LOG(format, ...) fprintf (stderr, (format),## __VA_ARGS__); fflush(stderr);
+#define LOG_LINENO() LOG("%-25s  line %4d \n", __func__, __LINE__ );
+
+#define PIXSIZE 4
+
 G_BEGIN_DECLS
 
 #define GST_TYPE_SPARROW \
