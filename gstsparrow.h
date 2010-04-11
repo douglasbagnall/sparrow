@@ -25,12 +25,15 @@
 #ifndef __GST_VIDEO_SPARROW_H__
 #define __GST_VIDEO_SPARROW_H__
 
-#define DSFMT_MEXP 19937
-
 #include <gst/video/gstvideofilter.h>
 
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
+
+G_BEGIN_DECLS
+
+#define DSFMT_MEXP 19937
+
 
 #define UNUSED __attribute__ ((unused))
 
@@ -64,8 +67,6 @@ LOG(char *msg, ...){
 #define LOG_LINENO() LOG("%-25s  line %4d \n", __func__, __LINE__ );
 
 #define PIXSIZE 4
-
-G_BEGIN_DECLS
 
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
