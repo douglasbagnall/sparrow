@@ -43,7 +43,6 @@ G_BEGIN_DECLS
 #undef GEST_DEBUG
 
 static FILE *_sparrow_bloody_debug_flags = NULL;
-
 static void
 LOG(char *msg, ...){
   if (! _sparrow_bloody_debug_flags){
@@ -59,12 +58,11 @@ LOG(char *msg, ...){
   fflush(_sparrow_bloody_debug_flags);
 }
 
-#else
-#define LOG GST_DEBUG
+#define GST_DEBUG LOG
 #endif
 
     //#define LOG(format, ...) fprintf (stderr, (format),## __VA_ARGS__); fflush(stderr);
-#define LOG_LINENO() LOG("%-25s  line %4d \n", __func__, __LINE__ );
+#define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
 
 #define PIXSIZE 4
 

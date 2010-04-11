@@ -15,7 +15,8 @@ CC = gcc
 AR = ar
 INSTALL = install
 
-export GST_DEBUG = sparrow:5
+export GST_DEBUG = sparrow:4
+#export GST_PLUGIN_PATH = .
 
 #GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2

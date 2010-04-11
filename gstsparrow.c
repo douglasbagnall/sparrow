@@ -142,7 +142,7 @@ gst_sparrow_base_init (gpointer g_class)
       gst_static_pad_template_get (&sink_factory));
   gst_element_class_add_pad_template (element_class,
       gst_static_pad_template_get (&src_factory));
-  LOG("gst base init\n");
+  GST_INFO("gst base init\n");
 
 }
 
@@ -164,15 +164,16 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
 
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
   trans_class->transform_ip = GST_DEBUG_FUNCPTR (gst_sparrow_transform_ip);
-  LOG("gst class init\n");
+  GST_INFO("gst class init\n");
 }
 
 static void
 gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
-  LOG("gst sparrow init\n");
+  GST_INFO("gst sparrow init\n");
   rng_init(sparrow, -1);
   GST_DEBUG_OBJECT (sparrow, "gst_sparrow_init");
+  sparrow->calibrate = 1;
   sparrow->calibrate_offset = 1;
   sparrow->calibrate_wait = 0;
   //calibrate_new_state(sparrow);
@@ -187,11 +188,11 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   g_return_if_fail (GST_IS_SPARROW (object));
   sparrow = GST_SPARROW (object);
 
-  LOG("gst_sparrow_set_property\n");
+  GST_DEBUG("gst_sparrow_set_property\n");
   switch (prop_id) {
   case PROP_CALIBRATE:
       sparrow->calibrate = g_value_get_boolean(value);
-      LOG("Calibrate argument is %d\n", sparrow->calibrate);
+      GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
       break;
   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -240,7 +241,7 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 
   this->size = this->width * this->height * PIXSIZE;
 
-  LOG("Calibrate is %d\n", this->calibrate);
+  GST_INFO("Calibrate is %d\n", this->calibrate);
 
 
 done:
@@ -257,7 +258,7 @@ static void rng_init(GstSparrow *sparrow, unsigned int seed){
 	seed = 12345;
     dsfmt_init_gen_rand(&(sparrow->dsfmt), seed);
     sparrow->rng_has_init = TRUE;
-    LOG("RNG seeded with %u\n", seed);
+    GST_DEBUG("RNG seeded with %u\n", seed);
 }
 
 static UNUSED void
@@ -271,7 +272,7 @@ rng_uniform_int(GstSparrow *sparrow, guint32 limit){
   double d = dsfmt_genrand_close_open(&(sparrow->dsfmt));
   double d2 = d * limit;
   guint32 i = (guint32)d2;
-  LOG("RNG int between 0 and %u: %u (from %f, %f)\n", limit, i, d2, d);
+  //GST_DEBUG("RNG int between 0 and %u: %u (from %f, %f)\n", limit, i, d2, d);
   return i;
 }
 
@@ -315,7 +316,7 @@ static void calibrate_new_state(GstSparrow *sparrow){
   sparrow->calibrate_state = ! sparrow->calibrate_state;
   sparrow->calibrate_wait = RANDINT(sparrow, 4, 25);
 
-  LOG("Calibrate:\nsize: %d\nx: %d\ny: %d\nstate: %d\nwait: %d",
+  GST_DEBUG("Calibrate:\nsize: %d\nx: %d\ny: %d\nstate: %d\nwait: %d",
       sparrow->calibrate_size,
       sparrow->calibrate_x,
       sparrow->calibrate_y,
@@ -350,7 +351,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   GstSparrow *sparrow;
   guint8 *data;
   guint size;
-  //LOG("doing transform\n");
+  //GST_DEBUG("doing transform\n");
   sparrow = GST_SPARROW (base);
 
   if (base->passthrough)
@@ -385,7 +386,7 @@ static gboolean
 plugin_init (GstPlugin * plugin)
 {
   GST_DEBUG_CATEGORY_INIT (sparrow_debug, "sparrow", 0, "sparrow");
-  LOG("gst plugin init\n");
+  GST_INFO("gst plugin init\n");
 
   return gst_element_register (plugin, "sparrow", GST_RANK_NONE, GST_TYPE_SPARROW);
 }
