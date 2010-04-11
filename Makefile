@@ -78,6 +78,12 @@ test-tee2: all
 
 TAGS:
 	$(RM) TAGS
-	find  -name "*.[ch]" | xargs etags -a
+#	find  -name "*.[ch]" | xargs etags -a
+	etags -R
 
-.PHONY: TAGS all
+.PHONY: TAGS all cproto
+
+cproto:
+	cproto $(INCLUDES) -DUNUSED='' -s *.c
+
+
