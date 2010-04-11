@@ -2,10 +2,10 @@ all::
 
 #CFLAGS =
 #LDFLAGS =
-ALL_CFLAGS = $(CFLAGS)  $(VECTOR_FLAGS) -O3 -Wall -pipe  -DHAVE_CONFIG_H $(INCLUDES)
+ALL_CFLAGS = $(CFLAGS)  $(VECTOR_FLAGS) -O3 -Wall -pipe   -DDSFMT_MEXP=19937 $(INCLUDES) 
 ALL_LDFLAGS = $(LDFLAGS)
 
-DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99   -DDSFMT_MEXP=19937
+DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99 
 
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2
 

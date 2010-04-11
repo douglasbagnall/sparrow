@@ -7,3 +7,6 @@ TAGS
 .libs
 .emacs*
 junk/
+*.o
+*.so
+dSFMT/test-*-M*
