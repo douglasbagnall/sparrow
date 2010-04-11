@@ -39,6 +39,24 @@
 
 #include "sparrow_gamma_lut.h"
 
+/* static_functions */
+static void gst_sparrow_base_init(gpointer g_class);
+static void gst_sparrow_class_init(GstSparrowClass *g_class);
+static void gst_sparrow_init(GstSparrow *sparrow, GstSparrowClass *g_class);
+static void gst_sparrow_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
+static void gst_sparrow_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
+static gboolean gst_sparrow_set_caps(GstBaseTransform *base, GstCaps *incaps, GstCaps *outcaps);
+static void rng_init(GstSparrow *sparrow, unsigned int seed);
+static void rng_maybe_init(GstSparrow *sparrow, unsigned int seed);
+static void simple_negation(guint8 *bytes, guint size);
+static void gamma_negation(guint8 *bytes, guint size);
+static void calibrate(guint8 *bytes, GstSparrow *sparrow);
+static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
+static gboolean plugin_init(GstPlugin *plugin);
+
+static void calibrate_new_state(GstSparrow *sparrow);
+
+
 /*
 #ifdef HAVE_LIBOIL
 #include <liboil/liboil.h>
