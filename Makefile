@@ -50,10 +50,11 @@ gstsparrow.c: sparrow_gamma_lut.h
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=myelement:5
 
 test: all
-	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow ! ximagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
 
 test-pattern: all
-	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow ! ximagesink
+	GST_DEBUG=sparrow:5 \
+	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
 
 #TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
 TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
@@ -66,12 +67,12 @@ test-file: all
 #show filtered and unfiltered video side by side
 test-tee: all
 	gst-launch  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
-	! queue ! ffmpegcolorspace  ! sparrow ! ximagesink \
+	! queue ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink \
 	vid2. ! queue ! ffmpegcolorspace ! ximagesink
 
 test-tee2: all
 	gst-launch  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
-	! queue  ! sparrow ! ximagesink \
+	! queue  ! sparrow $(TEST_OPTIONS) ! ximagesink \
 	vid2. ! queue ! fdsink  | \
 	gst-launch fdsrc ! queue !  ximagesink
 
