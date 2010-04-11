@@ -15,6 +15,7 @@ CC = gcc
 AR = ar
 INSTALL = install
 
+export GST_DEBUG = sparrow:5
 
 #GST_SHARED = /usr/lib/libgstbase-0.10.so /usr/lib/libgstcontroller-0.10.so \
 #	/usr/lib/libgstreamer-0.10.so /usr/lib/libgobject-2.0.so /usr/lib/libgmodule-2.0.so\
