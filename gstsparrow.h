@@ -96,15 +96,15 @@ struct _GstSparrow
   gint height;
   gint size;
 
-  guint32 calibrate_offset = 1;
+  guint32 calibrate_offset;
 
   /* properties */
   gint calibrate;
   /* tables */
 
   /* stuff */
+  gboolean rng_has_init;
   dsfmt_t dsfmt __attribute__ ((aligned));
-  gboolean rng_has_init = FALSE;
 };
 
 struct _GstSparrowClass
