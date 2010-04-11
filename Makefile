@@ -2,14 +2,17 @@ all::
 
 #CFLAGS =
 #LDFLAGS =
-ALL_CFLAGS = $(CFLAGS)   -O3 -Wall -pipe  -DHAVE_CONFIG_H $(INCLUDES)
+ALL_CFLAGS = $(CFLAGS)  $(VECTOR_FLAGS) -O3 -Wall -pipe  -DHAVE_CONFIG_H $(INCLUDES)
 ALL_LDFLAGS = $(LDFLAGS)
 
+DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99   -DDSFMT_MEXP=19937
 
+VECTOR_FLAGS = -msse2 -DHAVE_SSE2
 GST_LIBS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0
 GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex _*\(gst_\|Gst\|GST_\).*
 
 
+SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c
 
 CC = gcc
 AR = ar
@@ -27,15 +30,19 @@ INCLUDES = -I.   $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10
 
-
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o
-	$(CC) -shared -Wl,-O1 $< $(GST_SHARED)  $(INCLUDES) $(LINKS) -Wl,-soname -Wl,$@ \
+libgstsparrow.so: gstsparrow.o dSFMT/dSFMT.o
+	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
 clean:
-	rm -f *.so *.o *.a
+	rm -f *.so *.o *.a *.d
+	cd dSFMT && rm -f *.o
+
+
+dSFMT/dSFMT.o: dSFMT/dSFMT.c
+	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) $(VECTOR_FLAGS) $(DSFMT_FLAGS) -c -o $@ $<
 
 .c.o:
 	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
