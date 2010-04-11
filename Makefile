@@ -8,9 +8,6 @@ ALL_LDFLAGS = $(LDFLAGS)
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99   -DDSFMT_MEXP=19937
 
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2
-GST_LIBS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0
-GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex _*\(gst_\|Gst\|GST_\).*
-
 
 SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c
 
@@ -20,12 +17,9 @@ INSTALL = install
 
 export GST_DEBUG = sparrow:5
 
-#GST_SHARED = /usr/lib/libgstbase-0.10.so /usr/lib/libgstcontroller-0.10.so \
-#	/usr/lib/libgstreamer-0.10.so /usr/lib/libgobject-2.0.so /usr/lib/libgmodule-2.0.so\
-#	 /usr/lib/libgthread-2.0.so -lrt /usr/lib/libxml2.so /usr/lib/libglib-2.0.so
-
+#GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
-INCLUDES = -I.   $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.3
+INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/libxml2 -I/usr/include/liboil-0.3
 
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10
@@ -51,8 +45,7 @@ dSFMT/dSFMT.o: dSFMT/dSFMT.c
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
 
-gstsparrow.c: sparrow_gamma_lut.h
-
+gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=myelement:5
 
