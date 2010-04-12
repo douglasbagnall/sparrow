@@ -2,10 +2,10 @@ all::
 
 #CFLAGS =
 #LDFLAGS =
-ALL_CFLAGS = $(CFLAGS)  $(VECTOR_FLAGS) -O3 -Wall -pipe   -DDSFMT_MEXP=19937 $(INCLUDES) 
+ALL_CFLAGS = $(CFLAGS)  $(VECTOR_FLAGS) -O3 -Wall -pipe   -DDSFMT_MEXP=19937 $(INCLUDES)
 ALL_LDFLAGS = $(LDFLAGS)
 
-DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99 
+DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
 
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2
 
@@ -49,9 +49,10 @@ sparrow_gamma_lut.h: gamma.py
 gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=myelement:5
+TEST_V4L2_SHAPE = video/x-raw-yuv,width=640,height=480,framerate=25/1
 
 test: all
-	gst-launch $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
 
 test-pattern: all
 	GST_DEBUG=sparrow:5 \
