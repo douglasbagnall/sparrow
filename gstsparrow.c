@@ -254,13 +254,15 @@ done:
 /*RNG code */
 
 /*seed with -1 for automatic seed choice */
-static void rng_init(GstSparrow *sparrow, unsigned int seed){
-    if (seed == -1)
-	seed = (unsigned int) time(0) + (unsigned int) clock();
+static void rng_init(GstSparrow *sparrow, guint32 seed){
+    GST_DEBUG("in RNG init\n");
+    if (seed == -1){
+      //seed = 1271138028;
+      seed = (unsigned int) time(0) + (unsigned int) clock();
+    }
     if (seed == 0)
 	seed = 12345;
     dsfmt_init_gen_rand(&(sparrow->dsfmt), seed);
-    sparrow->rng_has_init = TRUE;
     GST_DEBUG("RNG seeded with %u\n", seed);
 }
 

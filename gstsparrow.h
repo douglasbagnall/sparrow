@@ -108,7 +108,6 @@ struct _GstSparrow
   /* tables */
 
   /* stuff */
-  gboolean rng_has_init;
   dsfmt_t dsfmt __attribute__ ((aligned));
 
   gint calibrate_x;
