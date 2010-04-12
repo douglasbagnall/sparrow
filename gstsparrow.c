@@ -169,13 +169,15 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
 static void
 gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
+  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%" GST_PTR_FORMAT, &(sparrow->dsfmt));
   GST_INFO("gst sparrow init\n");
+
   rng_init(sparrow, -1);
-  GST_DEBUG_OBJECT (sparrow, "gst_sparrow_init");
-  sparrow->calibrate = 1;
+  sparrow->state = SPARROW_INIT;
+  sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
   sparrow->calibrate_offset = 1;
   sparrow->calibrate_wait = 0;
-  //calibrate_new_state(sparrow);
+  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init");
 }
 
 static void
@@ -190,12 +192,14 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   GST_DEBUG("gst_sparrow_set_property\n");
   switch (prop_id) {
   case PROP_CALIBRATE:
-      sparrow->calibrate = g_value_get_boolean(value);
+    if (! value){
+      sparrow->next_state = SPARROW_PLAY;
       GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
       break;
   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
+    }
   }
 }
 
@@ -302,40 +306,81 @@ gamma_negation(guint8 * bytes, guint size){
 
 #define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
 
+
+
 static void calibrate_new_state(GstSparrow *sparrow){
-  sparrow->calibrate_size = RANDINT(sparrow, 1, 8);
-  sparrow->calibrate_x  = RANDINT(sparrow, 0, sparrow->width - sparrow->calibrate_size);
-  sparrow->calibrate_y  = RANDINT(sparrow, 0, sparrow->height - sparrow->calibrate_size);
-  sparrow->calibrate_state = ! sparrow->calibrate_state;
-  sparrow->calibrate_wait = RANDINT(sparrow, 4, 25);
+  int edge_state = (sparrow->state == SPARROW_FIND_EDGES);
+  int i;
+  int pattern_len = edge_state ? CALIBRATE_EDGE_PATTERN_L : CALIBRATE_SELF_PATTERN_L;
+  sparrow->calibrate_index = pattern_len;
 
-  GST_DEBUG("Calibrate:\nsize: %d\nx: %d\ny: %d\nstate: %d\nwait: %d",
-      sparrow->calibrate_size,
-      sparrow->calibrate_x,
-      sparrow->calibrate_y,
-      sparrow->calibrate_state,
-      sparrow->calibrate_wait);
+  if (edge_state){
+    sparrow->calibrate_size = RANDINT(sparrow, 1, 8);
+    sparrow->calibrate_x  = RANDINT(sparrow, 0, sparrow->width - sparrow->calibrate_size);
+    sparrow->calibrate_y  = RANDINT(sparrow, 0, sparrow->height - sparrow->calibrate_size);
+  }
+  else {
+    sparrow->calibrate_size = CALIBRATE_SELF_SIZE;
+    sparrow->calibrate_x  = RANDINT(sparrow, sparrow->width / 4,
+        sparrow->width * 3 / 4 - sparrow->calibrate_size);
+    sparrow->calibrate_y  = RANDINT(sparrow, sparrow->height / 4,
+        sparrow->height * 3 / 4 - sparrow->calibrate_size);
+  }
 
+  for (i = 0; i < pattern_len; i++){
+    sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
+  }
 }
 
+
+
+/* in a noisy world, try to find the spot you control by stoping and watching
+   for a while.
+ */
+
+static inline void
+calibrate_draw_square(guint8 *bytes, GstSparrow *sparrow){
+  guint y;
+  guint stride = sparrow->width * PIXSIZE;
+  guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
+  for(y = 0; y < sparrow->calibrate_size; y++){
+    memset(line, 255, sparrow->calibrate_size * PIXSIZE);
+    line += stride;
+  }
+}
 
 static void
 calibrate(guint8 * bytes, GstSparrow * sparrow){
-  memset(bytes, 0, sparrow->size);
-  guint y;
-  if (! sparrow->calibrate_wait){
-    calibrate_new_state(sparrow);
+  if (sparrow->calibrate_wait == 0){
+    if(sparrow->calibrate_index == 0){
+      //pattern has run out. in the case of find_self state, repeat it
+      if (sparrow->state == SPARROW_FIND_SELF){
+        sparrow->calibrate_index = CALIBRATE_SELF_PATTERN_L;
+      }
+      else{
+        calibrate_new_state(sparrow);
+      }
+    }
+    sparrow->calibrate_index--;
+    sparrow->calibrate_wait = sparrow->calibrate_pattern[sparrow->calibrate_index];
   }
   sparrow->calibrate_wait--;
-  if (sparrow->calibrate_state){
-    guint stride = sparrow->width * PIXSIZE;
-    guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
-    for(y = 0; y < sparrow->calibrate_size; y++){
-      memset(line, 255, sparrow->calibrate_size * PIXSIZE);
-      line += stride;
-    }
+  memset(bytes, 0, sparrow->size);
+
+  if (sparrow->calibrate_index & 1){
+    calibrate_draw_square(bytes, sparrow);
   }
 }
+
+static void
+sparrow_reset(guint8 * bytes, GstSparrow * sparrow){
+  memset(bytes, 0xff0000, sparrow->size);
+  sparrow->state = SPARROW_FIND_SELF;
+  calibrate_new_state(sparrow);
+}
+
+
+
 
 
 static GstFlowReturn
@@ -356,10 +401,15 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   if (size != sparrow->size)
     goto wrong_size;
 
-  if (sparrow->calibrate){
+  switch(sparrow->state){
+  case SPARROW_INIT:
+    sparrow_reset(data, sparrow);
+    break;
+  case SPARROW_FIND_SELF:
+  case SPARROW_FIND_EDGES:
     calibrate(data, sparrow);
-  }
-  else {
+    break;
+  default:
     gamma_negation(data, size);
   }
 done:

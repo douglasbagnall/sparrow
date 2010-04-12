@@ -66,6 +66,12 @@ LOG(char *msg, ...){
 
 #define PIXSIZE 4
 
+#define CALIBRATE_MIN_T 2
+#define CALIBRATE_MAX_T 12
+#define CALIBRATE_EDGE_PATTERN_L 2
+#define CALIBRATE_SELF_PATTERN_L 10
+#define CALIBRATE_SELF_SIZE 10
+
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
 #define GST_SPARROW(obj) \
@@ -108,8 +114,12 @@ struct _GstSparrow
   gint calibrate_x;
   gint calibrate_y;
   gint calibrate_size;
-  gint calibrate_state;
+  gint calibrate_on;
   gint calibrate_wait;
+  gint calibrate_pattern[CALIBRATE_SELF_PATTERN_L];
+  gint calibrate_index;
+  gint state;
+  gint next_state;
 };
 
 struct _GstSparrowClass
@@ -119,8 +129,14 @@ struct _GstSparrowClass
 
 GType gst_sparrow_get_type(void);
 
+#define SPARROW_CALIBRATE_ON  1
 
-
+typedef enum {
+  SPARROW_INIT,
+  SPARROW_FIND_SELF,
+  SPARROW_FIND_EDGES,
+  SPARROW_PLAY,
+} sparrow_states;
 
 
 
