@@ -47,7 +47,6 @@ static void gst_sparrow_set_property(GObject *object, guint prop_id, const GValu
 static void gst_sparrow_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 static gboolean gst_sparrow_set_caps(GstBaseTransform *base, GstCaps *incaps, GstCaps *outcaps);
 static void rng_init(GstSparrow *sparrow, unsigned int seed);
-static void rng_maybe_init(GstSparrow *sparrow, unsigned int seed);
 static void simple_negation(guint8 *bytes, guint size);
 static void gamma_negation(guint8 *bytes, guint size);
 static void calibrate(guint8 *bytes, GstSparrow *sparrow);
@@ -259,12 +258,6 @@ static void rng_init(GstSparrow *sparrow, unsigned int seed){
     dsfmt_init_gen_rand(&(sparrow->dsfmt), seed);
     sparrow->rng_has_init = TRUE;
     GST_DEBUG("RNG seeded with %u\n", seed);
-}
-
-static UNUSED void
-rng_maybe_init(GstSparrow *sparrow, unsigned int seed){
-    if (! sparrow->rng_has_init)
-      rng_init(sparrow, seed);
 }
 
 static inline UNUSED guint32
