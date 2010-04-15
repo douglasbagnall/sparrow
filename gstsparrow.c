@@ -171,9 +171,16 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
   GST_INFO("gst sparrow init\n");
   void *mem;
-  memalign_or_die(&(mem), 16, sizeof(dsfmt_t));
+  memalign_or_die(&mem, 16, sizeof(dsfmt_t));
   sparrow->dsfmt = mem;
   rng_init(sparrow, -1);
+
+
+  sparrow->lag_table = NULL;
+  sparrow->prev_frame = NULL;
+  sparrow->work_frame = NULL;
+  sparrow->prev_frame_size = 0;
+
   sparrow->state = SPARROW_INIT;
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
   sparrow->calibrate_offset = 1;
@@ -357,8 +364,64 @@ calibrate_draw_square(guint8 *bytes, GstSparrow *sparrow){
   }
 }
 
+
+static inline void
+record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
+  guint16 *t = sparrow->lag_table[offset];
+  guint32 r = sparrow->lag_record;
+  //guint32 i = sparrow->lag_record;
+  while(r){
+    if(r & 1){
+      *t += signal;
+    }
+    r >> 1;
+    t++;
+  }
+}
+
+/*compare the frame to the new one. regions of change should indicate the
+  square is about.
+*/
+static inline void
+calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
+  if(sparrow->prev_frame){
+    CvSize size = {sparrow->width, sparrow->height};
+    IplImage* src1 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+    IplImage* src2 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+    IplImage* dest = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+    src1.imageData = sparrow->prev_frame;
+    src2.imageData = bytes;
+    dest.imageData = sparrow->work_frame;
+    cvAbsDiff(src1, src2, dest);
+    /*set up the calibration table if it does not exist.
+     XXX not dealing with resizing!*/
+    if (!sparrow->lag_table){
+      sparrow->lag_table = malloc_aligned_or_die(
+        sparrow->width * sparrow->height * sizeof(lag_times));
+    }
+
+    gint32 i;
+    pix_t *changes = (pix_t *)sparrow->work_frame;
+    for (i = 0; i < sparrow->height * sparrow->width; i++){
+      pix_t p = changes[i];
+      guint32 signal = (p >> 8) & 255; //possibly R, G, or B, but never A
+      if (signal > sparrow->signal_threshold){
+        record_calibration(sparrow, i, signal);
+      }
+    }
+    memcpy(sparrow->prev_frame, bytes, sparrow->prev_frame_size);
+  }
+}
+
+
+static inline void
+find_edges(GstSparrow *sparrow, guint8 *bytes){
+}
+
 static void
-calibrate(guint8 * bytes, GstSparrow * sparrow){
+find_self(GstSparrow * sparrow, guint8 * bytes){
+  calibrate_find_square(bytes, sparrow);
+
   if (sparrow->calibrate_wait == 0){
     if(sparrow->calibrate_index == 0){
       //pattern has run out. in the case of find_self state, repeat it
@@ -408,6 +471,24 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 
   if (size != sparrow->size)
     goto wrong_size;
+
+  if (sparrow->prev_frame_size != size){
+    /*if the frame changes size, discard the old one, but don't reallocate
+      until the next frame, so that comparisons aren't made between
+      incompatible sized frames.
+    */
+    if (sparrow->prev_frame){
+      free(sparrow->prev_frame);
+      free(sparrow->work_frame);
+      sparrow->prev_frame = NULL;
+      sparrow->prev_frame_size = 0;
+    }
+    else{
+      sparrow->prev_frame = malloc_aligned_or_die(size);
+      sparrow->work_frame = malloc_aligned_or_die(size);
+      sparrow->prev_frame_size = size;
+    }
+  }
 
   switch(sparrow->state){
   case SPARROW_INIT:

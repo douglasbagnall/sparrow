@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 #include "sparrowconfig.h"
 #define DSFMT_MEXP 19937
 #include "dSFMT/dSFMT.h"
-
+#include "cv.h"
 
 #define UNUSED __attribute__ ((unused))
 
@@ -69,6 +69,7 @@ GST_DEBUG(char *msg, ...){
 #define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
 
 #define PIXSIZE 4
+typedef guint32 pix_t
 
 #define CALIBRATE_MIN_T 2
 #define CALIBRATE_MAX_T 12
@@ -89,6 +90,10 @@ GST_DEBUG(char *msg, ...){
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
+
+
+
+typedef guint16[MAX_CALIBRATION_LAG] lag_times;
 
 /**
  * GstSparrow:
@@ -123,6 +128,16 @@ struct _GstSparrow
   gint calibrate_index;
   gint state;
   gint next_state;
+
+  guint signal_threshold;
+
+  lag_times * lag_table;
+  guint32 lag_record;
+
+  guint8 *prev_frame;
+  guint8 *work_frame;
+  size_t *prev_frame_size;
+
 };
 
 struct _GstSparrowClass
