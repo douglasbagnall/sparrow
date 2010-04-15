@@ -443,8 +443,9 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
   }
 }
 
+
 static void
-sparrow_reset(guint8 * bytes, GstSparrow * sparrow){
+sparrow_reset(GstSparrow *sparrow, guint8 *bytes){
   memset(bytes, 0xff0000, sparrow->size);
   sparrow->state = SPARROW_FIND_SELF;
   calibrate_new_state(sparrow);
@@ -460,9 +461,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   GstSparrow *sparrow;
   guint8 *data;
   guint size;
-  //GST_DEBUG("doing transform\n");
   sparrow = GST_SPARROW (base);
-
   if (base->passthrough)
     goto done;
 
@@ -492,11 +491,13 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 
   switch(sparrow->state){
   case SPARROW_INIT:
-    sparrow_reset(data, sparrow);
+    sparrow_reset(sparrow, data);
     break;
   case SPARROW_FIND_SELF:
+    find_self(sparrow, data);
+    break;
   case SPARROW_FIND_EDGES:
-    calibrate(data, sparrow);
+    find_edges(sparrow, data);
     break;
   default:
     gamma_negation(data, size);
