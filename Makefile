@@ -32,23 +32,26 @@ libgstsparrow.so: gstsparrow.o dSFMT/dSFMT.o
 	  -o $@
 
 clean:
-	rm -f *.so *.o *.a *.d
-	cd dSFMT && rm -f *.o
+	rm -f *.so *.o *.a *.d *.s
+	cd dSFMT && rm -f *.o *.s
 
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
-	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) $(VECTOR_FLAGS) $(DSFMT_FLAGS) -c -o $@ $<
+	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) $(DSFMT_FLAGS) -c -o $@ $<
 
 .c.o:
 	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 #	$(CC) $(INCLUDES) -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
+
+%.s:	%.c
+	$(CC) $(INCLUDES) -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
 
 gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h
 
-TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=myelement:5
+TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
 TEST_V4L2_SHAPE = video/x-raw-yuv,width=640,height=480,framerate=25/1
 
 test: all
