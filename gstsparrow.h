@@ -27,12 +27,11 @@
 
 #include <gst/video/gstvideofilter.h>
 
-#include "sparrowconfig.h"
-#include "dSFMT/dSFMT.h"
-
 G_BEGIN_DECLS
 
+#include "sparrowconfig.h"
 #define DSFMT_MEXP 19937
+#include "dSFMT/dSFMT.h"
 
 
 #define UNUSED __attribute__ ((unused))
@@ -108,7 +107,7 @@ struct _GstSparrow
   /* tables */
 
   /* stuff */
-  dsfmt_t dsfmt __attribute__ ((aligned));
+  dsfmt_t *dsfmt;
 
   gint calibrate_x;
   gint calibrate_y;
@@ -139,7 +138,14 @@ typedef enum {
 
 
 
-
+static void * malloc_or_die(size_t size){
+    void *p = malloc(size);
+    if (!p){
+	printf("malloc would not allocate %u bytes! seriously!\n", size);
+	exit(1);
+    }
+    return p;
+}
 
 
 

@@ -169,7 +169,10 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
 static void
 gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
-  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%" GST_PTR_FORMAT, &(sparrow->dsfmt));
+  size_t p = (size_t) malloc_or_die(sizeof(dsfmt_t) + 15);
+  sparrow->dsfmt = (dsfmt_t *) ((p + 15) & ~15); /*fix stupid alignment */
+
+  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%" GST_PTR_FORMAT, sparrow->dsfmt);
   GST_INFO("gst sparrow init\n");
 
   rng_init(sparrow, -1);
@@ -259,16 +262,21 @@ static void rng_init(GstSparrow *sparrow, guint32 seed){
     if (seed == -1){
       //seed = 1271138028;
       seed = (unsigned int) time(0) + (unsigned int) clock();
+      GST_DEBUG("Real seed %u\n", seed);
     }
     if (seed == 0)
 	seed = 12345;
-    dsfmt_init_gen_rand(&(sparrow->dsfmt), seed);
+    GST_DEBUG("in RNG init dfsmt is %p\n", sparrow->dsfmt);
+    GST_DEBUG("dfsmt->status is %p\n", sparrow->dsfmt->status);
+    dsfmt_init_gen_rand(sparrow->dsfmt, seed);
+    /*run the generator here before the threads get going */
+    dsfmt_gen_rand_all(sparrow->dsfmt);
     GST_DEBUG("RNG seeded with %u\n", seed);
 }
 
 static inline UNUSED guint32
 rng_uniform_int(GstSparrow *sparrow, guint32 limit){
-  double d = dsfmt_genrand_close_open(&(sparrow->dsfmt));
+  double d = dsfmt_genrand_close_open(sparrow->dsfmt);
   double d2 = d * limit;
   guint32 i = (guint32)d2;
   //GST_DEBUG("RNG int between 0 and %u: %u (from %f, %f)\n", limit, i, d2, d);
@@ -277,10 +285,10 @@ rng_uniform_int(GstSparrow *sparrow, guint32 limit){
 
 static inline UNUSED double
 rng_uniform_double(GstSparrow *sparrow, double limit){
-    return dsfmt_genrand_close_open(&(sparrow->dsfmt)) * limit;
+    return dsfmt_genrand_close_open(sparrow->dsfmt) * limit;
 }
 
-#define rng_uniform() dsfmt_genrand_close_open(&(sparrow->dsfmt))
+#define rng_uniform() dsfmt_genrand_close_open(sparrow->dsfmt)
 
 
 

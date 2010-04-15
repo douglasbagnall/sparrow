@@ -160,7 +160,7 @@ typedef union W128_T w128_t;
 
 /** the 128-bit internal state array */
 struct DSFMT_T {
-    w128_t status[DSFMT_N + 1];
+    w128_t status[DSFMT_N + 1]  __attribute__((aligned (16)));
     int idx;
 };
 typedef struct DSFMT_T dsfmt_t;
