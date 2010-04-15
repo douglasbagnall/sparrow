@@ -169,18 +169,16 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
 static void
 gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
-  size_t p = (size_t) malloc_or_die(sizeof(dsfmt_t) + 15);
-  sparrow->dsfmt = (dsfmt_t *) ((p + 15) & ~15); /*fix stupid alignment */
-
-  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%" GST_PTR_FORMAT, sparrow->dsfmt);
   GST_INFO("gst sparrow init\n");
-
+  void *mem;
+  memalign_or_die(&(mem), 16, sizeof(dsfmt_t));
+  sparrow->dsfmt = mem;
   rng_init(sparrow, -1);
   sparrow->state = SPARROW_INIT;
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
   sparrow->calibrate_offset = 1;
   sparrow->calibrate_wait = 0;
-  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init");
+  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%p", sparrow->dsfmt);
 }
 
 static void
@@ -260,8 +258,8 @@ done:
 static void rng_init(GstSparrow *sparrow, guint32 seed){
     GST_DEBUG("in RNG init\n");
     if (seed == -1){
-      //seed = 1271138028;
-      seed = (unsigned int) time(0) + (unsigned int) clock();
+      //seed = 0x33;
+      seed = rand();
       GST_DEBUG("Real seed %u\n", seed);
     }
     if (seed == 0)

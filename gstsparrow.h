@@ -138,13 +138,22 @@ typedef enum {
 
 
 
-static void * malloc_or_die(size_t size){
+static UNUSED void * malloc_or_die(size_t size){
     void *p = malloc(size);
     if (!p){
 	printf("malloc would not allocate %u bytes! seriously!\n", size);
 	exit(1);
     }
     return p;
+}
+
+static UNUSED void memalign_or_die(void **memptr, size_t alignment, size_t size){
+  int err = posix_memalign(memptr, alignment, size);
+  if (err){
+    printf("posix_memalign returned %d trying to allocate %u bytes alligned on %u byte boundaries\n", 
+        err, size, alignment);
+    exit(1);
+  }
 }
 
 
