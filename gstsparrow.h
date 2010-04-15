@@ -43,7 +43,7 @@ G_BEGIN_DECLS
 
 static FILE *_sparrow_bloody_debug_flags = NULL;
 static void
-LOG(char *msg, ...){
+GST_DEBUG(char *msg, ...){
   if (! _sparrow_bloody_debug_flags){
     _sparrow_bloody_debug_flags = fopen("/tmp/sparrow.log", "wb");
     if (! _sparrow_bloody_debug_flags){
@@ -57,7 +57,12 @@ LOG(char *msg, ...){
   fflush(_sparrow_bloody_debug_flags);
 }
 
-#define GST_DEBUG LOG
+#define GST_ERROR        GST_DEBUG
+#define GST_WARNING      GST_DEBUG
+#define GST_INFO         GST_DEBUG
+#define GST_LOG          GST_DEBUG
+#define GST_FIXME        GST_DEBUG
+
 #endif
 
     //#define LOG(format, ...) fprintf (stderr, (format),## __VA_ARGS__); fflush(stderr);
@@ -138,19 +143,34 @@ typedef enum {
 
 
 
+
+
+
 static UNUSED void * malloc_or_die(size_t size){
     void *p = malloc(size);
     if (!p){
-	printf("malloc would not allocate %u bytes! seriously!\n", size);
+	GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
 	exit(1);
     }
     return p;
 }
 
+#define ALIGNMENT 16
+static UNUSED void malloc_aligned_or_die(size_t size){
+  void *mem;
+  int err = posix_memalign(&mem, ALIGNMENT, size);
+  if (err){
+    GST_ERROR("posix_memalign returned %d trying to allocate %u bytes aligned on %u byte boundaries\n",
+        err, size, alignment);
+    exit(1);
+  }
+  return mem;
+}
+
 static UNUSED void memalign_or_die(void **memptr, size_t alignment, size_t size){
   int err = posix_memalign(memptr, alignment, size);
   if (err){
-    printf("posix_memalign returned %d trying to allocate %u bytes alligned on %u byte boundaries\n", 
+    GST_ERROR("posix_memalign returned %d trying to allocate %u bytes alligned on %u byte boundaries\n",
         err, size, alignment);
     exit(1);
   }
