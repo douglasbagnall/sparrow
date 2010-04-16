@@ -69,7 +69,7 @@ GST_DEBUG(char *msg, ...){
 #define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
 
 #define PIXSIZE 4
-typedef guint32 pix_t
+typedef guint32 pix_t;
 
 #define CALIBRATE_MIN_T 2
 #define CALIBRATE_MAX_T 12
@@ -88,12 +88,12 @@ typedef guint32 pix_t
 #define GST_IS_SPARROW_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
+#define MAX_CALIBRATION_LAG 20
+typedef guint16 lag_times[MAX_CALIBRATION_LAG];
+
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
 
-
-
-typedef guint16[MAX_CALIBRATION_LAG] lag_times;
 
 /**
  * GstSparrow:
@@ -136,7 +136,7 @@ struct _GstSparrow
 
   guint8 *prev_frame;
   guint8 *work_frame;
-  size_t *prev_frame_size;
+  size_t prev_frame_size;
 
 };
 
@@ -171,12 +171,12 @@ static UNUSED void * malloc_or_die(size_t size){
 }
 
 #define ALIGNMENT 16
-static UNUSED void malloc_aligned_or_die(size_t size){
+static UNUSED void * malloc_aligned_or_die(size_t size){
   void *mem;
   int err = posix_memalign(&mem, ALIGNMENT, size);
   if (err){
     GST_ERROR("posix_memalign returned %d trying to allocate %u bytes aligned on %u byte boundaries\n",
-        err, size, alignment);
+        err, size, ALIGNMENT);
     exit(1);
   }
   return mem;

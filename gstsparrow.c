@@ -49,7 +49,6 @@ static gboolean gst_sparrow_set_caps(GstBaseTransform *base, GstCaps *incaps, Gs
 static void rng_init(GstSparrow *sparrow, unsigned int seed);
 static void simple_negation(guint8 *bytes, guint size);
 static void gamma_negation(guint8 *bytes, guint size);
-static void calibrate(guint8 *bytes, GstSparrow *sparrow);
 static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
 static gboolean plugin_init(GstPlugin *plugin);
 
@@ -378,7 +377,7 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
     if(r & 1){
       *t += signal;
     }
-    r >> 1;
+    r >>= 1;
     t++;
   }
 }
@@ -393,9 +392,10 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
     IplImage* src1 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
     IplImage* src2 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
     IplImage* dest = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-    src1.imageData = sparrow->prev_frame;
-    src2.imageData = bytes;
-    dest.imageData = sparrow->work_frame;
+    src1->imageData = (char *)sparrow->prev_frame;
+    src2->imageData = (char *)bytes;
+    dest->imageData = (char *)sparrow->work_frame;
+
     cvAbsDiff(src1, src2, dest);
     /*set up the calibration table if it does not exist.
      XXX not dealing with resizing!*/
@@ -424,7 +424,7 @@ find_edges(GstSparrow *sparrow, guint8 *bytes){
 
 static void
 find_self(GstSparrow * sparrow, guint8 * bytes){
-  calibrate_find_square(bytes, sparrow);
+  calibrate_find_square(sparrow, bytes);
 
   if (sparrow->calibrate_wait == 0){
     if(sparrow->calibrate_index == 0){
@@ -479,6 +479,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
     /*if the frame changes size, discard the old one, but don't reallocate
       until the next frame, so that comparisons aren't made between
       incompatible sized frames.
+      XXX maybe it's best just to forbid this?
     */
     if (sparrow->prev_frame){
       free(sparrow->prev_frame);
