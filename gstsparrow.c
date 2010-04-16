@@ -415,32 +415,45 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
   }
 }
 
-
-static inline void
-find_edges(GstSparrow *sparrow, guint8 *bytes){
-}
-
-static void
-find_self(GstSparrow * sparrow, guint8 * bytes){
-  calibrate_find_square(sparrow, bytes);
-
+static int cycle_pattern(GstSparrow *sparrow, int repeat){
   if (sparrow->calibrate_wait == 0){
     if(sparrow->calibrate_index == 0){
-      //pattern has run out. in the case of find_self state, repeat it
-      if (sparrow->state == SPARROW_FIND_SELF){
-        sparrow->calibrate_index = CALIBRATE_SELF_PATTERN_L;
+      //pattern has run out
+      if (repeat){
+        sparrow->calibrate_index = CALIBRATE_PATTERN_L;
       }
       else{
+        //XXX separate new pattern from new state?
         calibrate_new_state(sparrow);
       }
     }
     sparrow->calibrate_index--;
     sparrow->calibrate_wait = sparrow->calibrate_pattern[sparrow->calibrate_index];
   }
-  sparrow->calibrate_wait--;
-  memset(bytes, 0, sparrow->size);
+  //XXX more stuff here to record the pattern in sparrow->lag_record
+  sparrow->lag_record = sparrow->lag_record << 1 || (sparrow->calibrate_wait == 0);
 
-  if (sparrow->calibrate_index & 1){
+  sparrow->calibrate_wait--;
+  return sparrow->calibrate_index & 1;
+}
+
+
+static inline void
+find_edges(GstSparrow *sparrow, guint8 *bytes){
+  calibrate_find_square(sparrow, bytes);
+  int on = cycle_pattern(sparrow, TRUE);
+  memset(bytes, 0, sparrow->size);
+  if (on){
+    calibrate_draw_square(bytes, sparrow);
+  }
+}
+
+static inline void
+find_self(GstSparrow * sparrow, guint8 * bytes){
+  calibrate_find_square(sparrow, bytes);
+  int on = cycle_pattern(sparrow, TRUE);
+  memset(bytes, 0, sparrow->size);
+  if (on){
     calibrate_draw_square(bytes, sparrow);
   }
 }
@@ -448,14 +461,15 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
 
 static void
 sparrow_reset(GstSparrow *sparrow, guint8 *bytes){
+  size_t size = sparrow->size;
   if (!sparrow->prev_frame){
     sparrow->prev_frame = malloc_aligned_or_die(size);
   }
   if (!sparrow->work_frame){
     sparrow->work_frame = malloc_aligned_or_die(size);
   }
-  memcpy(sparrow->prev_frame, bytes, sparrow->size);
-  memset(bytes, 0xff0000, sparrow->size);
+  memcpy(sparrow->prev_frame, bytes, size);
+  memset(bytes, 0xff0000, size);
   sparrow->state = SPARROW_FIND_SELF;
   calibrate_new_state(sparrow);
 }

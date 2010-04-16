@@ -72,7 +72,7 @@ GST_DEBUG(char *msg, ...){
 typedef guint32 pix_t;
 
 #define CALIBRATE_MIN_T 2
-#define CALIBRATE_MAX_T 12
+#define CALIBRATE_MAX_T 10
 #define CALIBRATE_PATTERN_L 20
 #define CALIBRATE_SELF_SIZE 10
 
