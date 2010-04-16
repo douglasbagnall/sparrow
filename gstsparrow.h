@@ -73,8 +73,7 @@ typedef guint32 pix_t;
 
 #define CALIBRATE_MIN_T 2
 #define CALIBRATE_MAX_T 12
-#define CALIBRATE_EDGE_PATTERN_L 2
-#define CALIBRATE_SELF_PATTERN_L 10
+#define CALIBRATE_PATTERN_L 20
 #define CALIBRATE_SELF_SIZE 10
 
 #define GST_TYPE_SPARROW \
@@ -124,7 +123,7 @@ struct _GstSparrow
   gint calibrate_size;
   gint calibrate_on;
   gint calibrate_wait;
-  gint calibrate_pattern[CALIBRATE_SELF_PATTERN_L];
+  gint calibrate_pattern[CALIBRATE_PATTERN_L];
   gint calibrate_index;
   gint state;
   gint next_state;

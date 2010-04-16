@@ -329,7 +329,6 @@ gamma_negation(guint8 * bytes, guint size){
 static void calibrate_new_state(GstSparrow *sparrow){
   int edge_state = (sparrow->state == SPARROW_FIND_EDGES);
   int i;
-  int pattern_len = edge_state ? CALIBRATE_EDGE_PATTERN_L : CALIBRATE_SELF_PATTERN_L;
   sparrow->calibrate_index = pattern_len;
 
   if (edge_state){
@@ -345,7 +344,7 @@ static void calibrate_new_state(GstSparrow *sparrow){
         sparrow->height * 3 / 4 - sparrow->calibrate_size);
   }
 
-  for (i = 0; i < pattern_len; i++){
+  for (i = 0; i < CALIBRATE_PATTERN_L;; i++){
     sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
   }
 }
