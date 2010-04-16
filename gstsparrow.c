@@ -178,7 +178,6 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
   sparrow->lag_table = NULL;
   sparrow->prev_frame = NULL;
   sparrow->work_frame = NULL;
-  sparrow->prev_frame_size = 0;
 
   sparrow->state = SPARROW_INIT;
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
@@ -449,6 +448,13 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
 
 static void
 sparrow_reset(GstSparrow *sparrow, guint8 *bytes){
+  if (!sparrow->prev_frame){
+    sparrow->prev_frame = malloc_aligned_or_die(size);
+  }
+  if (!sparrow->work_frame){
+    sparrow->work_frame = malloc_aligned_or_die(size);
+  }
+  memcpy(sparrow->prev_frame, bytes, sparrow->size);
   memset(bytes, 0xff0000, sparrow->size);
   sparrow->state = SPARROW_FIND_SELF;
   calibrate_new_state(sparrow);
@@ -468,30 +474,11 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   if (base->passthrough)
     goto done;
 
-  data = GST_BUFFER_DATA (outbuf);
-  size = GST_BUFFER_SIZE (outbuf);
+  data = GST_BUFFER_DATA(outbuf);
+  size = GST_BUFFER_SIZE(outbuf);
 
   if (size != sparrow->size)
     goto wrong_size;
-
-  if (sparrow->prev_frame_size != size){
-    /*if the frame changes size, discard the old one, but don't reallocate
-      until the next frame, so that comparisons aren't made between
-      incompatible sized frames.
-      XXX maybe it's best just to forbid this?
-    */
-    if (sparrow->prev_frame){
-      free(sparrow->prev_frame);
-      free(sparrow->work_frame);
-      sparrow->prev_frame = NULL;
-      sparrow->prev_frame_size = 0;
-    }
-    else{
-      sparrow->prev_frame = malloc_aligned_or_die(size);
-      sparrow->work_frame = malloc_aligned_or_die(size);
-      sparrow->prev_frame_size = size;
-    }
-  }
 
   switch(sparrow->state){
   case SPARROW_INIT:
