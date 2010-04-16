@@ -185,6 +185,10 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
   sparrow->calibrate_offset = 1;
   sparrow->calibrate_wait = 0;
+  /*disallow resizing */
+  gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
+  gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
+
   GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%p", sparrow->dsfmt);
 }
 
