@@ -34,7 +34,9 @@ G_BEGIN_DECLS
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
 
+#ifndef UNUSED
 #define UNUSED __attribute__ ((unused))
+#endif
 
 
 #ifdef GST_DISABLE_GST_DEBUG
