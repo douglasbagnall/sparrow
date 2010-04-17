@@ -53,10 +53,13 @@ sparrow_gamma_lut.h: gamma.py
 gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
-TEST_V4L2_SHAPE = video/x-raw-yuv,width=640,height=480,framerate=25/1
+TEST_V4L2_SHAPE = video/x-raw-yuv,format=(fourcc)YUY2,width=800,height=600,framerate=25/1
 
 test: all
 	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+
+test-cam:
+	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! ximagesink
 
 test-pattern: all
 	GST_DEBUG=sparrow:5 \
