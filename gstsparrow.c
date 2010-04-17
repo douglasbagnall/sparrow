@@ -324,11 +324,16 @@ gamma_negation(guint8 * bytes, guint size){
 #define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
 
 
+static void calibrate_new_pattern(GstSparrow *sparrow){
+  int i;
+  sparrow->calibrate_index = CALIBRATE_PATTERN_L;
+  for (i = 0; i < CALIBRATE_PATTERN_L; i++){
+    sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
+  }
+}
 
 static void calibrate_new_state(GstSparrow *sparrow){
   int edge_state = (sparrow->state == SPARROW_FIND_EDGES);
-  int i;
-  sparrow->calibrate_index = CALIBRATE_PATTERN_L;
 
   if (edge_state){
     sparrow->calibrate_size = RANDINT(sparrow, 1, 8);
@@ -341,10 +346,6 @@ static void calibrate_new_state(GstSparrow *sparrow){
         sparrow->width * 3 / 4 - sparrow->calibrate_size);
     sparrow->calibrate_y  = RANDINT(sparrow, sparrow->height / 4,
         sparrow->height * 3 / 4 - sparrow->calibrate_size);
-  }
-
-  for (i = 0; i < CALIBRATE_PATTERN_L; i++){
-    sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
   }
 }
 
@@ -443,8 +444,7 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
         sparrow->calibrate_index = CALIBRATE_PATTERN_L;
       }
       else{
-        //XXX separate new pattern from new state?
-        calibrate_new_state(sparrow);
+        calibrate_new_pattern(sparrow);
       }
     }
     sparrow->calibrate_index--;
