@@ -355,7 +355,27 @@ static void calibrate_new_state(GstSparrow *sparrow){
  */
 
 static inline void
-calibrate_draw_square(guint8 *bytes, GstSparrow *sparrow){
+horizontal_line(GstSparrow *sparrow, guint8 *bytes, guint32 y){
+  guint stride = sparrow->width * PIXSIZE;
+  guint8 * line = bytes + y * stride;
+  memset(line, 255, stride);
+}
+
+static inline void
+vertical_line(GstSparrow *sparrow, guint8 *bytes, guint32 x){
+  guint y;
+  guint stride = sparrow->width * PIXSIZE;
+  guint32 *p = (guint32 *)bytes;
+
+  p += x;
+  for(y = 0; y < sparrow->height; y++){
+    *p = -1;
+    p += sparrow->width;
+  }
+}
+
+static inline void
+calibrate_draw_square(GstSparrow *sparrow, guint8 *bytes){
   guint y;
   guint stride = sparrow->width * PIXSIZE;
   guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
@@ -444,7 +464,7 @@ find_edges(GstSparrow *sparrow, guint8 *bytes){
   int on = cycle_pattern(sparrow, TRUE);
   memset(bytes, 0, sparrow->size);
   if (on){
-    calibrate_draw_square(bytes, sparrow);
+    calibrate_draw_square(sparrow, bytes);
   }
 }
 
@@ -454,7 +474,7 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
   int on = cycle_pattern(sparrow, TRUE);
   memset(bytes, 0, sparrow->size);
   if (on){
-    calibrate_draw_square(bytes, sparrow);
+    calibrate_draw_square(sparrow, bytes);
   }
 }
 
