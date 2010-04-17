@@ -367,9 +367,7 @@ horizontal_line(GstSparrow *sparrow, guint8 *bytes, guint32 y){
 static inline void
 vertical_line(GstSparrow *sparrow, guint8 *bytes, guint32 x){
   guint y;
-  guint stride = sparrow->width * PIXSIZE;
   guint32 *p = (guint32 *)bytes;
-
   p += x;
   for(y = 0; y < sparrow->height; y++){
     *p = -1;
