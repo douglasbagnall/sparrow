@@ -38,7 +38,8 @@ G_BEGIN_DECLS
 #define UNUSED __attribute__ ((unused))
 #endif
 
-
+/* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
+   need our own debug channel. */
 #ifdef GST_DISABLE_GST_DEBUG
 
 #undef GEST_DEBUG
@@ -66,6 +67,7 @@ GST_DEBUG(char *msg, ...){
 #define GST_FIXME        GST_DEBUG
 
 #endif
+
 
     //#define LOG(format, ...) fprintf (stderr, (format),## __VA_ARGS__); fflush(stderr);
 #define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
