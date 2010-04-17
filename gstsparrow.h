@@ -161,12 +161,12 @@ typedef enum {
 
 
 static UNUSED void * malloc_or_die(size_t size){
-    void *p = malloc(size);
-    if (!p){
-	GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
-	exit(1);
-    }
-    return p;
+  void *p = malloc(size);
+  if (!p){
+    GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
+    exit(1);
+  }
+  return p;
 }
 
 #define ALIGNMENT 16
