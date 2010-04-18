@@ -83,10 +83,13 @@ enum
 {
   PROP_0,
   PROP_CALIBRATE,
-  PROP_DEBUG
+  PROP_DEBUG,
+  PROP_RNG_SEED
 };
 
-#define DEFAULT_PROP_CALIBRATE FALSE
+#define DEFAULT_PROP_CALIBRATE TRUE
+#define DEFAULT_PROP_DEBUG FALSE
+#define DEFAULT_PROP_RNG_SEED -1
 
 /* the capabilities of the inputs and outputs.
  *
@@ -142,7 +145,11 @@ gst_sparrow_base_init (gpointer g_class)
       gst_static_pad_template_get (&sink_factory));
   gst_element_class_add_pad_template (element_class,
       gst_static_pad_template_get (&src_factory));
+  gst_element_class_add_pad_template (element_class,
+	gst_static_pad_template_get (&debug_factory));
+
   GST_INFO("gst base init\n");
+}
 
 
 /* Clean up */
@@ -167,12 +174,18 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
   gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_sparrow_finalize);
 
   g_object_class_install_property (gobject_class, PROP_CALIBRATE,
-      g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection",
+      g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection [on]",
           DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_DEBUG,
-      g_param_spec_boolean ("debug", "Debug", "save debug images",
-          DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      g_param_spec_boolean ("debug", "Debug", "add a debug screen [off]",
+          DEFAULT_PROP_DEBUG,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_RNG_SEED,
+      g_param_spec_uint ("rng_seed", "RNG_Seed", "Seed for the random number generator [-1, meaning auto]",
+          0, (guint32)-1, DEFAULT_PROP_RNG_SEED,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
   trans_class->transform_ip = GST_DEBUG_FUNCPTR (gst_sparrow_transform_ip);
@@ -218,12 +231,23 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   case PROP_CALIBRATE:
     if (! value){
       sparrow->next_state = SPARROW_PLAY;
-      GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
-      break;
-  default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
     }
+    GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
+    break;
+  case PROP_DEBUG:
+    if (value){
+      debug_init(sparrow);
+    }
+    break;
+  case PROP_RNG_SEED:
+    if (value){
+      sparrow->next_state = SPARROW_PLAY;
+    }
+    GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    break;
   }
 }
 
