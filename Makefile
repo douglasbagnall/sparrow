@@ -2,7 +2,7 @@ all::
 
 #CFLAGS =
 #LDFLAGS =
-ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 -Wall -pipe -DDSFMT_MEXP=19937 $(INCLUDES) $(CFLAGS)
+ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 -Wall -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
 
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
