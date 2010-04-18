@@ -82,8 +82,8 @@ enum
 enum
 {
   PROP_0,
-  PROP_CALIBRATE
-      /* FILL ME */
+  PROP_CALIBRATE,
+  PROP_DEBUG
 };
 
 #define DEFAULT_PROP_CALIBRATE FALSE
@@ -166,9 +166,12 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
   gobject_class->get_property = gst_sparrow_get_property;
   gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_sparrow_finalize);
 
-
   g_object_class_install_property (gobject_class, PROP_CALIBRATE,
       g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection",
+          DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_DEBUG,
+      g_param_spec_boolean ("debug", "Debug", "save debug images",
           DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
