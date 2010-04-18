@@ -144,6 +144,13 @@ gst_sparrow_base_init (gpointer g_class)
       gst_static_pad_template_get (&src_factory));
   GST_INFO("gst base init\n");
 
+
+/* Clean up */
+static void
+gst_sparrow_finalize (GObject * obj){
+  //GstSparrow *sparrow = GST_SPARROW(obj);
+  //free everything
+  GST_DEBUG("in gst_sparrow_finalize!\n");
 }
 
 static void
@@ -157,6 +164,8 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
 
   gobject_class->set_property = gst_sparrow_set_property;
   gobject_class->get_property = gst_sparrow_get_property;
+  gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_sparrow_finalize);
+
 
   g_object_class_install_property (gobject_class, PROP_CALIBRATE,
       g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection",
