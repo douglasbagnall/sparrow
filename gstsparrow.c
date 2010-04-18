@@ -192,8 +192,8 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 
   sparrow->state = SPARROW_INIT;
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
-  sparrow->calibrate_offset = 1;
-  sparrow->calibrate_wait = 0;
+  calibrate_new_pattern(sparrow);
+
   /*disallow resizing */
   gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
   gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
@@ -338,6 +338,7 @@ gamma_negation(guint8 * bytes, guint size){
 static void calibrate_new_pattern(GstSparrow *sparrow){
   int i;
   sparrow->calibrate_index = CALIBRATE_PATTERN_L;
+  sparrow->calibrate_wait = 0;
   for (i = 0; i < CALIBRATE_PATTERN_L; i++){
     sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
   }
@@ -385,7 +386,7 @@ vertical_line(GstSparrow *sparrow, guint8 *bytes, guint32 x){
 }
 
 static inline void
-calibrate_draw_square(GstSparrow *sparrow, guint8 *bytes){
+draw_first_square(GstSparrow *sparrow, guint8 *bytes){
   guint y;
   guint stride = sparrow->width * PIXSIZE;
   guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
@@ -408,6 +409,30 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
     r >>= 1;
     t++;
   }
+  GST_DEBUG("offset: %u signal: %u", offset, signal);
+}
+
+static inline IplImage*
+ipl_wrap_frame(GstSparrow *sparrow, guint8 *data){
+  /*XXX could keep a cache of IPL headers */
+  CvSize size = {sparrow->width, sparrow->height};
+  IplImage* ipl = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+  int i;
+  for (i = 0; i < IPL_IMAGE_COUNT; i++){
+    ipl = sparrow->ipl_images + i;
+    if (ipl->imageData == NULL){
+      cvInitImageHeader(ipl, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+      ipl->imageData = (char*)data;
+      return ipl;
+    }
+  }
+  DISASTEROUS_CRASH("no more ipl images! leaking somewhere?\n");
+  return NULL; //never reached, but shuts up warning.
+}
+
+static inline void
+ipl_free(IplImage *ipl){
+  ipl->imageData = NULL;
 }
 
 /*compare the frame to the new one. regions of change should indicate the
@@ -415,14 +440,11 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 */
 static inline void
 calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
+  //GST_DEBUG("finding square\n");
   if(sparrow->prev_frame){
-    CvSize size = {sparrow->width, sparrow->height};
-    IplImage* src1 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-    IplImage* src2 = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-    IplImage* dest = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-    src1->imageData = (char *)sparrow->prev_frame;
-    src2->imageData = (char *)bytes;
-    dest->imageData = (char *)sparrow->work_frame;
+    IplImage* src1 = ipl_wrap_frame(sparrow, sparrow->prev_frame);
+    IplImage* src2 = ipl_wrap_frame(sparrow, bytes);
+    IplImage* dest = ipl_wrap_frame(sparrow, sparrow->work_frame);
 
     cvAbsDiff(src1, src2, dest);
     /*set up the calibration table if it does not exist.
@@ -437,11 +459,14 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
     for (i = 0; i < sparrow->height * sparrow->width; i++){
       pix_t p = changes[i];
       guint32 signal = (p >> 8) & 255; //possibly R, G, or B, but never A
-      if (signal > sparrow->signal_threshold){
+      if (signal > CALIBRATE_SIGNAL_THRESHOLD){
         record_calibration(sparrow, i, signal);
       }
     }
     memcpy(sparrow->prev_frame, bytes, sparrow->prev_frame_size);
+    ipl_free(src1);
+    ipl_free(src2);
+    ipl_free(dest);
   }
 }
 
@@ -458,14 +483,29 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
     }
     sparrow->calibrate_index--;
     sparrow->calibrate_wait = sparrow->calibrate_pattern[sparrow->calibrate_index];
+    //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
   }
-  //XXX more stuff here to record the pattern in sparrow->lag_record
-  sparrow->lag_record = sparrow->lag_record << 1 || (sparrow->calibrate_wait == 0);
+  //XXX record the pattern in sparrow->lag_record
+  sparrow->lag_record = (sparrow->lag_record << 1) || (sparrow->calibrate_wait == 0);
+  //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
 
   sparrow->calibrate_wait--;
   return sparrow->calibrate_index & 1;
 }
 
+static void
+see_grid(GstSparrow *sparrow, guint8 *bytes){
+}
+
+static inline void
+find_grid(GstSparrow *sparrow, guint8 *bytes){
+  see_grid(sparrow, bytes);
+  int on = cycle_pattern(sparrow, TRUE);
+  memset(bytes, 0, sparrow->size);
+  if (on){
+    horizontal_line(sparrow, bytes, sparrow->calibrate_y);
+  }
+}
 
 static inline void
 find_edges(GstSparrow *sparrow, guint8 *bytes){
@@ -473,7 +513,7 @@ find_edges(GstSparrow *sparrow, guint8 *bytes){
   int on = cycle_pattern(sparrow, TRUE);
   memset(bytes, 0, sparrow->size);
   if (on){
-    calibrate_draw_square(sparrow, bytes);
+    draw_first_square(sparrow, bytes);
   }
 }
 
@@ -483,7 +523,9 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
   int on = cycle_pattern(sparrow, TRUE);
   memset(bytes, 0, sparrow->size);
   if (on){
-    calibrate_draw_square(sparrow, bytes);
+    //vertical_line(sparrow, bytes, sparrow->calibrate_x);
+    //horizontal_line(sparrow, bytes, sparrow->calibrate_y);
+    draw_first_square(sparrow, bytes);
   }
 }
 
@@ -533,6 +575,9 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   case SPARROW_FIND_EDGES:
     find_edges(sparrow, data);
     break;
+  case SPARROW_FIND_GRID:
+    find_grid(sparrow, data);
+    break;
   default:
     gamma_negation(data, size);
   }
@@ -549,6 +594,7 @@ wrong_size:
 }
 
 
+
 static gboolean
 plugin_init (GstPlugin * plugin)
 {
@@ -563,3 +609,4 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     "sparrow",
     "Changes sparrow on video images",
     plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN);
+

@@ -30,7 +30,6 @@
 G_BEGIN_DECLS
 
 #include "sparrowconfig.h"
-#define DSFMT_MEXP 19937
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
 
@@ -80,6 +79,8 @@ typedef guint32 pix_t;
 #define CALIBRATE_PATTERN_L 100
 #define CALIBRATE_SELF_SIZE 10
 
+#define IPL_IMAGE_COUNT 5
+
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
 #define GST_SPARROW(obj) \
@@ -106,40 +107,41 @@ typedef struct _GstSparrowClass GstSparrowClass;
 struct _GstSparrow
 {
   GstVideoFilter videofilter;
-
-
   /* format */
   gint width;
   gint height;
-  gint size;
-
-  guint32 calibrate_offset;
+  gint size;  /* bytes, not pixels */
 
   /* properties */
-  gint calibrate;
-  /* tables */
+  gint calibrate;  /*whether to calibrate */
 
-  /* stuff */
-  dsfmt_t *dsfmt;
+  /* misc */
+  dsfmt_t *dsfmt;  /*rng*/
 
-  gint calibrate_x;
-  gint calibrate_y;
-  gint calibrate_size;
-  gint calibrate_on;
-  gint calibrate_wait;
-  gint calibrate_pattern[CALIBRATE_PATTERN_L];
-  gint calibrate_index;
+  /*state */
   gint state;
   gint next_state;
 
-  guint signal_threshold;
+  /*calibration state */
+  gint calibrate_x;          /* for inital square */
+  gint calibrate_y;
+  gint calibrate_size;       /* for inital square */
+  gint calibrate_on;         /*for calibration pattern */
+  gint calibrate_wait;
+  gint calibrate_pattern[CALIBRATE_PATTERN_L];
+  gint calibrate_index;
 
   lag_times * lag_table;
   guint32 lag_record;
 
+  /*buffer pointers for previous frames */
   guint8 *prev_frame;
   guint8 *work_frame;
   size_t prev_frame_size;
+
+
+  /*array of IPL image headers that get allocated as necessary */
+  IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
 
 };
 
@@ -156,11 +158,14 @@ typedef enum {
   SPARROW_INIT,
   SPARROW_FIND_SELF,
   SPARROW_FIND_EDGES,
+  SPARROW_FIND_GRID,
   SPARROW_PLAY,
 } sparrow_states;
 
+#define CALIBRATE_SIGNAL_THRESHOLD 16
 
 
+#define DISASTEROUS_CRASH(msg) GST_ERROR("DISASTER: %s\n%-25s  line %4d \n", (msg), __func__, __LINE__);
 
 
 
