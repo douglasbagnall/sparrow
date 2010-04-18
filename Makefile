@@ -94,6 +94,7 @@ TAGS:
 .PHONY: TAGS all cproto
 
 cproto:
-	cproto $(INCLUDES) -DUNUSED='' -s *.c
+#	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
+	cproto $(INCLUDES) -DUNUSED='' -S -X 0 *.c
 
 
