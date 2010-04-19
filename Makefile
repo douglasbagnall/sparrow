@@ -73,6 +73,10 @@ test-file: all
 	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
 	! ffmpegcolorspace ! sparrow $(TEST_OPTIONS) ! ximagesink
 
+inspect: all
+	gst-inspect $(TEST_GST_ARGS)  sparrow $(TEST_OPTIONS)
+
+
 #show filtered and unfiltered video side by side
 test-tee: all
 	gst-launch  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
