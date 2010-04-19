@@ -181,8 +181,8 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_RNG_SEED,
-      g_param_spec_uint ("rng_seed", "RNG_Seed", "Seed for the random number generator [-1, meaning auto]",
-          0, (guint32)-1, DEFAULT_PROP_RNG_SEED,
+      g_param_spec_uint ("rngseed", "RNGSeed", "Seed for the random number generator [-1, meaning auto]",
+          0, (guint32)-1, (guint32)DEFAULT_PROP_RNG_SEED,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
