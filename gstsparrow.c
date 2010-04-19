@@ -145,8 +145,6 @@ gst_sparrow_base_init (gpointer g_class)
       gst_static_pad_template_get (&sink_factory));
   gst_element_class_add_pad_template (element_class,
       gst_static_pad_template_get (&src_factory));
-  gst_element_class_add_pad_template (element_class,
-	gst_static_pad_template_get (&debug_factory));
 
   GST_INFO("gst base init\n");
 }
