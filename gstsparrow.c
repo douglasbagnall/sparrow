@@ -269,25 +269,27 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
     GstCaps * outcaps)
 {
   GST_INFO("set_caps\n");
-  GstSparrow *this;
+  GstSparrow *sparrow = GST_SPARROW(base);
   GstStructure *structure;
   gboolean res;
 
+  /*NB: set_caps gets called after set_property, so it is a good place for
+    hooks that depend on properties */
+
   rng_init(sparrow, sparrow->rng_seed);
   calibrate_new_pattern(sparrow);
-  this = GST_SPARROW (base);
 
-  GST_DEBUG_OBJECT (this,
-      "set_caps: in %" GST_PTR_FORMAT " out %" GST_PTR_FORMAT, incaps, outcaps);
+  GST_DEBUG_OBJECT (sparrow,
+      "set_caps: \nin %" GST_PTR_FORMAT " \nout %" GST_PTR_FORMAT, incaps, outcaps);
 
   structure = gst_caps_get_structure (incaps, 0);
 
-  res = gst_structure_get_int (structure, "width", &this->width);
-  res &= gst_structure_get_int (structure, "height", &this->height);
+  res = gst_structure_get_int (structure, "width", &sparrow->width);
+  res &= gst_structure_get_int (structure, "height", &sparrow->height);
   if (!res)
     goto done;
 
-  this->size = this->width * this->height * PIXSIZE;
+  sparrow->size = sparrow->width * sparrow->height * PIXSIZE;
 
 
 
