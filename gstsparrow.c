@@ -272,6 +272,7 @@ static gboolean
 gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
     GstCaps * outcaps)
 {
+  GST_INFO("set_caps\n");
   GstSparrow *this;
   GstStructure *structure;
   gboolean res;
@@ -290,7 +291,6 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 
   this->size = this->width * this->height * PIXSIZE;
 
-  GST_INFO("Calibrate is %d\n", this->calibrate);
 
 
 done:
@@ -367,6 +367,7 @@ static void calibrate_new_pattern(GstSparrow *sparrow){
   for (i = 0; i < CALIBRATE_PATTERN_L; i++){
     sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
   }
+  GST_DEBUG("New Pattern: wait %u, index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
 }
 
 static void calibrate_new_state(GstSparrow *sparrow){
@@ -434,7 +435,7 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
     r >>= 1;
     t++;
   }
-  GST_DEBUG("offset: %u signal: %u", offset, signal);
+  //GST_DEBUG("offset: %u signal: %u", offset, signal);
 }
 
 static inline IplImage*
