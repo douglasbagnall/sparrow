@@ -197,8 +197,6 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
   void *mem;
   memalign_or_die(&mem, 16, sizeof(dsfmt_t));
   sparrow->dsfmt = mem;
-  rng_init(sparrow, -1);
-
 
   sparrow->lag_table = NULL;
   sparrow->prev_frame = NULL;
@@ -206,7 +204,6 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 
   sparrow->state = SPARROW_INIT;
   sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
-  calibrate_new_pattern(sparrow);
 
   /*disallow resizing */
   gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
@@ -276,6 +273,8 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   GstStructure *structure;
   gboolean res;
 
+  rng_init(sparrow, sparrow->rng_seed);
+  calibrate_new_pattern(sparrow);
   this = GST_SPARROW (base);
 
   GST_DEBUG_OBJECT (this,
