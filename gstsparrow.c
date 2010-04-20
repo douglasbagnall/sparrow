@@ -55,7 +55,7 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
 static gboolean plugin_init(GstPlugin *plugin);
-
+static void init_debug(GstSparrow *sparrow);
 
 /*
 #ifdef HAVE_LIBOIL
@@ -294,11 +294,19 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
 
   sparrow->size = sparrow->width * sparrow->height * PIXSIZE;
 
-
-
+  if (sparrow->debug){
+    init_debug(sparrow);
+  }
 done:
   return res;
 }
+
+
+static void
+init_debug(GstSparrow *sparrow){
+
+}
+
 
 /*RNG code */
 
