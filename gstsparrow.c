@@ -228,8 +228,8 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
       break;
     case PROP_DEBUG:
-      sparrow->debug_window = g_value_get_boolean(value);
-      GST_DEBUG("debug_value is %d\n", sparrow->debug_window);
+      sparrow->debug = g_value_get_boolean(value);
+      GST_DEBUG("debug_value is %d\n", sparrow->debug);
       break;
     case PROP_RNG_SEED:
       sparrow->rng_seed = g_value_get_uint(value);
@@ -256,7 +256,7 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
       g_value_set_boolean (value, sparrow->calibrate);
       break;
     case PROP_DEBUG:
-      g_value_set_boolean(value, sparrow->debug_window);
+      g_value_set_boolean(value, sparrow->debug);
       break;
     case PROP_RNG_SEED:
       g_value_set_uint(value, sparrow->rng_seed);

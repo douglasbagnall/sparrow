@@ -139,7 +139,7 @@ struct _GstSparrow
   guint8 *work_frame;
   size_t prev_frame_size;
 
-  gboolean debug_window;
+  gboolean debug;
   
   guint32 rng_seed;
 
