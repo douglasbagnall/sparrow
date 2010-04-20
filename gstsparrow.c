@@ -56,6 +56,8 @@ static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
 static gboolean plugin_init(GstPlugin *plugin);
 static void init_debug(GstSparrow *sparrow);
+static inline IplImage* ipl_wrap_frame(GstSparrow *sparrow, guint8 *data);
+static inline void ipl_free(IplImage *ipl);
 
 /*
 #ifdef HAVE_LIBOIL
@@ -153,9 +155,13 @@ gst_sparrow_base_init (gpointer g_class)
 /* Clean up */
 static void
 gst_sparrow_finalize (GObject * obj){
-  //GstSparrow *sparrow = GST_SPARROW(obj);
+  GstSparrow *sparrow = GST_SPARROW(obj);
   //free everything
   GST_DEBUG("in gst_sparrow_finalize!\n");
+  if (sparrow->debug_writer){
+    cvReleaseVideoWriter(&(sparrow->debug_writer));
+    sparrow->debug_writer = NULL;
+  }
 }
 
 static void
@@ -301,12 +307,17 @@ done:
   return res;
 }
 
+#define DEBUG_FILENAME "/tmp/sparrow.avi"
+#define DEBUG_FOURCC CV_FOURCC('M','J','P','G')
+#define DEBUG_FPS 25
 
 static void
 init_debug(GstSparrow *sparrow){
+  CvSize size = {sparrow->width, sparrow->height};
 
+  sparrow->debug_writer = cvCreateVideoWriter(DEBUG_FILENAME, DEBUG_FOURCC,
+      DEBUG_FPS, size, TRUE);
 }
-
 
 /*RNG code */
 
@@ -449,6 +460,15 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   //GST_DEBUG("offset: %u signal: %u", offset, signal);
 }
 
+
+static void
+debug_frame(GstSparrow *sparrow, guint8 *data){
+  IplImage* image = ipl_wrap_frame(sparrow, data);
+  cvWriteFrame(sparrow->debug_writer, image);
+  ipl_free(image);
+}
+
+
 static inline IplImage*
 ipl_wrap_frame(GstSparrow *sparrow, guint8 *data){
   /*XXX could keep a cache of IPL headers */
@@ -501,6 +521,9 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
       }
     }
     memcpy(sparrow->prev_frame, bytes, sparrow->prev_frame_size);
+    if(sparrow->debug){
+      debug_frame(sparrow, sparrow->work_frame);
+    }
     ipl_free(src1);
     ipl_free(src2);
     ipl_free(dest);

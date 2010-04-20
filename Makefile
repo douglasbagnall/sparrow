@@ -24,7 +24,7 @@ INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 -I/usr/include/opencv/
 
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10 \
-	-lcxcore -lcv -lcvaux
+	-lcxcore -lcv -lcvaux -lhighgui
 
 all:: libgstsparrow.so
 

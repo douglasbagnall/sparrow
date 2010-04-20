@@ -32,6 +32,8 @@ G_BEGIN_DECLS
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
+#include "highgui.h"
+
 
 #ifndef UNUSED
 #define UNUSED __attribute__ ((unused))
@@ -145,6 +147,8 @@ struct _GstSparrow
 
   /*array of IPL image headers that get allocated as necessary */
   IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
+
+  struct CvVideoWriter* debug_writer;
 
 };
 
