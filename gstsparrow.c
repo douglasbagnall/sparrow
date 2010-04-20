@@ -307,8 +307,8 @@ done:
   return res;
 }
 
-#define DEBUG_FILENAME "/tmp/sparrow.avi"
-#define DEBUG_FOURCC CV_FOURCC('M','J','P','G')
+#define DEBUG_FILENAME "/tmp/sparrow.mpg"
+#define DEBUG_FOURCC CV_FOURCC('M','P','4', 'V')
 #define DEBUG_FPS 25
 
 static void
