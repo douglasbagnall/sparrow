@@ -158,10 +158,12 @@ gst_sparrow_finalize (GObject * obj){
   GstSparrow *sparrow = GST_SPARROW(obj);
   //free everything
   GST_DEBUG("in gst_sparrow_finalize!\n");
+#if SPARROW_VIDEO_DEBUG
   if (sparrow->debug_writer){
     cvReleaseVideoWriter(&(sparrow->debug_writer));
     sparrow->debug_writer = NULL;
   }
+#endif
 }
 
 static void
@@ -307,16 +309,20 @@ done:
   return res;
 }
 
+#if SPARROW_VIDEO_DEBUG
 #define DEBUG_FILENAME "/tmp/sparrow.mpg"
 #define DEBUG_FOURCC CV_FOURCC('M','P','4', 'V')
 #define DEBUG_FPS 25
+#endif
 
 static void
 init_debug(GstSparrow *sparrow){
-  CvSize size = {sparrow->width, sparrow->height};
 
+#if SPARROW_VIDEO_DEBUG
+  CvSize size = {sparrow->width, sparrow->height};
   sparrow->debug_writer = cvCreateVideoWriter(DEBUG_FILENAME, DEBUG_FOURCC,
       DEBUG_FPS, size, TRUE);
+#endif
 }
 
 /*RNG code */
@@ -463,9 +469,11 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 
 static void
 debug_frame(GstSparrow *sparrow, guint8 *data){
+#if SPARROW_VIDEO_DEBUG
   IplImage* image = ipl_wrap_frame(sparrow, data);
   cvWriteFrame(sparrow->debug_writer, image);
   ipl_free(image);
+#endif
 }
 
 

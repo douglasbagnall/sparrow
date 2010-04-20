@@ -29,11 +29,14 @@
 
 G_BEGIN_DECLS
 
+#define SPARROW_VIDEO_DEBUG 0
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
-#include "highgui.h"
 
+#if SPARROW_VIDEO_DEBUG
+#include "highgui.h"
+#endif
 
 #ifndef UNUSED
 #define UNUSED __attribute__ ((unused))
@@ -148,7 +151,9 @@ struct _GstSparrow
   /*array of IPL image headers that get allocated as necessary */
   IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
 
+#if SPARROW_VIDEO_DEBUG
   struct CvVideoWriter* debug_writer;
+#endif
 
 };
 
