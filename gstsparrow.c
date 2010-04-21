@@ -59,6 +59,10 @@ static void init_debug(GstSparrow *sparrow);
 static inline IplImage* ipl_wrap_frame(GstSparrow *sparrow, guint8 *data);
 static inline void ipl_free(IplImage *ipl);
 
+static void debug_frame(GstSparrow *sparrow, guint8 *data);
+static void pgm_dump(GstSparrow *sparrow, guint8 *data, char *name);
+
+
 /*
 #ifdef HAVE_LIBOIL
 #include <liboil/liboil.h>
@@ -466,6 +470,8 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   //GST_DEBUG("offset: %u signal: %u", offset, signal);
 }
 
+#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
+#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
 
 static void
 debug_frame(GstSparrow *sparrow, guint8 *data){
@@ -474,7 +480,81 @@ debug_frame(GstSparrow *sparrow, guint8 *data){
   cvWriteFrame(sparrow->debug_writer, image);
   ipl_free(image);
 #endif
+#if SPARROW_PPM_DEBUG
+  char name[PPM_FILENAME_LENGTH];
+  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->debug_count);
+  if (res > 0){
+    pgm_dump(sparrow, data, name);
+  }
+  sparrow->debug_count++;
+#endif
 }
+
+#define NEWLINE 10
+
+static inline guint32
+trailing_zeros(guint32 mask){
+  if (!mask){
+    return 32;
+  }
+  guint32 shift = 0;
+  //while(! ((mask >> shift) & 1)){
+  while(! ((mask << shift) & 1 << 31)){
+    shift ++;
+  }
+  return shift;
+}
+
+static guint32 get_mask(GstStructure *s, char *mask_name){
+  gint32 mask;
+  int res = gst_structure_get_int(s, mask_name, &mask);
+  if (!res){
+    GST_WARNING("No mask for '%s' !\n", mask_name);
+  }
+  return mask;
+}
+
+
+
+static void
+pgm_dump(GstSparrow *sparrow, guint8 *data, char *name)
+{
+  int x, y;
+  FILE *fh = fopen(name, "w");
+  fprintf(fh, "P6\n%u %u\n255\n", sparrow->width, sparrow->height);
+
+
+  GstPad *pad = GST_BASE_TRANSFORM_SINK_PAD(sparrow);
+  GstCaps *caps = GST_PAD_CAPS(pad);
+  GstStructure *s = gst_caps_get_structure (caps, 0);
+  guint32 rmask = get_mask(s, "red_mask");
+  guint32 rshift = trailing_zeros(rmask);
+  guint32 gmask = get_mask(s, "green_mask");
+  guint32 gshift = trailing_zeros(gmask);
+  guint32 bmask = get_mask(s, "blue_mask");
+  guint32 bshift = trailing_zeros(bmask);
+  //GST_DEBUG("r %u g %u b %u\n", rshift, gshift, bshift);
+
+  /* 4 cases: xBGR xRGB BGRx RGBx
+     it needs to be converted to 24bit R G B
+  */
+  guint32 *p = (guint32 *)data;
+  for (y=0; y < sparrow->height; y++){
+    for (x = 0; x < sparrow->width; x++){
+      //putc((x & rmask) >> rshift, fh);
+      //putc((x & gmask) >> gshift, fh);
+      //putc((x & bmask) >> bshift, fh);
+      putc((*p >> rshift) & 255, fh);
+      putc((*p >> gshift) & 255, fh);
+      putc((*p >> bshift) & 255, fh);
+      p++;
+    }
+    //putc(NEWLINE, fh);
+  }
+  fflush(fh);
+  fclose(fh);
+}
+
 
 
 static inline IplImage*

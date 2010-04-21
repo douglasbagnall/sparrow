@@ -30,6 +30,9 @@
 G_BEGIN_DECLS
 
 #define SPARROW_VIDEO_DEBUG 0
+#define SPARROW_PPM_DEBUG 1
+
+
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
@@ -154,6 +157,10 @@ struct _GstSparrow
 #if SPARROW_VIDEO_DEBUG
   struct CvVideoWriter* debug_writer;
 #endif
+#if SPARROW_PPM_DEBUG
+  guint32 debug_count;
+#endif
+
 
 };
 
