@@ -608,7 +608,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
         record_calibration(sparrow, i, signal);
       }
     }
-    memcpy(sparrow->prev_frame, bytes, sparrow->prev_frame_size);
+    memcpy(sparrow->prev_frame, bytes, sparrow->size);
     if(sparrow->debug){
       debug_frame(sparrow, sparrow->work_frame);
     }

@@ -145,10 +145,9 @@ struct _GstSparrow
   /*buffer pointers for previous frames */
   guint8 *prev_frame;
   guint8 *work_frame;
-  size_t prev_frame_size;
 
   gboolean debug;
-  
+
   guint32 rng_seed;
 
   /*array of IPL image headers that get allocated as necessary */
