@@ -68,8 +68,8 @@ test-pattern: all
 	GST_DEBUG=sparrow:5 \
 	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
 
-#TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
-TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
+TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
+#TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 
 test-file: all
 	gst-launch $(TEST_GST_ARGS) \
