@@ -50,7 +50,10 @@ dSFMT/dSFMT.o: dSFMT/dSFMT.c
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
 
-gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h
+sparrow_false_colour_lut.h: false_colour.py
+	python $< > $@
+
+gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
 TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,width=800,height=600,framerate=25/1'
