@@ -35,7 +35,7 @@ libgstsparrow.so: gstsparrow.o dSFMT/dSFMT.o
 clean:
 	rm -f *.so *.o *.a *.d *.s
 	cd dSFMT && rm -f *.o *.s
-
+	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
 	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) $(DSFMT_FLAGS) -c -o $@ $<
