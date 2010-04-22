@@ -328,6 +328,7 @@ done:
 
 static void
 init_debug(GstSparrow *sparrow){
+  sparrow->debug_frame = malloc_aligned_or_die(sparrow->size);
 
 #if SPARROW_VIDEO_DEBUG
   CvSize size = {sparrow->width, sparrow->height};
@@ -466,7 +467,6 @@ static inline void
 record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   guint16 *t = sparrow->lag_table[offset];
   guint32 r = sparrow->lag_record;
-  //guint32 i = sparrow->lag_record;
   while(r){
     if(r & 1){
       *t += signal;
@@ -474,7 +474,25 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
     r >>= 1;
     t++;
   }
-  //GST_DEBUG("offset: %u signal: %u", offset, signal);
+}
+
+static inline void
+debug_calibration(GstSparrow *sparrow){
+  int pixels = sparrow->width * sparrow->height;
+  guint32 *frame = (guint32 *)sparrow->debug_frame;
+  int i, j;
+  for (i = 0; i < pixels; i++){
+    guint16 peak = 0;
+    int offset = 0;
+    for(j = 0; j < MAX_CALIBRATION_LAG; j++){
+      if (sparrow->lag_table[i][j] > peak){
+        peak = sparrow->lag_table[i][j];
+        offset = j;
+      }
+    }
+    frame[i] = lag_false_colour[offset];
+  }
+  debug_frame(sparrow, sparrow->debug_frame);
 }
 
 #define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
@@ -611,7 +629,8 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
     }
     memcpy(sparrow->prev_frame, bytes, sparrow->size);
     if(sparrow->debug){
-      debug_frame(sparrow, sparrow->work_frame);
+      debug_calibration(sparrow);
+      //debug_frame(sparrow, sparrow->work_frame);
     }
     ipl_free(src1);
     ipl_free(src2);
@@ -633,9 +652,13 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
     sparrow->calibrate_index--;
     sparrow->calibrate_wait = sparrow->calibrate_pattern[sparrow->calibrate_index];
     //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
+    sparrow->lag_record = (sparrow->lag_record << 1) | 1;
+  }
+  else {
+    sparrow->lag_record = (sparrow->lag_record << 1);
   }
   //XXX record the pattern in sparrow->lag_record
-  sparrow->lag_record = (sparrow->lag_record << 1) || (sparrow->calibrate_wait == 0);
+  //GST_DEBUG("lag_record %x calibrate_wait %x\n", sparrow->lag_record, sparrow->calibrate_wait);
   //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
 
   sparrow->calibrate_wait--;
@@ -758,4 +781,6 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     "sparrow",
     "Add sparrows to video streams",
     plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN);
+
+
 

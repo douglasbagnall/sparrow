@@ -145,6 +145,7 @@ struct _GstSparrow
   /*buffer pointers for previous frames */
   guint8 *prev_frame;
   guint8 *work_frame;
+  guint8 *debug_frame;
 
   gboolean debug;
 
