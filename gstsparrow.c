@@ -309,6 +309,13 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   if (sparrow->debug){
     init_debug(sparrow);
   }
+  /*set up the calibration table if it does not exist. */
+  if (!sparrow->lag_table){
+    GST_DEBUG("allocating %u * *u for lag_table\n", sparrow->width * sparrow->height, sizeof(lag_times));
+    sparrow->lag_table = malloc_aligned_or_die(
+      sparrow->width * sparrow->height * sizeof(lag_times));
+  }
+
 done:
   return res;
 }
@@ -592,12 +599,6 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
     IplImage* dest = ipl_wrap_frame(sparrow, sparrow->work_frame);
 
     cvAbsDiff(src1, src2, dest);
-    /*set up the calibration table if it does not exist.
-     XXX not dealing with resizing!*/
-    if (!sparrow->lag_table){
-      sparrow->lag_table = malloc_aligned_or_die(
-        sparrow->width * sparrow->height * sizeof(lag_times));
-    }
 
     gint32 i;
     pix_t *changes = (pix_t *)sparrow->work_frame;
