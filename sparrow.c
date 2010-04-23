@@ -53,39 +53,19 @@ init_debug(GstSparrow *sparrow){
 
 /*seed with -1 for automatic seed choice */
 static void rng_init(GstSparrow *sparrow, guint32 seed){
-    GST_DEBUG("in RNG init\n");
-    if (seed == -1){
-      //seed = 0x33;
-      seed = rand();
-      GST_DEBUG("Real seed %u\n", seed);
-    }
-    if (seed == 0)
-	seed = 12345;
-    GST_DEBUG("in RNG init dfsmt is %p\n", sparrow->dsfmt);
-    GST_DEBUG("dfsmt->status is %p\n", sparrow->dsfmt->status);
-    dsfmt_init_gen_rand(sparrow->dsfmt, seed);
-    /*run the generator here before the threads get going */
-    dsfmt_gen_rand_all(sparrow->dsfmt);
-    GST_DEBUG("RNG seeded with %u\n", seed);
+  GST_DEBUG("in RNG init\n");
+  if (seed == -1){
+    /* XXX should really use /dev/urandom */
+    seed = rand();
+    GST_DEBUG("Real seed %u\n", seed);
+  }
+  if (seed == 0)
+    seed = 12345;
+
+  dsfmt_init_gen_rand(sparrow->dsfmt, seed);
+  dsfmt_gen_rand_all(sparrow->dsfmt);
+  GST_DEBUG("RNG seeded with %u\n", seed);
 }
-
-static inline UNUSED guint32
-rng_uniform_int(GstSparrow *sparrow, guint32 limit){
-  double d = dsfmt_genrand_close_open(sparrow->dsfmt);
-  double d2 = d * limit;
-  guint32 i = (guint32)d2;
-  //GST_DEBUG("RNG int between 0 and %u: %u (from %f, %f)\n", limit, i, d2, d);
-  return i;
-}
-
-static inline UNUSED double
-rng_uniform_double(GstSparrow *sparrow, double limit){
-    return dsfmt_genrand_close_open(sparrow->dsfmt) * limit;
-}
-
-#define rng_uniform() dsfmt_genrand_close_open(sparrow->dsfmt)
-
-
 
 /* here we go */
 
