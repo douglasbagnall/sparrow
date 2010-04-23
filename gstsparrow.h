@@ -41,8 +41,9 @@ G_BEGIN_DECLS
 #define UNUSED __attribute__ ((unused))
 #endif
 
-#define PIXSIZE 4
 typedef guint32 pix_t;
+#define PIXSIZE (sizeof(pix_t))
+
 
 #define CALIBRATE_MIN_T 2
 #define CALIBRATE_MAX_T 10
