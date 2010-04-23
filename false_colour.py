@@ -35,7 +35,7 @@ def html_test(colours):
 def cformat(colours, name, wrap=75, unused=True):
     # convert to 32bit mask by replicating first couplet as last
     # the mask will work whether the format is RGB_, _RGB, BGR_, or _BGR
-    table = ['0x%02x%02x%02x%02x' % (c + (c[0],)) for c in colours]
+    table = ['0x%02x%02x%02x%02x' % (c[2], c[0], c[1], c[2]) for c in colours]
     table.append('0x000000')
     outs = []
     if unused:
