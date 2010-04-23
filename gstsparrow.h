@@ -70,9 +70,6 @@ GST_DEBUG(char *msg, ...){
 #define GST_FIXME        GST_DEBUG
 
 #endif
-
-
-    //#define LOG(format, ...) fprintf (stderr, (format),## __VA_ARGS__); fflush(stderr);
 #define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
 
 #define PIXSIZE 4
