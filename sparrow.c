@@ -57,21 +57,10 @@ static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 
 
 
-#if SPARROW_VIDEO_DEBUG
-#define DEBUG_FILENAME "/tmp/sparrow.mpg"
-#define DEBUG_FOURCC CV_FOURCC('M','P','4', 'V')
-#define DEBUG_FPS 25
-#endif
 
 static void
 init_debug(GstSparrow *sparrow){
   sparrow->debug_frame = malloc_aligned_or_die(sparrow->size);
-
-#if SPARROW_VIDEO_DEBUG
-  CvSize size = {sparrow->width, sparrow->height};
-  sparrow->debug_writer = cvCreateVideoWriter(DEBUG_FILENAME, DEBUG_FOURCC,
-      DEBUG_FPS, size, TRUE);
-#endif
 }
 
 /*RNG code */
@@ -237,11 +226,6 @@ debug_calibration(GstSparrow *sparrow){
 
 static void
 debug_frame(GstSparrow *sparrow, guint8 *data){
-#if SPARROW_VIDEO_DEBUG
-  IplImage* image = ipl_wrap_frame(sparrow, data);
-  cvWriteFrame(sparrow->debug_writer, image);
-  ipl_free(image);
-#endif
 #if SPARROW_PPM_DEBUG
   char name[PPM_FILENAME_LENGTH];
   int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->debug_count);
@@ -519,10 +503,6 @@ void sparrow_finalise(GstSparrow *sparrow)
 {
   //free everything
 
-#if SPARROW_VIDEO_DEBUG
-  if (sparrow->debug_writer){
-    cvReleaseVideoWriter(&(sparrow->debug_writer));
-    sparrow->debug_writer = NULL;
-  }
-#endif
+
+
 }

@@ -37,10 +37,6 @@ G_BEGIN_DECLS
 #include "dSFMT/dSFMT.h"
 #include "cv.h"
 
-#if SPARROW_VIDEO_DEBUG
-#include "highgui.h"
-#endif
-
 #ifndef UNUSED
 #define UNUSED __attribute__ ((unused))
 #endif
