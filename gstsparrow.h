@@ -117,14 +117,16 @@ struct _GstSparrow
   /*array of IPL image headers that get allocated as necessary */
   IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
 
-#if SPARROW_VIDEO_DEBUG
-  struct CvVideoWriter* debug_writer;
-#endif
 #if SPARROW_PPM_DEBUG
   guint32 debug_count;
 #endif
 
-
+  gint rshift;
+  gint gshift;
+  gint bshift;
+  pix_t rmask;
+  pix_t gmask;
+  pix_t bmask;
 };
 
 struct _GstSparrowClass

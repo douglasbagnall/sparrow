@@ -43,6 +43,47 @@ static void see_grid(GstSparrow *sparrow, guint8 *bytes);
 #endif
 */
 
+static inline gint
+mask_to_shift(guint32 mask){
+  /*mask is big-endian, so these numbers are reversed */
+  switch(mask){
+  case 0x000000ff:
+    return 24;
+  case 0x0000ff00:
+    return 16;
+  case 0x00ff0000:
+    return 8;
+  case 0xff000000:
+    return 0;
+  }
+  GST_WARNING("mask not byte aligned: %x\n", mask);
+  return 0;
+}
+
+static guint32 get_mask(GstStructure *s, char *mask_name){
+  gint32 mask;
+  int res = gst_structure_get_int(s, mask_name, &mask);
+  if (!res){
+    GST_WARNING("No mask for '%s' !\n", mask_name);
+  }
+  return mask;
+}
+
+static void
+init_masks_and_shifts(GstSparrow *sparrow, GstCaps *caps)
+{
+  GST_DEBUG("\ncaps:\n%" GST_PTR_FORMAT, caps);
+  GstStructure *s = gst_caps_get_structure (caps, 0);
+  sparrow->rmask = get_mask(s, "red_mask");
+  sparrow->rshift = mask_to_shift(sparrow->rmask);
+  sparrow->gmask = get_mask(s, "green_mask");
+  sparrow->gshift = mask_to_shift(sparrow->gmask);
+  sparrow->bmask = get_mask(s, "blue_mask");
+  sparrow->bshift = mask_to_shift(sparrow->bmask);
+  GST_DEBUG("shifts: r %u g %u b %u\n", sparrow->rshift, sparrow->gshift, sparrow->bshift);
+}
+
+
 static void
 init_debug(GstSparrow *sparrow){
   sparrow->debug_frame = malloc_aligned_or_die(sparrow->size);
@@ -198,30 +239,6 @@ debug_frame(GstSparrow *sparrow, guint8 *data){
 #endif
 }
 
-#define NEWLINE 10
-
-static inline guint32
-trailing_zeros(guint32 mask){
-  if (!mask){
-    return 32;
-  }
-  guint32 shift = 0;
-  //while(! ((mask >> shift) & 1)){
-  while(! ((mask << shift) & 1 << 31)){
-    shift ++;
-  }
-  return shift;
-}
-
-static guint32 get_mask(GstStructure *s, char *mask_name){
-  gint32 mask;
-  int res = gst_structure_get_int(s, mask_name, &mask);
-  if (!res){
-    GST_WARNING("No mask for '%s' !\n", mask_name);
-  }
-  return mask;
-}
-
 
 
 static void
@@ -230,34 +247,18 @@ pgm_dump(GstSparrow *sparrow, guint8 *data, char *name)
   int x, y;
   FILE *fh = fopen(name, "w");
   fprintf(fh, "P6\n%u %u\n255\n", sparrow->width, sparrow->height);
-
-
-  GstPad *pad = GST_BASE_TRANSFORM_SINK_PAD(sparrow);
-  GstCaps *caps = GST_PAD_CAPS(pad);
-  GstStructure *s = gst_caps_get_structure (caps, 0);
-  guint32 rmask = get_mask(s, "red_mask");
-  guint32 rshift = trailing_zeros(rmask);
-  guint32 gmask = get_mask(s, "green_mask");
-  guint32 gshift = trailing_zeros(gmask);
-  guint32 bmask = get_mask(s, "blue_mask");
-  guint32 bshift = trailing_zeros(bmask);
-  //GST_DEBUG("r %u g %u b %u\n", rshift, gshift, bshift);
-
   /* 4 cases: xBGR xRGB BGRx RGBx
-     it needs to be converted to 24bit R G B
+     need to convert to 24bit R G B
+     XX maybe could optimise some cases?
   */
   guint32 *p = (guint32 *)data;
   for (y=0; y < sparrow->height; y++){
     for (x = 0; x < sparrow->width; x++){
-      //putc((x & rmask) >> rshift, fh);
-      //putc((x & gmask) >> gshift, fh);
-      //putc((x & bmask) >> bshift, fh);
-      putc((*p >> rshift) & 255, fh);
-      putc((*p >> gshift) & 255, fh);
-      putc((*p >> bshift) & 255, fh);
+      putc((*p >> sparrow->rshift) & 255, fh);
+      putc((*p >> sparrow->gshift) & 255, fh);
+      putc((*p >> sparrow->bshift) & 255, fh);
       p++;
     }
-    //putc(NEWLINE, fh);
   }
   fflush(fh);
   fclose(fh);
@@ -403,6 +404,7 @@ void sparrow_init(GstSparrow *sparrow, GstCaps *incaps){
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
 
   rng_init(sparrow, sparrow->rng_seed);
+  init_masks_and_shifts(sparrow, incaps);
 
   if (sparrow->debug){
     init_debug(sparrow);
