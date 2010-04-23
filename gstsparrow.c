@@ -37,6 +37,7 @@
 #include "gstsparrow.h"
 #include <gst/video/gstvideofilter.h>
 #include <gst/video/video.h>
+GST_DEBUG_CATEGORY (sparrow_debug);
 
 #include <string.h>
 #include <math.h>

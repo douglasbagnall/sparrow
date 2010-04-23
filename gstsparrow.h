@@ -165,9 +165,7 @@ struct _GstSparrowClass
 GType gst_sparrow_get_type(void);
 
 
-
-
-GST_DEBUG_CATEGORY_STATIC (sparrow_debug);
+GST_DEBUG_CATEGORY_EXTERN (sparrow_debug);
 #define GST_CAT_DEFAULT sparrow_debug
 
 /* GstSparrow signals and args */
