@@ -89,9 +89,6 @@ gamma_negation(guint8 * bytes, guint size){
   }
 }
 
-#define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
-
-
 static void calibrate_new_pattern(GstSparrow *sparrow){
   int i;
   sparrow->calibrate_index = CALIBRATE_PATTERN_L;

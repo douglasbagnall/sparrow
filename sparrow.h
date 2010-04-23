@@ -27,4 +27,23 @@ void sparrow_transform(GstSparrow *sparrow, guint8 *bytes);
 void sparrow_finalise(GstSparrow *sparrow);
 
 
+/*RNG macros */
+
+static inline UNUSED guint32
+rng_uniform_int(GstSparrow *sparrow, guint32 limit){
+  double d = dsfmt_genrand_close_open(sparrow->dsfmt);
+  double d2 = d * limit;
+  guint32 i = (guint32)d2;
+  return i;
+}
+
+static inline UNUSED double
+rng_uniform_double(GstSparrow *sparrow, double limit){
+    return dsfmt_genrand_close_open(sparrow->dsfmt) * limit;
+}
+
+#define rng_uniform(sparrow) dsfmt_genrand_close_open((sparrow)->dsfmt)
+
+#define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
+
 #endif /* __SPARROW_SPARROW_H__ */
