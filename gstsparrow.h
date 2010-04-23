@@ -167,55 +167,7 @@ struct _GstSparrowClass
 
 GType gst_sparrow_get_type(void);
 
-#define SPARROW_CALIBRATE_ON  1
 
-typedef enum {
-  SPARROW_INIT,
-  SPARROW_FIND_SELF,
-  SPARROW_FIND_EDGES,
-  SPARROW_FIND_GRID,
-  SPARROW_PLAY,
-} sparrow_states;
-
-#define CALIBRATE_SIGNAL_THRESHOLD 16
-
-
-#define DISASTEROUS_CRASH(msg) GST_ERROR("DISASTER: %s\n%-25s  line %4d \n", (msg), __func__, __LINE__);
-
-
-
-static UNUSED void * malloc_or_die(size_t size){
-  void *p = malloc(size);
-  if (!p){
-    GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
-    exit(1);
-  }
-  return p;
-}
-
-#define ALIGNMENT 16
-static UNUSED void * malloc_aligned_or_die(size_t size){
-  void *mem;
-  int err = posix_memalign(&mem, ALIGNMENT, size);
-  if (err){
-    GST_ERROR("posix_memalign returned %d trying to allocate %u bytes aligned on %u byte boundaries\n",
-        err, size, ALIGNMENT);
-    exit(1);
-  }
-  return mem;
-}
-
-static UNUSED void memalign_or_die(void **memptr, size_t alignment, size_t size){
-  int err = posix_memalign(memptr, alignment, size);
-  if (err){
-    GST_ERROR("posix_memalign returned %d trying to allocate %u bytes alligned on %u byte boundaries\n",
-        err, size, alignment);
-    exit(1);
-  }
-}
-
-#include "sparrow_false_colour_lut.h"
-#include "sparrow_gamma_lut.h"
 
 
 GST_DEBUG_CATEGORY_STATIC (sparrow_debug);

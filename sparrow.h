@@ -19,6 +19,8 @@
 #define __SPARROW_SPARROW_H__
 
 #include "gstsparrow.h"
+#include "sparrow_false_colour_lut.h"
+#include "sparrow_gamma_lut.h"
 
 void sparrow_pre_init(GstSparrow *sparrow);
 void sparrow_init(GstSparrow *sparrow);
@@ -26,6 +28,53 @@ void sparrow_init(GstSparrow *sparrow);
 void sparrow_transform(GstSparrow *sparrow, guint8 *bytes);
 void sparrow_finalise(GstSparrow *sparrow);
 
+
+
+
+
+#define SPARROW_CALIBRATE_ON  1
+
+typedef enum {
+  SPARROW_INIT,
+  SPARROW_FIND_SELF,
+  SPARROW_FIND_EDGES,
+  SPARROW_FIND_GRID,
+  SPARROW_PLAY,
+} sparrow_states;
+
+#define CALIBRATE_SIGNAL_THRESHOLD 16
+
+
+
+
+/*memory allocation */
+
+static inline UNUSED void * malloc_or_die(size_t size){
+  void *p = malloc(size);
+  if (!p){
+    GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
+    exit(1);
+  }
+  return p;
+}
+
+#define ALIGNMENT 16
+static inline UNUSED void * malloc_aligned_or_die(size_t size){
+  void *mem;
+  int err = posix_memalign(&mem, ALIGNMENT, size);
+  if (err){
+    GST_ERROR("posix_memalign returned %d trying to allocate %u bytes aligned on %u byte boundaries\n",
+        err, size, ALIGNMENT);
+    exit(1);
+  }
+  return mem;
+}
+
+static inline UNUSED void * zalloc_aligned_or_die(size_t size){
+  void *mem = malloc_aligned_or_die(size);
+  memset(mem, 0, size);
+  return mem;
+}
 
 /*RNG macros */
 
@@ -45,5 +94,8 @@ rng_uniform_double(GstSparrow *sparrow, double limit){
 #define rng_uniform(sparrow) dsfmt_genrand_close_open((sparrow)->dsfmt)
 
 #define RANDINT(sparrow, start, end)((start) + rng_uniform_int(sparrow, (end) - (start)))
+
+
+#define DISASTEROUS_CRASH(msg) GST_ERROR("DISASTER: %s\n%-25s  line %4d \n", (msg), __func__, __LINE__);
 
 #endif /* __SPARROW_SPARROW_H__ */
