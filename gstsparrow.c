@@ -33,6 +33,7 @@
  * </refsect2>
  */
 
+#include "sparrow.h"
 #include "gstsparrow.h"
 #include <gst/video/gstvideofilter.h>
 #include <gst/video/video.h>
@@ -50,7 +51,8 @@ static gboolean gst_sparrow_set_caps(GstBaseTransform *base, GstCaps *incaps, Gs
 static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
 static gboolean plugin_init(GstPlugin *plugin);
 
-#include <sparrow.c>
+//#include <sparrow.c>
+#include <sparrow.h>
 
 
 /* the capabilities of the inputs and outputs.
@@ -115,15 +117,9 @@ gst_sparrow_base_init (gpointer g_class)
 /* Clean up */
 static void
 gst_sparrow_finalize (GObject * obj){
-  GstSparrow *sparrow = GST_SPARROW(obj);
-  //free everything
   GST_DEBUG("in gst_sparrow_finalize!\n");
-#if SPARROW_VIDEO_DEBUG
-  if (sparrow->debug_writer){
-    cvReleaseVideoWriter(&(sparrow->debug_writer));
-    sparrow->debug_writer = NULL;
-  }
-#endif
+  GstSparrow *sparrow = GST_SPARROW(obj);
+  sparrow_finalise(sparrow);
 }
 
 static void
@@ -162,21 +158,8 @@ static void
 gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 {
   GST_INFO("gst sparrow init\n");
-  void *mem;
-  memalign_or_die(&mem, 16, sizeof(dsfmt_t));
-  sparrow->dsfmt = mem;
-
-  sparrow->lag_table = NULL;
-  sparrow->prev_frame = NULL;
-  sparrow->work_frame = NULL;
-
-  sparrow->state = SPARROW_INIT;
-  sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
-
   /*disallow resizing */
   gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
-
-  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%p", sparrow->dsfmt);
 }
 
 static void
@@ -246,9 +229,6 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   GstStructure *structure;
   gboolean res;
 
-  /*NB: set_caps gets called after set_property, so it is a good place for
-    hooks that depend on properties */
-
   structure = gst_caps_get_structure (incaps, 0);
 
   res = gst_structure_get_int (structure, "width", &sparrow->width);
@@ -259,12 +239,14 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
   GST_DEBUG_OBJECT (sparrow,
       "set_caps: \nin %" GST_PTR_FORMAT " \nout %" GST_PTR_FORMAT, incaps, outcaps);
 
+  /* set_caps gets called after set_property, so it is a good place for hooks
+     that depend on properties and that need to be run before everything
+     starts. */
+
   sparrow_init(sparrow);
 done:
   return res;
 }
-
-
 
 
 static GstFlowReturn
@@ -282,23 +264,7 @@ gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 
   if (size != sparrow->size)
     goto wrong_size;
-
-  switch(sparrow->state){
-  case SPARROW_INIT:
-    sparrow_reset(sparrow, data);
-    break;
-  case SPARROW_FIND_SELF:
-    find_self(sparrow, data);
-    break;
-  case SPARROW_FIND_EDGES:
-    find_edges(sparrow, data);
-    break;
-  case SPARROW_FIND_GRID:
-    find_grid(sparrow, data);
-    break;
-  default:
-    gamma_negation(data, size);
-  }
+  sparrow_transform(sparrow, data);
 done:
   return GST_FLOW_OK;
 

@@ -28,7 +28,7 @@ LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o dSFMT/dSFMT.o
+libgstsparrow.so: gstsparrow.o sparrow.o dSFMT/dSFMT.o
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
@@ -53,7 +53,9 @@ sparrow_gamma_lut.h: gamma.py
 sparrow_false_colour_lut.h: false_colour.py
 	python $< > $@
 
-gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.c
+gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
+
+sparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
 TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,width=800,height=600,framerate=25/1'
