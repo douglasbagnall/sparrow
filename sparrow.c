@@ -18,13 +18,11 @@
 
 #include "sparrow.h"
 #include "gstsparrow.h"
-#include <gst/video/gstvideofilter.h>
-#include <gst/video/video.h>
 
+#include <string.h>
+#include <math.h>
 
-
-
-/* sparrow.c */
+/* static functions (via `make cproto`) */
 static void init_debug(GstSparrow *sparrow);
 static void rng_init(GstSparrow *sparrow, guint32 seed);
 static void simple_negation(guint8 *bytes, guint size);
@@ -38,9 +36,6 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *bytes);
 static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 
-
-
-
 /*
 #ifdef HAVE_LIBOIL
 #include <liboil/liboil.h>
@@ -48,15 +43,6 @@ static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 #include <liboil/liboilfunction.h>
 #endif
 */
-
-#include <string.h>
-#include <math.h>
-
-
-
-
-
-
 
 static void
 init_debug(GstSparrow *sparrow){
