@@ -386,25 +386,6 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
 }
 
 
-static void
-sparrow_reset(GstSparrow *sparrow, guint8 *bytes){
-  size_t size = sparrow->size;
-  if (!sparrow->prev_frame){
-    sparrow->prev_frame = malloc_aligned_or_die(size);
-  }
-  if (!sparrow->work_frame){
-    sparrow->work_frame = malloc_aligned_or_die(size);
-  }
-  memcpy(sparrow->prev_frame, bytes, size);
-  memset(bytes, 0xff0000, size);
-  sparrow->state = SPARROW_FIND_SELF;
-  calibrate_new_state(sparrow);
-}
-
-
-
-
-
 /*Functions below here are NOT static */
 
 /* called by gst_sparrow_init() */
@@ -413,32 +394,26 @@ void sparrow_pre_init(GstSparrow *sparrow){
 
 /* called by gst_sparrow_set_caps() */
 void sparrow_init(GstSparrow *sparrow){
-  sparrow->lag_table = NULL;
-  sparrow->prev_frame = NULL;
-  sparrow->work_frame = NULL;
+  size_t pixcount = sparrow->width * sparrow->height;
+  sparrow->size = pixcount * PIXSIZE;
 
-  sparrow->state = SPARROW_INIT;
-  sparrow->next_state = SPARROW_FIND_SELF; // can be overridden
+  sparrow->lag_table = zalloc_aligned_or_die(pixcount * sizeof(lag_times));
+  sparrow->prev_frame = zalloc_aligned_or_die(sparrow->size);
+  sparrow->work_frame = zalloc_aligned_or_die(sparrow->size);
+  sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
 
-  void *mem;
-  memalign_or_die(&mem, 16, sizeof(dsfmt_t));
-  sparrow->dsfmt = mem;
   rng_init(sparrow, sparrow->rng_seed);
-
-  sparrow->size = sparrow->width * sparrow->height * PIXSIZE;
-  calibrate_new_pattern(sparrow);
 
   if (sparrow->debug){
     init_debug(sparrow);
   }
-  /*set up the calibration table if it does not exist. */
-  if (!sparrow->lag_table){
-    GST_DEBUG("allocating %u * *u for lag_table\n", sparrow->width * sparrow->height, sizeof(lag_times));
-    sparrow->lag_table = malloc_aligned_or_die(
-      sparrow->width * sparrow->height * sizeof(lag_times));
-  }
 
-  GST_DEBUG_OBJECT(sparrow, "gst_sparrow_init. RNG:%p", sparrow->dsfmt);
+  GST_DEBUG("allocating %u * *u for lag_table\n", pixcount, sizeof(lag_times));
+
+  sparrow->state = SPARROW_FIND_SELF;
+
+  calibrate_new_pattern(sparrow);
+  calibrate_new_state(sparrow);
 }
 
 /*called by gst_sparrow_transform_ip */
