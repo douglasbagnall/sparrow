@@ -392,11 +392,12 @@ void sparrow_pre_init(GstSparrow *sparrow){
 }
 
 /* called by gst_sparrow_set_caps() */
-void sparrow_init(GstSparrow *sparrow){
+void sparrow_init(GstSparrow *sparrow, GstCaps *incaps){
   size_t pixcount = sparrow->width * sparrow->height;
   sparrow->size = pixcount * PIXSIZE;
 
-  sparrow->lag_table = zalloc_aligned_or_die(pixcount * sizeof(lag_times));
+  GST_DEBUG("allocating %u * *u for lag_table\n", pixcount, sizeof(lag_times_t));
+  sparrow->lag_table = zalloc_aligned_or_die(pixcount * sizeof(lag_times_t));
   sparrow->prev_frame = zalloc_aligned_or_die(sparrow->size);
   sparrow->work_frame = zalloc_aligned_or_die(sparrow->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
@@ -406,8 +407,6 @@ void sparrow_init(GstSparrow *sparrow){
   if (sparrow->debug){
     init_debug(sparrow);
   }
-
-  GST_DEBUG("allocating %u * *u for lag_table\n", pixcount, sizeof(lag_times));
 
   sparrow->state = SPARROW_FIND_SELF;
 

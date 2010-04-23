@@ -23,7 +23,7 @@
 #include "sparrow_gamma_lut.h"
 
 void sparrow_pre_init(GstSparrow *sparrow);
-void sparrow_init(GstSparrow *sparrow);
+void sparrow_init(GstSparrow *sparrow, GstCaps *incaps);
 
 void sparrow_transform(GstSparrow *sparrow, guint8 *bytes);
 void sparrow_finalise(GstSparrow *sparrow);

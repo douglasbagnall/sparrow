@@ -244,7 +244,7 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
      that depend on properties and that need to be run before everything
      starts. */
 
-  sparrow_init(sparrow);
+  sparrow_init(sparrow, incaps);
 done:
   return res;
 }
