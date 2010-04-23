@@ -41,37 +41,6 @@ G_BEGIN_DECLS
 #define UNUSED __attribute__ ((unused))
 #endif
 
-/* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
-   need our own debug channel. */
-#ifdef GST_DISABLE_GST_DEBUG
-
-#undef GEST_DEBUG
-
-static FILE *_sparrow_bloody_debug_flags = NULL;
-static void
-GST_DEBUG(char *msg, ...){
-  if (! _sparrow_bloody_debug_flags){
-    _sparrow_bloody_debug_flags = fopen("/tmp/sparrow.log", "wb");
-    if (! _sparrow_bloody_debug_flags){
-      exit(1);
-    }
-  }
-  va_list argp;
-  va_start(argp, msg);
-  vfprintf(_sparrow_bloody_debug_flags, msg, argp);
-  va_end(argp);
-  fflush(_sparrow_bloody_debug_flags);
-}
-
-#define GST_ERROR        GST_DEBUG
-#define GST_WARNING      GST_DEBUG
-#define GST_INFO         GST_DEBUG
-#define GST_LOG          GST_DEBUG
-#define GST_FIXME        GST_DEBUG
-
-#endif
-#define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
-
 #define PIXSIZE 4
 typedef guint32 pix_t;
 
@@ -189,6 +158,38 @@ enum
 
 
 
+
+
+/* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
+   need our own debug channel. */
+#ifdef GST_DISABLE_GST_DEBUG
+
+#undef GEST_DEBUG
+
+static FILE *_sparrow_bloody_debug_flags = NULL;
+static void
+GST_DEBUG(char *msg, ...){
+  if (! _sparrow_bloody_debug_flags){
+    _sparrow_bloody_debug_flags = fopen("/tmp/sparrow.log", "wb");
+    if (! _sparrow_bloody_debug_flags){
+      exit(1);
+    }
+  }
+  va_list argp;
+  va_start(argp, msg);
+  vfprintf(_sparrow_bloody_debug_flags, msg, argp);
+  va_end(argp);
+  fflush(_sparrow_bloody_debug_flags);
+}
+
+#define GST_ERROR        GST_DEBUG
+#define GST_WARNING      GST_DEBUG
+#define GST_INFO         GST_DEBUG
+#define GST_LOG          GST_DEBUG
+#define GST_FIXME        GST_DEBUG
+
+#endif
+#define LOG_LINENO() GST_DEBUG("%-25s  line %4d \n", __func__, __LINE__ );
 
 
 G_END_DECLS
