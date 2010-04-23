@@ -122,9 +122,8 @@ struct _GstSparrow
   /*array of IPL image headers that get allocated as necessary */
   IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
 
-#if SPARROW_PPM_DEBUG
-  guint32 debug_count;
-#endif
+
+  guint32 frame_count;
 
   gint rshift;
   gint gshift;

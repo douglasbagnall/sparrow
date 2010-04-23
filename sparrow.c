@@ -237,11 +237,10 @@ static void
 debug_frame(GstSparrow *sparrow, guint8 *data){
 #if SPARROW_PPM_DEBUG
   char name[PPM_FILENAME_LENGTH];
-  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->debug_count);
+  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
   if (res > 0){
     pgm_dump(sparrow, data, name);
   }
-  sparrow->debug_count++;
 #endif
 }
 
@@ -438,6 +437,7 @@ void sparrow_transform(GstSparrow *sparrow, guint8 *bytes)
   default:
     gamma_negation(bytes, sparrow->size);
   }
+  sparrow->frame_count++;
 }
 
 void sparrow_finalise(GstSparrow *sparrow)
