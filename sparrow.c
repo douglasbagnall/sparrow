@@ -34,7 +34,6 @@ static guint32 get_mask(GstStructure *s, char *mask_name);
 static void pgm_dump(GstSparrow *sparrow, guint8 *data, char *name);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *bytes);
-static void sparrow_reset(GstSparrow *sparrow, guint8 *bytes);
 
 /*
 #ifdef HAVE_LIBOIL
@@ -420,9 +419,6 @@ void sparrow_init(GstSparrow *sparrow){
 void sparrow_transform(GstSparrow *sparrow, guint8 *bytes)
 {
   switch(sparrow->state){
-  case SPARROW_INIT:
-    sparrow_reset(sparrow, bytes);
-    break;
   case SPARROW_FIND_SELF:
     find_self(sparrow, bytes);
     break;
