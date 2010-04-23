@@ -219,6 +219,32 @@ static UNUSED void memalign_or_die(void **memptr, size_t alignment, size_t size)
 }
 
 #include "sparrow_false_colour_lut.h"
+#include "sparrow_gamma_lut.h"
+
+
+GST_DEBUG_CATEGORY_STATIC (sparrow_debug);
+#define GST_CAT_DEFAULT sparrow_debug
+
+/* GstSparrow signals and args */
+enum
+{
+  /* FILL ME */
+  LAST_SIGNAL
+};
+
+enum
+{
+  PROP_0,
+  PROP_CALIBRATE,
+  PROP_DEBUG,
+  PROP_RNG_SEED
+};
+
+#define DEFAULT_PROP_CALIBRATE TRUE
+#define DEFAULT_PROP_DEBUG FALSE
+#define DEFAULT_PROP_RNG_SEED -1
+
+
 
 
 

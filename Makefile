@@ -9,7 +9,7 @@ DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-alia
 
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__
 
-SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c
+SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c sparrow.c
 
 CC = gcc
 AR = ar
@@ -53,7 +53,7 @@ sparrow_gamma_lut.h: gamma.py
 sparrow_false_colour_lut.h: false_colour.py
 	python $< > $@
 
-gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h
+gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.c
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
 TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,width=800,height=600,framerate=25/1'
