@@ -194,7 +194,8 @@ draw_first_square(GstSparrow *sparrow, guint8 *bytes){
 
 static inline void
 record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
-  guint16 *t = sparrow->lag_table[offset];
+  guint16 *t = sparrow->lag_table[offset].lag;
+  sparrow->lag_table[offset].hits++;
   guint32 r = sparrow->lag_record;
   while(r){
     if(r & 1){
@@ -213,13 +214,18 @@ debug_calibration(GstSparrow *sparrow){
   for (i = 0; i < pixels; i++){
     guint16 peak = 0;
     int offset = 0;
-    for(j = 0; j < MAX_CALIBRATION_LAG; j++){
-      if (sparrow->lag_table[i][j] > peak){
-        peak = sparrow->lag_table[i][j];
-        offset = j;
+    if (sparrow->lag_table[i].hits > 5){
+      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
+        if (sparrow->lag_table[i].lag[j] > peak){
+          peak = sparrow->lag_table[i].lag[j];
+          offset = j;
+        }
       }
+      frame[i] = lag_false_colour[offset];
     }
-    frame[i] = lag_false_colour[offset];
+    else{
+      frame[i] = 0;
+    }
   }
   debug_frame(sparrow, sparrow->debug_frame);
 }

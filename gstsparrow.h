@@ -64,7 +64,13 @@ typedef guint32 pix_t;
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 #define MAX_CALIBRATION_LAG 20
-typedef guint16 lag_times[MAX_CALIBRATION_LAG];
+typedef struct lag_times_s {
+  guint32 hits;
+  guint16 lag[MAX_CALIBRATION_LAG];
+} lag_times_t;
+
+
+
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -102,7 +108,7 @@ struct _GstSparrow
   gint calibrate_pattern[CALIBRATE_PATTERN_L];
   gint calibrate_index;
 
-  lag_times * lag_table;
+  lag_times_t * lag_table;
   guint32 lag_record;
 
   /*buffer pointers for previous frames */
