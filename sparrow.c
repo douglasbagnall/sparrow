@@ -23,17 +23,21 @@
 #include <math.h>
 
 /* static functions (via `make cproto`) */
+static guint32 get_mask(GstStructure *s, char *mask_name);
 static void init_debug(GstSparrow *sparrow);
 static void rng_init(GstSparrow *sparrow, guint32 seed);
 static void simple_negation(guint8 *bytes, guint size);
-static void gamma_negation(guint8 *bytes, guint size);
+
 static void calibrate_new_pattern(GstSparrow *sparrow);
 static void calibrate_new_state(GstSparrow *sparrow);
-static void debug_frame(GstSparrow *sparrow, guint8 *data);
-static guint32 get_mask(GstStructure *s, char *mask_name);
-static void pgm_dump(GstSparrow *sparrow, guint8 *data, char *name);
+static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
+static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
-static void see_grid(GstSparrow *sparrow, guint8 *bytes);
+static void see_grid(GstSparrow *sparrow, guint8 *in);
+static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+static void find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+static void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+
 
 /*
 #ifdef HAVE_LIBOIL
@@ -69,24 +73,11 @@ static guint32 get_mask(GstStructure *s, char *mask_name){
   return mask;
 }
 
-static void
-init_masks_and_shifts(GstSparrow *sparrow, GstCaps *caps)
-{
-  GST_DEBUG("\ncaps:\n%" GST_PTR_FORMAT, caps);
-  GstStructure *s = gst_caps_get_structure (caps, 0);
-  sparrow->rmask = get_mask(s, "red_mask");
-  sparrow->rshift = mask_to_shift(sparrow->rmask);
-  sparrow->gmask = get_mask(s, "green_mask");
-  sparrow->gshift = mask_to_shift(sparrow->gmask);
-  sparrow->bmask = get_mask(s, "blue_mask");
-  sparrow->bshift = mask_to_shift(sparrow->bmask);
-  GST_DEBUG("shifts: r %u g %u b %u\n", sparrow->rshift, sparrow->gshift, sparrow->bshift);
-}
 
 
 static void
 init_debug(GstSparrow *sparrow){
-  sparrow->debug_frame = malloc_aligned_or_die(sparrow->size);
+  sparrow->debug_frame = malloc_aligned_or_die(MAX(sparrow->in.size, sparrow->out.size));
 }
 
 /*RNG code */
@@ -121,12 +112,12 @@ simple_negation(guint8 * bytes, guint size){
 }
 
 static void
-gamma_negation(guint8 * bytes, guint size){
-  guint i;
+gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  //guint i;
   //XXX  could try oil_tablelookup_u8
-  for (i = 0; i < size; i++){
-    bytes[i] = sparrow_rgb_gamma_full_range_REVERSE[bytes[i]];
-  }
+  //for (i = 0; i < size; i++){
+  //  out[i] = sparrow_rgb_gamma_full_range_REVERSE[in[i]];
+  // }
 }
 
 static void calibrate_new_pattern(GstSparrow *sparrow){
@@ -140,19 +131,20 @@ static void calibrate_new_pattern(GstSparrow *sparrow){
 }
 
 static void calibrate_new_state(GstSparrow *sparrow){
+  //XXX needs updating
   int edge_state = (sparrow->state == SPARROW_FIND_EDGES);
 
   if (edge_state){
     sparrow->calibrate_size = RANDINT(sparrow, 1, 8);
-    sparrow->calibrate_x  = RANDINT(sparrow, 0, sparrow->width - sparrow->calibrate_size);
-    sparrow->calibrate_y  = RANDINT(sparrow, 0, sparrow->height - sparrow->calibrate_size);
+    sparrow->calibrate_x  = RANDINT(sparrow, 0, sparrow->out.width - sparrow->calibrate_size);
+    sparrow->calibrate_y  = RANDINT(sparrow, 0, sparrow->out.height - sparrow->calibrate_size);
   }
   else {
     sparrow->calibrate_size = CALIBRATE_SELF_SIZE;
-    sparrow->calibrate_x  = RANDINT(sparrow, sparrow->width / 4,
-        sparrow->width * 3 / 4 - sparrow->calibrate_size);
-    sparrow->calibrate_y  = RANDINT(sparrow, sparrow->height / 4,
-        sparrow->height * 3 / 4 - sparrow->calibrate_size);
+    sparrow->calibrate_x  = RANDINT(sparrow, sparrow->out.width / 4,
+        sparrow->out.width * 3 / 4 - sparrow->calibrate_size);
+    sparrow->calibrate_y  = RANDINT(sparrow, sparrow->out.height / 4,
+        sparrow->out.height * 3 / 4 - sparrow->calibrate_size);
   }
 }
 
@@ -163,28 +155,28 @@ static void calibrate_new_state(GstSparrow *sparrow){
  */
 
 static inline void
-horizontal_line(GstSparrow *sparrow, guint8 *bytes, guint32 y){
-  guint stride = sparrow->width * PIXSIZE;
-  guint8 * line = bytes + y * stride;
+horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y){
+  guint stride = sparrow->out.width * PIXSIZE;
+  guint8 *line = out + y * stride;
   memset(line, 255, stride);
 }
 
 static inline void
-vertical_line(GstSparrow *sparrow, guint8 *bytes, guint32 x){
+vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
   guint y;
-  guint32 *p = (guint32 *)bytes;
+  guint32 *p = (guint32 *)out;
   p += x;
-  for(y = 0; y < sparrow->height; y++){
+  for(y = 0; y < sparrow->out.height; y++){
     *p = -1;
-    p += sparrow->width;
+    p += sparrow->out.width;
   }
 }
 
 static inline void
-draw_first_square(GstSparrow *sparrow, guint8 *bytes){
+draw_first_square(GstSparrow *sparrow, guint8 *out){
   guint y;
-  guint stride = sparrow->width * PIXSIZE;
-  guint8 * line = bytes + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
+  guint stride = sparrow->out.width * PIXSIZE;
+  guint8 *line = out + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
   for(y = 0; y < sparrow->calibrate_size; y++){
     memset(line, 255, sparrow->calibrate_size * PIXSIZE);
     line += stride;
@@ -208,7 +200,7 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 
 static inline void
 debug_calibration(GstSparrow *sparrow){
-  int pixels = sparrow->width * sparrow->height;
+  int pixels = sparrow->in.width * sparrow->in.height;
   guint32 *frame = (guint32 *)sparrow->debug_frame;
   int i, j;
   for (i = 0; i < pixels; i++){
@@ -227,19 +219,19 @@ debug_calibration(GstSparrow *sparrow){
       frame[i] = 0;
     }
   }
-  debug_frame(sparrow, sparrow->debug_frame);
+  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
 }
 
 #define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
 #define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
 
 static void
-debug_frame(GstSparrow *sparrow, guint8 *data){
+debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 #if SPARROW_PPM_DEBUG
   char name[PPM_FILENAME_LENGTH];
   int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
   if (res > 0){
-    pgm_dump(sparrow, data, name);
+    pgm_dump(&(sparrow->in), data, width, height, name);
   }
 #endif
 }
@@ -247,23 +239,22 @@ debug_frame(GstSparrow *sparrow, guint8 *data){
 
 
 static void
-pgm_dump(GstSparrow *sparrow, guint8 *data, char *name)
+pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
 {
-  int x, y;
+  int i;
   FILE *fh = fopen(name, "w");
-  fprintf(fh, "P6\n%u %u\n255\n", sparrow->width, sparrow->height);
+  guint32 size = width * height;
+  fprintf(fh, "P6\n%u %u\n255\n", width, height);
   /* 4 cases: xBGR xRGB BGRx RGBx
      need to convert to 24bit R G B
      XX maybe could optimise some cases?
   */
   guint32 *p = (guint32 *)data;
-  for (y=0; y < sparrow->height; y++){
-    for (x = 0; x < sparrow->width; x++){
-      putc((*p >> sparrow->rshift) & 255, fh);
-      putc((*p >> sparrow->gshift) & 255, fh);
-      putc((*p >> sparrow->bshift) & 255, fh);
-      p++;
-    }
+  for (i = 0; i < size; i++){
+    putc((*p >> rgb->rshift) & 255, fh);
+    putc((*p >> rgb->gshift) & 255, fh);
+    putc((*p >> rgb->bshift) & 255, fh);
+    p++;
   }
   fflush(fh);
   fclose(fh);
@@ -272,9 +263,9 @@ pgm_dump(GstSparrow *sparrow, guint8 *data, char *name)
 
 
 static inline IplImage*
-ipl_wrap_frame(GstSparrow *sparrow, guint8 *data){
+ipl_wrap_frame(GstSparrow *sparrow, sparrow_format *im, guint8 *data){
   /*XXX could keep a cache of IPL headers */
-  CvSize size = {sparrow->width, sparrow->height};
+  CvSize size = {im->width, im->height};
   IplImage* ipl = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
   int i;
   for (i = 0; i < IPL_IMAGE_COUNT; i++){
@@ -298,25 +289,26 @@ ipl_free(IplImage *ipl){
   square is about.
 */
 static inline void
-calibrate_find_square(GstSparrow *sparrow, guint8 *bytes){
+calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   if(sparrow->prev_frame){
-    IplImage* src1 = ipl_wrap_frame(sparrow, sparrow->prev_frame);
-    IplImage* src2 = ipl_wrap_frame(sparrow, bytes);
-    IplImage* dest = ipl_wrap_frame(sparrow, sparrow->work_frame);
+    IplImage* src1 = ipl_wrap_frame(sparrow, &(sparrow->in), sparrow->prev_frame);
+    IplImage* src2 = ipl_wrap_frame(sparrow, &(sparrow->in), in);
+    IplImage* dest = ipl_wrap_frame(sparrow, &(sparrow->in), sparrow->work_frame);
 
     cvAbsDiff(src1, src2, dest);
 
     gint32 i;
     pix_t *changes = (pix_t *)sparrow->work_frame;
-    for (i = 0; i < sparrow->height * sparrow->width; i++){
+    for (i = 0; i < sparrow->in.pixcount; i++){
       pix_t p = changes[i];
       guint32 signal = (p >> 8) & 255; //possibly R, G, or B, but never A
       if (signal > CALIBRATE_SIGNAL_THRESHOLD){
         record_calibration(sparrow, i, signal);
       }
     }
-    memcpy(sparrow->prev_frame, bytes, sparrow->size);
+    /* XXX redirect pointer, don't memcopy */
+    memcpy(sparrow->prev_frame, in, sparrow->in.size);
     if(sparrow->debug){
       debug_calibration(sparrow);
       //debug_frame(sparrow, sparrow->work_frame);
@@ -355,41 +347,63 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
 }
 
 static void
-see_grid(GstSparrow *sparrow, guint8 *bytes){
+see_grid(GstSparrow *sparrow, guint8 *in){
 }
 
 static void
-find_grid(GstSparrow *sparrow, guint8 *bytes){
-  see_grid(sparrow, bytes);
+find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  see_grid(sparrow, in);
   int on = cycle_pattern(sparrow, TRUE);
-  memset(bytes, 0, sparrow->size);
+  memset(out, 0, sparrow->out.size);
   if (on){
-    horizontal_line(sparrow, bytes, sparrow->calibrate_y);
+    horizontal_line(sparrow, out, sparrow->calibrate_y);
   }
 }
 
 static void
-find_edges(GstSparrow *sparrow, guint8 *bytes){
-  calibrate_find_square(sparrow, bytes);
+find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  calibrate_find_square(sparrow, in);
   int on = cycle_pattern(sparrow, TRUE);
-  memset(bytes, 0, sparrow->size);
+  memset(out, 0, sparrow->out.size);
   if (on){
-    draw_first_square(sparrow, bytes);
+    draw_first_square(sparrow, out);
   }
 }
 
 static void
-find_self(GstSparrow * sparrow, guint8 * bytes){
-  calibrate_find_square(sparrow, bytes);
+find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  calibrate_find_square(sparrow, in);
   int on = cycle_pattern(sparrow, TRUE);
-  memset(bytes, 0, sparrow->size);
+  memset(out, 0, sparrow->out.size);
   if (on){
-    //vertical_line(sparrow, bytes, sparrow->calibrate_x);
-    //horizontal_line(sparrow, bytes, sparrow->calibrate_y);
-    draw_first_square(sparrow, bytes);
+    //vertical_line(sparrow, out, sparrow->calibrate_x);
+    //horizontal_line(sparrow, out, sparrow->calibrate_y);
+    draw_first_square(sparrow, out);
   }
 }
 
+
+static void
+extract_caps(sparrow_format *im, GstCaps *caps)
+{
+  GstStructure *s = gst_caps_get_structure (caps, 0);
+  gst_structure_get_uint(s, "width", &(im->width));
+  gst_structure_get_uint(s, "height", &(im->height));
+  im->rmask = get_mask(s, "red_mask");
+  im->rshift = mask_to_shift(im->rmask);
+  im->gmask = get_mask(s, "green_mask");
+  im->gshift = mask_to_shift(im->gmask);
+  im->bmask = get_mask(s, "blue_mask");
+  im->bshift = mask_to_shift(im->bmask);
+
+  im->pixcount = im->width * im->height;
+  im->size = im->pixcount * PIXSIZE;
+
+  GST_DEBUG("\ncaps:\n%" GST_PTR_FORMAT, caps);
+  GST_DEBUG("shifts: r %u g %u b %u\n", im->rshift, im->gshift, im->bshift);
+  GST_DEBUG("dimensions: w %u h %u pix %u size %u\n", im->width, im->height, 
+      im->pixcount, im->size);
+}
 
 /*Functions below here are NOT static */
 
@@ -397,19 +411,22 @@ find_self(GstSparrow * sparrow, guint8 * bytes){
 void sparrow_pre_init(GstSparrow *sparrow){
 }
 
-/* called by gst_sparrow_set_caps() */
-void sparrow_init(GstSparrow *sparrow, GstCaps *incaps){
-  size_t pixcount = sparrow->width * sparrow->height;
-  sparrow->size = pixcount * PIXSIZE;
 
-  GST_DEBUG("allocating %u * *u for lag_table\n", pixcount, sizeof(lag_times_t));
-  sparrow->lag_table = zalloc_aligned_or_die(pixcount * sizeof(lag_times_t));
-  sparrow->prev_frame = zalloc_aligned_or_die(sparrow->size);
-  sparrow->work_frame = zalloc_aligned_or_die(sparrow->size);
+
+/* called by gst_sparrow_set_caps() */
+gboolean
+sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
+  extract_caps(&(sparrow->in), incaps);
+  extract_caps(&(sparrow->out), outcaps);
+  sparrow_format *in = &(sparrow->in);  
+
+  GST_DEBUG("allocating %u * *u for lag_table\n", in->pixcount, sizeof(lag_times_t));
+  sparrow->lag_table = zalloc_aligned_or_die(in->pixcount * sizeof(lag_times_t));
+  sparrow->prev_frame = zalloc_aligned_or_die(in->size);
+  sparrow->work_frame = zalloc_aligned_or_die(in->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
 
   rng_init(sparrow, sparrow->rng_seed);
-  init_masks_and_shifts(sparrow, incaps);
 
   if (sparrow->debug){
     init_debug(sparrow);
@@ -419,23 +436,24 @@ void sparrow_init(GstSparrow *sparrow, GstCaps *incaps){
 
   calibrate_new_pattern(sparrow);
   calibrate_new_state(sparrow);
+  return TRUE;
 }
 
 /*called by gst_sparrow_transform_ip */
-void sparrow_transform(GstSparrow *sparrow, guint8 *bytes)
+void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
 {
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
-    find_self(sparrow, bytes);
+    find_self(sparrow, in, out);
     break;
   case SPARROW_FIND_EDGES:
-    find_edges(sparrow, bytes);
+    find_edges(sparrow, in, out);
     break;
   case SPARROW_FIND_GRID:
-    find_grid(sparrow, bytes);
+    find_grid(sparrow, in, out);
     break;
   default:
-    gamma_negation(bytes, sparrow->size);
+    gamma_negation(sparrow, in, out);
   }
   sparrow->frame_count++;
 }

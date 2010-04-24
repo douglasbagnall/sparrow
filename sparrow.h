@@ -23,13 +23,9 @@
 #include "sparrow_gamma_lut.h"
 
 void sparrow_pre_init(GstSparrow *sparrow);
-void sparrow_init(GstSparrow *sparrow, GstCaps *incaps);
-
-void sparrow_transform(GstSparrow *sparrow, guint8 *bytes);
+gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
+void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
 void sparrow_finalise(GstSparrow *sparrow);
-
-
-
 
 
 #define SPARROW_CALIBRATE_ON  1

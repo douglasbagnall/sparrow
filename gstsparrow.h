@@ -68,7 +68,19 @@ typedef struct lag_times_s {
   guint16 lag[MAX_CALIBRATION_LAG];
 } lag_times_t;
 
+typedef struct sparrow_format_s {
+  guint32 width;
+  guint32 height;
+  guint32 pixcount;
+  guint32 size;
 
+  guint32 rshift;
+  guint32 gshift;
+  guint32 bshift;
+  guint32 rmask;
+  guint32 gmask;
+  guint32 bmask;
+} sparrow_format;
 
 
 typedef struct _GstSparrow GstSparrow;
@@ -83,10 +95,9 @@ typedef struct _GstSparrowClass GstSparrowClass;
 struct _GstSparrow
 {
   GstVideoFilter videofilter;
-  /* format */
-  gint width;
-  gint height;
-  gint size;  /* bytes, not pixels */
+
+  sparrow_format in;
+  sparrow_format out;
 
   /* properties */
   gint calibrate;  /*whether to calibrate */
@@ -124,13 +135,6 @@ struct _GstSparrow
 
 
   guint32 frame_count;
-
-  gint rshift;
-  gint gshift;
-  gint bshift;
-  pix_t rmask;
-  pix_t gmask;
-  pix_t bmask;
 };
 
 struct _GstSparrowClass

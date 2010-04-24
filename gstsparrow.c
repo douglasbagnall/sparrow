@@ -49,8 +49,9 @@ static void gst_sparrow_init(GstSparrow *sparrow, GstSparrowClass *g_class);
 static void gst_sparrow_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
 static void gst_sparrow_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 static gboolean gst_sparrow_set_caps(GstBaseTransform *base, GstCaps *incaps, GstCaps *outcaps);
-static GstFlowReturn gst_sparrow_transform_ip(GstBaseTransform *base, GstBuffer *outbuf);
+static GstFlowReturn gst_sparrow_transform(GstBaseTransform *base, GstBuffer *inbuf, GstBuffer *outbuf);
 static gboolean plugin_init(GstPlugin *plugin);
+
 
 //#include <sparrow.c>
 #include <sparrow.h>
@@ -77,15 +78,6 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     );
 
 
-static void gst_sparrow_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec);
-static void gst_sparrow_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec);
-
-static gboolean gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
-    GstCaps * outcaps);
-static GstFlowReturn gst_sparrow_transform_ip (GstBaseTransform * transform,
-    GstBuffer * buf);
 
 
 GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
@@ -151,7 +143,7 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
-  trans_class->transform_ip = GST_DEBUG_FUNCPTR (gst_sparrow_transform_ip);
+  trans_class->transform = GST_DEBUG_FUNCPTR (gst_sparrow_transform);
   GST_INFO("gst class init\n");
 }
 
@@ -222,20 +214,10 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
 
 
 static gboolean
-gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
-    GstCaps * outcaps)
+gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps, GstCaps * outcaps)
 {
   GST_INFO("set_caps\n");
   GstSparrow *sparrow = GST_SPARROW(base);
-  GstStructure *structure;
-  gboolean res;
-
-  structure = gst_caps_get_structure (incaps, 0);
-
-  res = gst_structure_get_int (structure, "width", &sparrow->width);
-  res &= gst_structure_get_int (structure, "height", &sparrow->height);
-  if (!res)
-    goto done;
 
   GST_DEBUG_OBJECT (sparrow,
       "set_caps: \nin %" GST_PTR_FORMAT " \nout %" GST_PTR_FORMAT, incaps, outcaps);
@@ -244,40 +226,35 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps,
      that depend on properties and that need to be run before everything
      starts. */
 
-  sparrow_init(sparrow, incaps);
-done:
-  return res;
+  return sparrow_init(sparrow, incaps, outcaps);
 }
 
 
 static GstFlowReturn
-gst_sparrow_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
+gst_sparrow_transform (GstBaseTransform * base, GstBuffer * inbuf,
+    GstBuffer * outbuf)
 {
-  GstSparrow *sparrow;
-  guint8 *data;
-  guint size;
-  sparrow = GST_SPARROW (base);
-  if (base->passthrough)
-    goto done;
+  GstSparrow *sparrow = GST_SPARROW(base);
+  guint8 *indata = GST_BUFFER_DATA(inbuf);
+  guint8 *outdata = GST_BUFFER_DATA(outbuf);
+  guint insize = GST_BUFFER_SIZE(inbuf);
+  guint outsize = GST_BUFFER_SIZE(outbuf);
 
-  data = GST_BUFFER_DATA(outbuf);
-  size = GST_BUFFER_SIZE(outbuf);
-
-  if (size != sparrow->size)
+  if (insize != sparrow->in.size || outsize != sparrow->out.size)
     goto wrong_size;
-  sparrow_transform(sparrow, data);
-done:
+
+  sparrow_transform(sparrow, indata, outdata);
   return GST_FLOW_OK;
 
   /* ERRORS */
 wrong_size:
   {
     GST_ELEMENT_ERROR (sparrow, STREAM, FORMAT,
-        (NULL), ("Invalid buffer size %d, expected %d", size, sparrow->size));
+        (NULL), ("Invalid buffer size(s)\nIN:  size %d, expected %d\nOUT: size %d, expected %d", 
+            insize, sparrow->in.size, outsize, sparrow->out.size));
     return GST_FLOW_ERROR;
   }
 }
-
 
 
 static gboolean
