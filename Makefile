@@ -46,7 +46,7 @@ clean:
 	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
-	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) $(DSFMT_FLAGS) -c -o $@ $<
+	$(CC)  $(DSFMT_FLAGS) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 .c.o:
 	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
