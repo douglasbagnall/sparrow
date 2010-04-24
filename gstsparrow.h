@@ -122,6 +122,7 @@ struct _GstSparrow
   guint32 lag_record;
 
   /*buffer pointers for previous frames */
+  guint8 *in_frame;
   guint8 *prev_frame;
   guint8 *work_frame;
   guint8 *debug_frame;
@@ -133,6 +134,9 @@ struct _GstSparrow
   /*array of IPL image headers that get allocated as necessary */
   IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
 
+
+  GstBuffer *in_buffer;
+  GstBuffer *prev_buffer;
 
   guint32 frame_count;
 };

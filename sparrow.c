@@ -405,6 +405,21 @@ extract_caps(sparrow_format *im, GstCaps *caps)
       im->pixcount, im->size);
 }
 
+
+
+void
+sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
+  if (sparrow->in_buffer){
+    gst_buffer_unref(sparrow->prev_buffer);
+    sparrow->prev_buffer = sparrow->in_buffer;
+    sparrow->prev_frame = sparrow->in_frame;
+  }
+  gst_buffer_ref(inbuf);
+  sparrow->in_buffer = inbuf;
+
+  sparrow->in_frame = GST_BUFFER_DATA(inbuf);
+}
+
 /*Functions below here are NOT static */
 
 /* called by gst_sparrow_init() */
@@ -422,9 +437,12 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 
   GST_DEBUG("allocating %u * %u for lag_table\n", in->pixcount, sizeof(lag_times_t));
   sparrow->lag_table = zalloc_aligned_or_die(in->pixcount * sizeof(lag_times_t));
-  sparrow->prev_frame = zalloc_aligned_or_die(in->size);
   sparrow->work_frame = zalloc_aligned_or_die(in->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
+
+  sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
+  sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
+  memset(sparrow->prev_frame, 0, in->size);
 
   rng_init(sparrow, sparrow->rng_seed);
 
