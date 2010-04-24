@@ -2,6 +2,7 @@ all::
 
 #CFLAGS =
 #LDFLAGS =
+DEFINES = -DDSFMT_MEXP=19937
 ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 -Wall -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
 
@@ -37,7 +38,7 @@ LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 all:: libgstsparrow.so
 
 libgstsparrow.so: gstsparrow.o sparrow.o dSFMT/dSFMT.o
-	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(LINKS) -Wl,-soname -Wl,$@ \
+	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
 clean:
@@ -117,7 +118,10 @@ TAGS:
 
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
-	cproto $(INCLUDES) -DUNUSED='' -S -X 0 *.c
+	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
+
+cproto-nonstatic:
+	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
 
 
 #oprofile: all
