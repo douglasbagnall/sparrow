@@ -420,7 +420,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->out), outcaps);
   sparrow_format *in = &(sparrow->in);  
 
-  GST_DEBUG("allocating %u * *u for lag_table\n", in->pixcount, sizeof(lag_times_t));
+  GST_DEBUG("allocating %u * %u for lag_table\n", in->pixcount, sizeof(lag_times_t));
   sparrow->lag_table = zalloc_aligned_or_die(in->pixcount * sizeof(lag_times_t));
   sparrow->prev_frame = zalloc_aligned_or_die(in->size);
   sparrow->work_frame = zalloc_aligned_or_die(in->size);
