@@ -66,7 +66,8 @@ gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparro
 sparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
-TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,width=320,height=240,framerate=25/1'
+TEST_SIZE = width=320,height=240
+TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,$(TEST_SIZE),framerate=25/1'
 
 test: all
 	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
