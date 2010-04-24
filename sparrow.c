@@ -358,7 +358,7 @@ static void
 see_grid(GstSparrow *sparrow, guint8 *bytes){
 }
 
-static inline void
+static void
 find_grid(GstSparrow *sparrow, guint8 *bytes){
   see_grid(sparrow, bytes);
   int on = cycle_pattern(sparrow, TRUE);
@@ -368,7 +368,7 @@ find_grid(GstSparrow *sparrow, guint8 *bytes){
   }
 }
 
-static inline void
+static void
 find_edges(GstSparrow *sparrow, guint8 *bytes){
   calibrate_find_square(sparrow, bytes);
   int on = cycle_pattern(sparrow, TRUE);
@@ -378,7 +378,7 @@ find_edges(GstSparrow *sparrow, guint8 *bytes){
   }
 }
 
-static inline void
+static void
 find_self(GstSparrow * sparrow, guint8 * bytes){
   calibrate_find_square(sparrow, bytes);
   int on = cycle_pattern(sparrow, TRUE);
