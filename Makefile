@@ -9,6 +9,11 @@ DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-alia
 
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__
 
+# these *might* do something useful
+#POSSIBLE_OPTIMISING_CFLAGS = -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las \
+# -funsafe-loop-optimizations -Wunsafe-loop-optimizations -fsee and more
+#POSSIBLE_PESSIMISING_CFLAGS -fmudflap -fmudflapth -fmudflapir
+
 SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c sparrow.c
 
 CC = gcc
