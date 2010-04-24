@@ -120,3 +120,15 @@ cproto:
 	cproto $(INCLUDES) -DUNUSED='' -S -X 0 *.c
 
 
+#oprofile: all
+#	sudo opcontrol --no-vmlinux $(OP_OPTS) && sudo opcontrol $(OP_OPTS) --start --verbose
+#	timeout -3 10 gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace \
+#	! sparrow $(TEST_OPTIONS) ! ximagesink
+#	opreport $(OP_OPTS)
+
+sysprof:
+	make clean
+	make CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
+	lsmod | grep -q 'sysprof_module' || sudo modprobe sysprof-module
+	sysprof &
+	@echo "click the start button!"
