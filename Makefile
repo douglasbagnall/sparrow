@@ -23,9 +23,12 @@ INSTALL = install
 export GST_DEBUG = sparrow:4
 #export GST_PLUGIN_PATH = .
 
+OPENCV_INCLUDE = -I/usr/include/opencv/
+#OPENCV_INCLUDE = -I/usr/local/include/opencv/
+
 #GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
-INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 -I/usr/include/opencv/
+INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE)
 
 LINKS = -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10 \
