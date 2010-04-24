@@ -250,7 +250,7 @@ gst_sparrow_transform (GstBaseTransform * base, GstBuffer * inbuf,
 wrong_size:
   {
     GST_ELEMENT_ERROR (sparrow, STREAM, FORMAT,
-        (NULL), ("Invalid buffer size(s)\nIN:  size %d, expected %d\nOUT: size %d, expected %d", 
+        (NULL), ("Invalid buffer size(s)\nIN:  size %d, expected %d\nOUT: size %d, expected %d",
             insize, sparrow->in.size, outsize, sparrow->out.size));
     return GST_FLOW_ERROR;
   }
