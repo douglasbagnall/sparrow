@@ -387,8 +387,8 @@ static void
 extract_caps(sparrow_format *im, GstCaps *caps)
 {
   GstStructure *s = gst_caps_get_structure (caps, 0);
-  gst_structure_get_uint(s, "width", &(im->width));
-  gst_structure_get_uint(s, "height", &(im->height));
+  gst_structure_get_int(s, "width", &(im->width));
+  gst_structure_get_int(s, "height", &(im->height));
   im->rmask = get_mask(s, "red_mask");
   im->rshift = mask_to_shift(im->rmask);
   im->gmask = get_mask(s, "green_mask");

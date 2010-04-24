@@ -69,8 +69,8 @@ typedef struct lag_times_s {
 } lag_times_t;
 
 typedef struct sparrow_format_s {
-  guint32 width;
-  guint32 height;
+  gint32 width;
+  gint32 height;
   guint32 pixcount;
   guint32 size;
 
