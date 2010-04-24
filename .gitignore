@@ -9,4 +9,5 @@ TAGS
 junk/
 *.o
 *.so
+prof
 dSFMT/test-*-M*
