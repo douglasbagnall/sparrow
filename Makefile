@@ -72,6 +72,10 @@ TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,$(TEST_SIZE),framerate=25
 test: all
 	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
 
+test-times: all
+	timeout -3 20 time -v gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) \
+	 ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+
 test-cam:
 	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! ximagesink
 
