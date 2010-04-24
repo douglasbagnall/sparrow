@@ -8,7 +8,7 @@ ALL_LDFLAGS = $(LDFLAGS)
 
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
 
-VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__
+VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__ -floop-strip-mine -floop-block
 
 # these *might* do something useful
 #POSSIBLE_OPTIMISING_CFLAGS = -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las \
