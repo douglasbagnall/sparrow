@@ -13,7 +13,7 @@ VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__ -floop-strip-mine -floop-block
 
 # these *might* do something useful
 #POSSIBLE_OPTIMISING_CFLAGS = -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las \
-# -funsafe-loop-optimizations -Wunsafe-loop-optimizations -fsee and more
+# -funsafe-loop-optimizations -Wunsafe-loop-optimizations -fsee -funsafe-math-optimizations and more
 #POSSIBLE_PESSIMISING_CFLAGS -fmudflap -fmudflapth -fmudflapir
 
 SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c sparrow.c

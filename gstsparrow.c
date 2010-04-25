@@ -78,8 +78,6 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     );
 
 
-
-
 GST_BOILERPLATE (GstSparrow, gst_sparrow, GstVideoFilter, GST_TYPE_VIDEO_FILTER);
 
 /* plugin_init    - registers plugin (once)
@@ -228,6 +226,7 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps, GstCaps * outca
 
   return sparrow_init(sparrow, incaps, outcaps);
 }
+
 
 
 static GstFlowReturn
