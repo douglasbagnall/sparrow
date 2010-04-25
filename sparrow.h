@@ -50,7 +50,7 @@ static inline UNUSED void * malloc_or_die(size_t size){
   void *p = malloc(size);
   if (!p){
     GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   return p;
 }
@@ -62,7 +62,7 @@ static inline UNUSED void * malloc_aligned_or_die(size_t size){
   if (err){
     GST_ERROR("posix_memalign returned %d trying to allocate %u bytes aligned on %u byte boundaries\n",
         err, size, ALIGNMENT);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   return mem;
 }

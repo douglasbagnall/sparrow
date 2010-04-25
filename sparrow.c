@@ -70,14 +70,16 @@ static guint32 get_mask(GstStructure *s, char *mask_name){
   if (!res){
     GST_WARNING("No mask for '%s' !\n", mask_name);
   }
-  return mask;
+  return (guint32)mask;
 }
 
 
 
 static void
 init_debug(GstSparrow *sparrow){
-  sparrow->debug_frame = malloc_aligned_or_die(MAX(sparrow->in.size, sparrow->out.size));
+  if (!sparrow->debug_frame){
+    sparrow->debug_frame = malloc_aligned_or_die(MAX(sparrow->in.size, sparrow->out.size));
+  }
 }
 
 /*RNG code */
@@ -85,7 +87,7 @@ init_debug(GstSparrow *sparrow){
 /*seed with -1 for automatic seed choice */
 static void rng_init(GstSparrow *sparrow, guint32 seed){
   GST_DEBUG("in RNG init\n");
-  if (seed == -1){
+  if (seed == (guint32)-1){
     /* XXX should really use /dev/urandom */
     seed = rand();
     GST_DEBUG("Real seed %u\n", seed);
@@ -166,7 +168,7 @@ vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
   guint y;
   guint32 *p = (guint32 *)out;
   p += x;
-  for(y = 0; y < sparrow->out.height; y++){
+  for(y = 0; y < (guint)(sparrow->out.height); y++){
     *p = -1;
     p += sparrow->out.width;
   }
@@ -177,7 +179,7 @@ draw_first_square(GstSparrow *sparrow, guint8 *out){
   guint y;
   guint stride = sparrow->out.width * PIXSIZE;
   guint8 *line = out + sparrow->calibrate_y * stride + sparrow->calibrate_x * PIXSIZE;
-  for(y = 0; y < sparrow->calibrate_size; y++){
+  for(y = 0; y < (guint)sparrow->calibrate_size; y++){
     memset(line, 255, sparrow->calibrate_size * PIXSIZE);
     line += stride;
   }
@@ -241,7 +243,7 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 static void
 pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
 {
-  int i;
+  guint i;
   FILE *fh = fopen(name, "w");
   guint32 size = width * height;
   fprintf(fh, "P6\n%u %u\n255\n", width, height);
@@ -298,7 +300,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
 
     cvAbsDiff(src1, src2, dest);
 
-    gint32 i;
+    guint32 i;
     pix_t *changes = (pix_t *)sparrow->work_frame;
     for (i = 0; i < sparrow->in.pixcount; i++){
       pix_t p = changes[i];

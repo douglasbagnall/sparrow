@@ -115,8 +115,8 @@ struct _GstSparrow
   gint calibrate_size;       /* for inital square */
   gint calibrate_on;         /*for calibration pattern */
   gint calibrate_wait;
-  gint calibrate_pattern[CALIBRATE_PATTERN_L];
-  gint calibrate_index;
+  guint32 calibrate_pattern[CALIBRATE_PATTERN_L];
+  guint32 calibrate_index;
 
   lag_times_t * lag_table;
   guint32 lag_record;
@@ -183,7 +183,7 @@ enum
 
 static FILE *_sparrow_bloody_debug_flags = NULL;
 static void
-GST_DEBUG(char *msg, ...){
+GST_DEBUG(const char *msg, ...){
   if (! _sparrow_bloody_debug_flags){
     _sparrow_bloody_debug_flags = fopen("/tmp/sparrow.log", "wb");
     if (! _sparrow_bloody_debug_flags){

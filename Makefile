@@ -3,7 +3,8 @@ all::
 #CFLAGS =
 #LDFLAGS =
 DEFINES = -DDSFMT_MEXP=19937
-ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 -Wall -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
+WARNINGS = -Wall -Wextra
+ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
 
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
@@ -116,8 +117,6 @@ TAGS:
 #	find  -name "*.[ch]" | xargs etags -a
 	etags -R
 
-.PHONY: TAGS all cproto
-
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
 	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
@@ -138,3 +137,12 @@ sysprof:
 	lsmod | grep -q 'sysprof_module' || sudo modprobe sysprof-module
 	sysprof &
 	@echo "click the start button!"
+
+splint:
+	splint $(INCLUDES) sparrow.c
+	flawfinder $(PWD)
+
+
+
+
+.PHONY: TAGS all cproto cproto-nonstatic sysprof splint
