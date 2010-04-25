@@ -18,6 +18,7 @@
 #ifndef __SPARROW_SPARROW_H__
 #define __SPARROW_SPARROW_H__
 
+#include <stdlib.h>
 #include "gstsparrow.h"
 #include "sparrow_false_colour_lut.h"
 #include "sparrow_gamma_lut.h"
