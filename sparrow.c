@@ -310,7 +310,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
       }
     }
     /* XXX redirect pointer, don't memcopy */
-    memcpy(sparrow->prev_frame, in, sparrow->in.size);
+    //memcpy(sparrow->prev_frame, in, sparrow->in.size);
     if(sparrow->debug){
       debug_calibration(sparrow);
       //debug_frame(sparrow, sparrow->work_frame);
