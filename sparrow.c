@@ -341,6 +341,7 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
   else {
     sparrow->lag_record = (sparrow->lag_record << 1);
   }
+  sparrow->lag_record &= ((1 << MAX_CALIBRATION_LAG) - 1);
   //XXX record the pattern in sparrow->lag_record
   //GST_DEBUG("lag_record %x calibrate_wait %x\n", sparrow->lag_record, sparrow->calibrate_wait);
   //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);

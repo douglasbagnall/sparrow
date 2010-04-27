@@ -120,7 +120,7 @@ struct _GstSparrow
   guint32 calibrate_pattern[CALIBRATE_PATTERN_L];
   guint32 calibrate_index;
 
-  lag_times_t * lag_table;
+  lag_times_t *lag_table;
   guint32 lag_record;
 
   /*buffer pointers for previous frames */
