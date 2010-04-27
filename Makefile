@@ -3,7 +3,7 @@ all::
 #CFLAGS =
 #LDFLAGS =
 DEFINES = -DDSFMT_MEXP=19937
-WARNINGS = -Wall -Wextra
+WARNINGS = -Wall -Wextra -Wno-unused-parameter
 ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
 
@@ -32,9 +32,9 @@ OPENCV_INCLUDE = -isystem /usr/local/include/opencv/
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
 INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE)
 
-LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstcontroller-0.10 -lgstreamer-0.10 -lgobject-2.0 \
-	-lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0 -lgstvideo-0.10 \
-	-lcxcore -lcv -lcvaux -lhighgui
+LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
+	-lglib-2.0 -lgstvideo-0.10 -lcxcore
+#  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
 
 all:: libgstsparrow.so
 
