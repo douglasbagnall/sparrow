@@ -216,7 +216,20 @@ debug_calibration(GstSparrow *sparrow){
           offset = j;
         }
       }
-      frame[i] = lag_false_colour[offset];
+      guint32 c = lag_false_colour[offset];
+      if (sparrow->lag_table[i].hits < 15){
+        c >>= 2;
+        c &= 0x3f3f3f3f;
+      }
+      else if (sparrow->lag_table[i].hits < 30){
+        c >>= 1;
+        c &= 0x7f7f7f7f;
+      }
+      if (sparrow->lag_table[i].hits > 90){
+        c = (guint32)-1;
+        //GST_DEBUG("%u: %u, ", i, sparrow->lag_table[i].hits);
+      }
+      frame[i] = c;
     }
     else{
       frame[i] = 0;
