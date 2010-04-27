@@ -315,10 +315,9 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
     cvAbsDiff(src1, src2, dest);
 
     guint32 i;
-    pix_t *changes = (pix_t *)sparrow->work_frame;
-    for (i = 0; i < sparrow->in.pixcount; i++){
-      pix_t p = changes[i];
-      guint32 signal = (p >> 8) & 255; //possibly R, G, or B, but never A
+    //pix_t *changes = (pix_t *)sparrow->work_frame;
+    for (i = 2; i < sparrow->in.pixcount; i++){ //possibly R, G, or B, but never A
+      guint32 signal = sparrow->work_frame[i * PIXSIZE];
       if (signal > CALIBRATE_SIGNAL_THRESHOLD){
         record_calibration(sparrow, i, signal);
       }
