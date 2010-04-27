@@ -126,8 +126,9 @@ static void calibrate_new_pattern(GstSparrow *sparrow){
   int i;
   sparrow->calibrate_index = CALIBRATE_PATTERN_L;
   sparrow->calibrate_wait = 0;
-  for (i = 0; i < CALIBRATE_PATTERN_L; i++){
-    sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_MIN_T, CALIBRATE_MAX_T);
+  for (i = 0; i < CALIBRATE_PATTERN_L; i+=2){
+    sparrow->calibrate_pattern[i] = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
+    sparrow->calibrate_pattern[i + 1] = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
   }
   GST_DEBUG("New Pattern: wait %u, index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
 }
