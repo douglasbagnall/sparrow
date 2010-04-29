@@ -58,6 +58,9 @@ dSFMT/dSFMT.o: dSFMT/dSFMT.c
 %.s:	%.c
 	$(CC) $(INCLUDES) -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
+%.i:	%.c
+	$(CC) $(INCLUDES) -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
 
