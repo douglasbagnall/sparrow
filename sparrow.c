@@ -201,6 +201,53 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   }
 }
 
+
+static inline void
+debug_calibration_histogram(GstSparrow *sparrow){
+  int pixels = sparrow->in.width * sparrow->in.height;
+  guint32 *frame = (guint32 *)sparrow->debug_frame;
+  memcpy(sparrow->debug_frame, sparrow->in_frame, sparrow->in.size);
+  int i, j;
+  static guint32 high_peak = 0;
+  static guint32 high_pix = 0;
+  static guint32 high_offset = 0;
+  for (i = 0; i < pixels; i++){
+    guint16 peak = 0;
+    int offset = 0;
+    if (sparrow->lag_table[i].hits > 5){
+      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
+        if (sparrow->lag_table[i].lag[j] > peak){
+          peak = sparrow->lag_table[i].lag[j];
+          offset = j;
+        }
+      }
+      if (peak > high_peak){
+        high_peak = peak;
+        high_pix = i;
+        high_offset = offset;
+      }
+    }
+  }
+  if (high_peak){
+    /*draw a histogram on the screen*/
+    guint8 *row = sparrow->debug_frame;
+    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+      row += sparrow->in.width * PIXSIZE;
+      memset(row, 255, sparrow->lag_table[high_pix].lag[j] * sparrow->in.width * (PIXSIZE / 2) / high_peak);
+    }
+
+    /*flicker most peaky pixel */
+    if (sparrow->frame_count & 4){
+      frame[high_pix] = (guint32)-1 & (sparrow->in.rmask);
+    }
+    else {
+      frame[high_pix] = 0;
+    }
+  }
+  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+}
+
+
 static inline void
 debug_calibration(GstSparrow *sparrow){
   int pixels = sparrow->in.width * sparrow->in.height;
@@ -303,7 +350,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
       }
     }
     if(sparrow->debug){
-      debug_calibration(sparrow);
+      debug_calibration_histogram(sparrow);
     }
   }
 }
