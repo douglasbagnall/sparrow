@@ -71,29 +71,31 @@ TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:5
 TEST_INPUT_SIZE = width=320,height=240
 TEST_OUTPUT_SIZE = width=320,height=240
 TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,$(TEST_INPUT_SIZE),framerate=25/1'
-TEST_OUTPUT_SHAPE = 'video/x-raw-rgb,$(TEST_OUTPUT_SIZE)'
+TEST_OUTPUT_SHAPE = 'video/x-raw-rgb,$(TEST_OUTPUT_SIZE),framerate=25/1'
+TEST_SINK = ximagesink
+#TEST_SINK = fbdevsink
+TEST_PIPE_TAIL =   ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
+TEST_V4L2_PIPE_TAIL = $(TEST_V4L2_SHAPE) ! $(TEST_PIPE_TAIL)
 
 test: all
-	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-times: all
-	timeout -3 20 time -v gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) \
-	 ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+	timeout -3 20 time -v gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-cam:
-	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace  ! ximagesink
+	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-pattern: all
 	GST_DEBUG=sparrow:5 \
-	gst-launch $(TEST_GST_ARGS) videotestsrc ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink
+	gst-launch $(TEST_GST_ARGS) videotestsrc ! $(TEST_V4L2_PIPE_TAIL)
 
 TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
 #TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 
 test-file: all
 	gst-launch $(TEST_GST_ARGS) \
-	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 \
-	! ffmpegcolorspace ! sparrow $(TEST_OPTIONS) ! ximagesink
+	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 ! $(TEST_PIPE_TAIL)
 
 inspect: all
 	gst-inspect $(TEST_GST_ARGS)  sparrow $(TEST_OPTIONS)
@@ -102,14 +104,14 @@ inspect: all
 #show filtered and unfiltered video side by side
 test-tee: all
 	gst-launch  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
-	! queue ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! ximagesink \
-	vid2. ! queue ! ffmpegcolorspace ! ximagesink
+	! queue ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
+	vid2. ! queue ! ffmpegcolorspace ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 
 test-tee2: all
 	gst-launch  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
-	! queue  ! sparrow $(TEST_OPTIONS) ! ximagesink \
+	! queue  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
 	vid2. ! queue ! fdsink  | \
-	gst-launch fdsrc ! queue !  ximagesink
+	gst-launch fdsrc ! queue !  $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 
 
 TAGS:
@@ -128,7 +130,7 @@ cproto-nonstatic:
 #oprofile: all
 #	sudo opcontrol --no-vmlinux $(OP_OPTS) && sudo opcontrol $(OP_OPTS) --start --verbose
 #	timeout -3 10 gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace \
-#	! sparrow $(TEST_OPTIONS) ! ximagesink
+#	! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 #	opreport $(OP_OPTS)
 
 sysprof:
