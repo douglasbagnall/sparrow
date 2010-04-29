@@ -64,13 +64,12 @@ typedef guint32 pix_t;
 
 
 #define CALIBRATE_ON_MIN_T 2
-#define CALIBRATE_ON_MAX_T 6
+#define CALIBRATE_ON_MAX_T 4
 #define CALIBRATE_OFF_MIN_T 2
 #define CALIBRATE_OFF_MAX_T 10
 #define CALIBRATE_PATTERN_L 100
-#define CALIBRATE_SELF_SIZE 10
+#define CALIBRATE_SELF_SIZE 20
 
-#define IPL_IMAGE_COUNT 5
 
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
