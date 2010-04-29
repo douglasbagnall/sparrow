@@ -148,16 +148,17 @@ struct _GstSparrow
   guint8 *work_frame;
   guint8 *debug_frame;
 
+  GstBuffer *in_buffer;
+  GstBuffer *prev_buffer;
+  /*don't need work_buffer */
+
+  IplImage* in_ipl;
+  IplImage* prev_ipl;
+  IplImage* work_ipl;
+
   gboolean debug;
 
   guint32 rng_seed;
-
-  /*array of IPL image headers that get allocated as necessary */
-  IplImage ipl_images[IPL_IMAGE_COUNT] __attribute__((aligned));
-
-
-  GstBuffer *in_buffer;
-  GstBuffer *prev_buffer;
 
   guint32 frame_count;
 };

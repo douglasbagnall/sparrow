@@ -277,30 +277,6 @@ pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
 }
 
 
-
-static inline IplImage*
-ipl_wrap_frame(GstSparrow *sparrow, sparrow_format *im, guint8 *data){
-  /*XXX could keep a cache of IPL headers */
-  CvSize size = {im->width, im->height};
-  IplImage* ipl = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-  int i;
-  for (i = 0; i < IPL_IMAGE_COUNT; i++){
-    ipl = sparrow->ipl_images + i;
-    if (ipl->imageData == NULL){
-      cvInitImageHeader(ipl, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
-      ipl->imageData = (char*)data;
-      return ipl;
-    }
-  }
-  DISASTEROUS_CRASH("no more ipl images! leaking somewhere?\n");
-  return NULL; //never reached, but shuts up warning.
-}
-
-static inline void
-ipl_free(IplImage *ipl){
-  ipl->imageData = NULL;
-}
-
 /*compare the frame to the new one. regions of change should indicate the
   square is about.
 */
@@ -308,9 +284,13 @@ static inline void
 calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   if(sparrow->prev_frame){
-    IplImage* src1 = ipl_wrap_frame(sparrow, &(sparrow->in), sparrow->prev_frame);
-    IplImage* src2 = ipl_wrap_frame(sparrow, &(sparrow->in), in);
-    IplImage* dest = ipl_wrap_frame(sparrow, &(sparrow->in), sparrow->work_frame);
+    IplImage* src1 = sparrow->in_ipl;
+    IplImage* src2 = sparrow->prev_ipl;
+    IplImage* dest = sparrow->work_ipl;
+
+    src1->imageData = (char*) in;
+    src2->imageData = (char*) sparrow->prev_frame;
+    dest->imageData = (char*) sparrow->work_frame;
 
     cvAbsDiff(src1, src2, dest);
 
@@ -322,15 +302,9 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
         record_calibration(sparrow, i, signal);
       }
     }
-    /* XXX redirect pointer, don't memcopy */
-    //memcpy(sparrow->prev_frame, in, sparrow->in.size);
     if(sparrow->debug){
       debug_calibration(sparrow);
-      //debug_frame(sparrow, sparrow->work_frame);
     }
-    ipl_free(src1);
-    ipl_free(src2);
-    ipl_free(dest);
   }
 }
 
@@ -421,8 +395,15 @@ extract_caps(sparrow_format *im, GstCaps *caps)
       im->pixcount, im->size);
 }
 
+static inline IplImage *
+init_ipl_image(sparrow_format *dim){
+  CvSize size = {dim->width, dim->height};
+  IplImage* im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+  return cvInitImageHeader(im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+}
 
 
+/*Functions below here are NOT static */
 
 void INVISIBLE
 sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
@@ -437,14 +418,10 @@ sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
   sparrow->in_frame = GST_BUFFER_DATA(inbuf);
 }
 
-/*Functions below here are NOT static */
-
 /* called by gst_sparrow_init() */
 void INVISIBLE
 sparrow_pre_init(GstSparrow *sparrow){
 }
-
-
 
 /* called by gst_sparrow_set_caps() */
 gboolean INVISIBLE
@@ -461,6 +438,11 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
   sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
   memset(sparrow->prev_frame, 0, in->size);
+
+  /*initialise IPL structs for openCV */
+  sparrow->in_ipl   = init_ipl_image(&(sparrow->in));
+  sparrow->prev_ipl = init_ipl_image(&(sparrow->in));
+  sparrow->work_ipl = init_ipl_image(&(sparrow->in));
 
   rng_init(sparrow, sparrow->rng_seed);
 
@@ -502,5 +484,5 @@ sparrow_finalise(GstSparrow *sparrow)
   //free everything
 
 
-
+  //cvReleaseImageHeader(IplImage** image)
 }
