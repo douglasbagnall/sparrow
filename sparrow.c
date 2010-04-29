@@ -203,8 +203,49 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 
 
 static inline void
+find_lag(GstSparrow *sparrow){
+  guint i, j;
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    lag_times_t *lt = &(sparrow->lag_table[i]);
+    if (lt->hits > CALIBRATION_MIN_HITS){
+      guint32 sum = 0;
+      guint16 peak = 0;
+      int offset = 0;
+      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
+        guint16 v = lt->lag[j];
+        sum += v;
+        if (v > peak){
+          peak = v;
+          offset = j;
+        }
+      }
+      //XXX perhaps adjust centre according to neighbourd, using sub-frame values (fixed point)
+      lt->centre = offset;
+      //lt->confidence = sparrow->frame_count * peak / (sum / MAX_CALIBRATION_LAG);
+      lt->confidence = lt->hits * MAX_CALIBRATION_LAG * peak  / sum;
+    }
+  }
+
+
+  guint32 *frame = (guint32 *)sparrow->debug_frame;
+  for (i = 0 ; i < sparrow->in.pixcount; i++){
+    guint32 p = sparrow->lag_table[i].confidence;
+    if (p > 255){
+
+      frame[i] = lag_false_colour[sparrow->lag_table[i].centre];
+    }
+    else{
+      frame[i] = p << 24 |p << 16 |p << 8 | p;
+    }
+  }
+
+  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+}
+
+
+static inline void
 debug_calibration_histogram(GstSparrow *sparrow){
-  int pixels = sparrow->in.width * sparrow->in.height;
+  int pixels = sparrow->in.pixcount;
   guint32 *frame = (guint32 *)sparrow->debug_frame;
   memcpy(sparrow->debug_frame, sparrow->in_frame, sparrow->in.size);
   int i, j;
@@ -214,7 +255,7 @@ debug_calibration_histogram(GstSparrow *sparrow){
   for (i = 0; i < pixels; i++){
     guint16 peak = 0;
     int offset = 0;
-    if (sparrow->lag_table[i].hits > 5){
+    if (sparrow->lag_table[i].hits > CALIBRATION_MIN_HITS){
       for(j = 0; j < MAX_CALIBRATION_LAG; j++){
         if (sparrow->lag_table[i].lag[j] > peak){
           peak = sparrow->lag_table[i].lag[j];
@@ -350,7 +391,8 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
       }
     }
     if(sparrow->debug){
-      debug_calibration_histogram(sparrow);
+      //debug_calibration_histogram(sparrow);
+      find_lag(sparrow);
     }
   }
 }
