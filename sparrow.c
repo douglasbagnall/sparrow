@@ -423,7 +423,8 @@ extract_caps(sparrow_format *im, GstCaps *caps)
 
 
 
-void
+
+void INVISIBLE
 sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
   if (sparrow->in_buffer){
     gst_buffer_unref(sparrow->prev_buffer);
@@ -439,13 +440,14 @@ sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
 /*Functions below here are NOT static */
 
 /* called by gst_sparrow_init() */
-void sparrow_pre_init(GstSparrow *sparrow){
+void INVISIBLE
+sparrow_pre_init(GstSparrow *sparrow){
 }
 
 
 
 /* called by gst_sparrow_set_caps() */
-gboolean
+gboolean INVISIBLE
 sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->in), incaps);
   extract_caps(&(sparrow->out), outcaps);
@@ -474,7 +476,8 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 }
 
 /*called by gst_sparrow_transform_ip */
-void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
+void INVISIBLE
+sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
 {
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
@@ -492,7 +495,9 @@ void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   sparrow->frame_count++;
 }
 
-void sparrow_finalise(GstSparrow *sparrow)
+void
+INVISIBLE
+sparrow_finalise(GstSparrow *sparrow)
 {
   //free everything
 

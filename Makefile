@@ -12,6 +12,7 @@ DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-alia
 VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__ -floop-strip-mine -floop-block
 
 # these *might* do something useful
+# -fvisibility=hidden
 #POSSIBLE_OPTIMISING_CFLAGS = -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las \
 # -funsafe-loop-optimizations -Wunsafe-loop-optimizations -fsee -funsafe-math-optimizations and more
 #POSSIBLE_PESSIMISING_CFLAGS -fmudflap -fmudflapth -fmudflapir
@@ -48,7 +49,7 @@ clean:
 	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
-	$(CC)  $(DSFMT_FLAGS) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC)  $(DSFMT_FLAGS) $(INCLUDES) -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
 
 .c.o:
 	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<

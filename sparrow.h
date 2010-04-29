@@ -23,11 +23,12 @@
 #include "sparrow_false_colour_lut.h"
 #include "sparrow_gamma_lut.h"
 
-void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
-void sparrow_pre_init(GstSparrow *sparrow);
-gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
-void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
-void sparrow_finalise(GstSparrow *sparrow);
+
+void INVISIBLE sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
+void INVISIBLE  sparrow_pre_init(GstSparrow *sparrow);
+gboolean INVISIBLE sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
+void INVISIBLE sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
+void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
 
 
 #define SPARROW_CALIBRATE_ON  1

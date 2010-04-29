@@ -38,7 +38,26 @@ G_BEGIN_DECLS
 
 #ifndef UNUSED
 #define UNUSED __attribute__ ((unused))
+#else
+#warning UNUSED is set
 #endif
+
+/* the common recommendation is to default to 'hidden' and specifically mark
+   the unhidden ('default') ones, but this might muck with gstreamer macros,
+   some of which declare functions, and most sparrow functions are static
+   anyway, so it is simpler to whitelist visibility.
+
+   http://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#index-fvisibility-2135
+
+   (actually, it seems like all functions are invisible or static, except the
+   ones that gstreamer makes in macros).
+ */
+#ifndef INVISIBLE
+#define INVISIBLE __attribute__ ((visibility("hidden")))
+#else
+#warning INVISIBLE is set
+#endif
+
 
 typedef guint32 pix_t;
 #define PIXSIZE (sizeof(pix_t))
