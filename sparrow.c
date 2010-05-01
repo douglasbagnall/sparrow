@@ -152,10 +152,10 @@ init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
     shape->shape = RECTANGLE;
     shape->w = CALIBRATE_SELF_SIZE;
     shape->h = CALIBRATE_SELF_SIZE;
-    shape->x  = RANDINT(sparrow, sparrow->out.width / 4,
-        sparrow->out.width * 3 / 4 - shape->w);
-    shape->y  = RANDINT(sparrow, sparrow->out.height / 4,
-        sparrow->out.height * 3 / 4 - shape->h);
+    shape->x  = RANDINT(sparrow, sparrow->out.width / 8,
+        sparrow->out.width * 7 / 8 - shape->w);
+    shape->y  = RANDINT(sparrow, sparrow->out.height / 8,
+        sparrow->out.height * 7 / 8 - shape->h);
 }
 
 static void calibrate_init_squares(GstSparrow *sparrow){
