@@ -126,7 +126,7 @@ TAGS:
 
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
-	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
+	cproto $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
 
 cproto-nonstatic:
 	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
