@@ -322,8 +322,9 @@ find_lag(GstSparrow *sparrow){
         lt->confidence = 2 * ((peak2 >> 1) >= sum);
         lt->confidence += ((peak2 * 3) >> 2) >= sum;
         if (lt->hits > expected_hits_min && lt->hits < expected_hits_max){
-          lt->confidence *= 8;
+          lt->confidence *= 4;
         }
+        lt->confidence *= lt->hits;
         votes[offset] += lt->confidence;
       }
     }
