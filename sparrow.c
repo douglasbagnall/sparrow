@@ -29,13 +29,11 @@ static void rng_init(GstSparrow *sparrow, guint32 seed);
 static void simple_negation(guint8 *bytes, guint size);
 
 static void calibrate_new_pattern(GstSparrow *sparrow);
-static void calibrate_new_state(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *in);
 static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
-static void find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
 static void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 
@@ -133,24 +131,32 @@ static void calibrate_new_pattern(GstSparrow *sparrow){
   GST_DEBUG("New Pattern: wait %u, index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
 }
 
-static void calibrate_new_state(GstSparrow *sparrow){
-  //XXX needs updating
-  int edge_state = (sparrow->state == SPARROW_FIND_EDGES);
+static void calibrate_init_squares(GstSparrow *sparrow){
+  int i;
+  sparrow_shape_t* shape = sparrow->shapes;
 
-  if (edge_state){
-    sparrow->calibrate.w = RANDINT(sparrow, 1, 8);
-    sparrow->calibrate.h = RANDINT(sparrow, 1, 8);
-    sparrow->calibrate.x  = RANDINT(sparrow, 0, sparrow->out.width - sparrow->calibrate.w);
-    sparrow->calibrate.y  = RANDINT(sparrow, 0, sparrow->out.height - sparrow->calibrate.h);
+  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+    shape[i].shape = RECTANGLE;
+    shape[i].w = CALIBRATE_SELF_SIZE;
+    shape[i].h = CALIBRATE_SELF_SIZE;
+    shape[i].x  = RANDINT(sparrow, sparrow->out.width / 4,
+        sparrow->out.width * 3 / 4 - shape[i].w);
+    shape[i].y  = RANDINT(sparrow, sparrow->out.height / 4,
+        sparrow->out.height * 3 / 4 - shape[i].h);
   }
-  else {
-    sparrow->calibrate.w = CALIBRATE_SELF_SIZE;
-    sparrow->calibrate.h = CALIBRATE_SELF_SIZE;
-    sparrow->calibrate.x  = RANDINT(sparrow, sparrow->out.width / 4,
-        sparrow->out.width * 3 / 4 - sparrow->calibrate.w);
-    sparrow->calibrate.y  = RANDINT(sparrow, sparrow->out.height / 4,
-        sparrow->out.height * 3 / 4 - sparrow->calibrate.h);
+}
+
+static void calibrate_init_lines(GstSparrow *sparrow){
+  int i;
+  sparrow_shape_t* shape = sparrow->shapes;
+  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+    shape[i].w = 1;
+    shape[i].h = 1;
+    shape[i].x = 0;
+    shape[i].y = 0;
+    shape[i].shape = NO_SHAPE;
   }
+  /* shape[0] will be set to vertical or horizontal in due course */
 }
 
 
@@ -178,14 +184,42 @@ vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
 }
 
 static inline void
-draw_first_square(GstSparrow *sparrow, guint8 *out){
+rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
   guint y;
   guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + sparrow->calibrate.y * stride + sparrow->calibrate.x * PIXSIZE;
-  for(y = 0; y < (guint)sparrow->calibrate.h; y++){
-    memset(line, 255, sparrow->calibrate.w * PIXSIZE);
+  guint8 *line = out + shape->y * stride + shape->x * PIXSIZE;
+  for(y = 0; y < (guint)shape->h; y++){
+    memset(line, 255, shape->w * PIXSIZE);
     line += stride;
   }
+}
+
+
+
+static void draw_shapes(GstSparrow *sparrow, guint8 *out){
+  int i;
+  sparrow_shape_t *shape;
+  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+    shape = sparrow->shapes + i;
+    switch (shape->shape){
+    case NO_SHAPE:
+      goto done; /* an empty one ends the list */
+    case VERTICAL_LINE:
+      vertical_line(sparrow, out, shape->x);
+      break;
+    case HORIZONTAL_LINE:
+      horizontal_line(sparrow, out, shape->x);
+      break;
+    case RECTANGLE:
+      rectangle(sparrow, out, shape);
+      break;
+    case FULLSCREEN:
+      memset(out, 255, sparrow->out.size);
+      break;
+    }
+  }
+ done:
+  return;
 }
 
 
@@ -438,6 +472,7 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
     sparrow->calibrate.wait = sparrow->calibrate.pattern[sparrow->calibrate.index];
     //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
     sparrow->lag_record = (sparrow->lag_record << 1) | 1;
+    sparrow->calibrate.transitions++;
   }
   else {
     sparrow->lag_record = (sparrow->lag_record << 1);
@@ -445,9 +480,7 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
   sparrow->lag_record &= ((1 << MAX_CALIBRATION_LAG) - 1);
   //XXX record the pattern in sparrow->lag_record
   sparrow->calibrate.wait--;
-  int change = sparrow->calibrate.index & 1;
-  sparrow->calibrate.transitions += change;
-  return change;
+  return sparrow->calibrate.index & 1;
 }
 
 static void
@@ -460,19 +493,10 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   int on = cycle_pattern(sparrow, TRUE);
   memset(out, 0, sparrow->out.size);
   if (on){
-    horizontal_line(sparrow, out, sparrow->calibrate.y);
+    draw_shapes(sparrow, out);
   }
 }
 
-static void
-find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  calibrate_find_square(sparrow, in);
-  int on = cycle_pattern(sparrow, TRUE);
-  memset(out, 0, sparrow->out.size);
-  if (on){
-    draw_first_square(sparrow, out);
-  }
-}
 
 static void
 find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -480,10 +504,7 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
   int on = cycle_pattern(sparrow, TRUE);
   memset(out, 0, sparrow->out.size);
   if (on){
-    //vertical_line(sparrow, out, sparrow->calibrate.x);
-    //horizontal_line(sparrow, out, sparrow->calibrate.y);
-    draw_first_square(sparrow, out);
-    //memset(out, 255, sparrow->out.size);
+    draw_shapes(sparrow, out);
   }
 }
 
@@ -568,7 +589,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->state = SPARROW_FIND_SELF;
 
   calibrate_new_pattern(sparrow);
-  calibrate_new_state(sparrow);
+  calibrate_init_squares(sparrow);
   return TRUE;
 }
 
@@ -579,9 +600,6 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     find_self(sparrow, in, out);
-    break;
-  case SPARROW_FIND_EDGES:
-    find_edges(sparrow, in, out);
     break;
   case SPARROW_FIND_GRID:
     find_grid(sparrow, in, out);
