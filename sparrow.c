@@ -354,20 +354,27 @@ find_lag(GstSparrow *sparrow){
   /* find votes */
   guint max_vote;
   guint offset;
+  guint total;
   for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+    total += votes[j];
     if (votes[j] > max_vote){
       max_vote = votes[j];
       offset = j;
     }
   }
-  if (max_vote){
+  if (total){
     /*draw a histogram on the screen*/
     guint8 *row = sparrow->debug_frame;
     for (j = 0; j < MAX_CALIBRATION_LAG; j++){
       row += sparrow->in.width * PIXSIZE;
-      memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE / 2) / max_vote);
+      memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE) / total);
     }
   }
+  if ((max_vote + (total >> 2)) > total){
+    GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
+  }
+
+
 
   debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
 }
