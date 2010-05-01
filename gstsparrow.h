@@ -64,9 +64,9 @@ typedef guint32 pix_t;
 
 
 #define CALIBRATE_ON_MIN_T 2
-#define CALIBRATE_ON_MAX_T 4
+#define CALIBRATE_ON_MAX_T 7
 #define CALIBRATE_OFF_MIN_T 2
-#define CALIBRATE_OFF_MAX_T 10
+#define CALIBRATE_OFF_MAX_T 9
 #define CALIBRATE_PATTERN_L 100
 #define CALIBRATE_SELF_SIZE 16
 
