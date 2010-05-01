@@ -219,10 +219,29 @@ find_lag(GstSparrow *sparrow){
           offset = j;
         }
       }
-      //XXX perhaps adjust centre according to neighbourd, using sub-frame values (fixed point)
+      //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
       lt->centre = offset;
+
+
       //lt->confidence = sparrow->frame_count * peak / (sum / MAX_CALIBRATION_LAG);
-      lt->confidence = lt->hits * MAX_CALIBRATION_LAG * peak  / sum;
+      /* perhaps confidence should not grow so strongly with number of hits,
+         because there will be a peak after any number of random hits
+       */
+      /* sum >= peak */
+      /* sum <= MAX_CALIBRATION_LAG * peak */
+      /*mean == sum / MAX_CALIBRATION_LAG */
+      /* mean <=  peak */
+      /* strong  peak --> mean * 2 < peak */
+      /* strong  peak -->  sum     < peak * MAX_CALIBRATION_LAG >> 1  */
+      /* weakish peak --> mean * 4 > peak * 3 */
+      /* weakish peak -->  sum * 4 > peak * 3 * MAX_CALIBRATION_LAG */
+      /* weakish peak -->  sum     > peak * 3 * MAX_CALIBRATION_LAG >> 2 */
+      guint32 peak2 = peak * MAX_CALIBRATION_LAG;
+      lt->confidence = peak2 >> 1 > sum;
+      lt->confidence += (peak2 * 3) >> 2 > sum;
+      lt->confidence += (lt->hits > (sparrow->transitions >> 1) &&
+          (lt->hits < (sparrow->transitions + (sparrow->transitions >> 1))));
+
     }
   }
 
@@ -230,12 +249,17 @@ find_lag(GstSparrow *sparrow){
   guint32 *frame = (guint32 *)sparrow->debug_frame;
   for (i = 0 ; i < sparrow->in.pixcount; i++){
     guint32 p = sparrow->lag_table[i].confidence;
-    if (p > 255){
-
-      frame[i] = lag_false_colour[sparrow->lag_table[i].centre];
-    }
-    else{
-      frame[i] = p << 24 |p << 16 |p << 8 | p;
+    if (p){
+      guint32 c = lag_false_colour[sparrow->lag_table[i].centre];
+      if (p == 1){
+        c >>= 2;
+        c &= 0x3f3f3f3f;
+      }
+      if (p == 2){
+        c >>= 1;
+        c &= 0x7f7f7f7f;
+      }
+      frame[i] = c;
     }
   }
 
@@ -422,7 +446,9 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
   //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate_wait, sparrow->calibrate_index);
 
   sparrow->calibrate_wait--;
-  return sparrow->calibrate_index & 1;
+  int change = sparrow->calibrate_index & 1;
+  sparrow->transitions += change;
+  return change;
 }
 
 static void
