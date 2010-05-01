@@ -147,20 +147,50 @@ static void calibrate_new_pattern(GstSparrow *sparrow){
   GST_DEBUG("New Pattern: wait %u, index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
 }
 
+static inline void
+init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
+    shape->shape = RECTANGLE;
+    shape->w = CALIBRATE_SELF_SIZE;
+    shape->h = CALIBRATE_SELF_SIZE;
+    shape->x  = RANDINT(sparrow, sparrow->out.width / 4,
+        sparrow->out.width * 3 / 4 - shape->w);
+    shape->y  = RANDINT(sparrow, sparrow->out.height / 4,
+        sparrow->out.height * 3 / 4 - shape->h);
+}
+
 static void calibrate_init_squares(GstSparrow *sparrow){
   int i;
-  sparrow_shape_t* shape = sparrow->shapes;
-
   for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape[i].shape = RECTANGLE;
-    shape[i].w = CALIBRATE_SELF_SIZE;
-    shape[i].h = CALIBRATE_SELF_SIZE;
-    shape[i].x  = RANDINT(sparrow, sparrow->out.width / 4,
-        sparrow->out.width * 3 / 4 - shape[i].w);
-    shape[i].y  = RANDINT(sparrow, sparrow->out.height / 4,
-        sparrow->out.height * 3 / 4 - shape[i].h);
+    init_one_square(sparrow, &(sparrow->shapes[i]));
   }
 }
+
+
+static void add_random_signal(GstSparrow *sparrow, guint8 *out){
+  int i;
+  static sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
+  static int been_here = 0;
+  static int countdown = 0;
+  static int on = 0;
+  if (! been_here){
+    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+      init_one_square(sparrow, &shapes[i]);
+    }
+    been_here = 1;
+  }
+  if (! countdown){
+    on = ! on;
+    countdown = on ? RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T) :
+      RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
+  }
+  if (on){
+    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+      rectangle(sparrow, out, &shapes[i]);
+    }
+  }
+  countdown--;
+}
+
 
 static void calibrate_init_lines(GstSparrow *sparrow){
   int i;
@@ -522,6 +552,9 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if (on){
     draw_shapes(sparrow, out);
   }
+#if 1
+  add_random_signal(sparrow, out);
+#endif
 }
 
 
