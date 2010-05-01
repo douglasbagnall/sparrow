@@ -23,18 +23,34 @@
 #include <math.h>
 
 /* static functions (via `make cproto`) */
+static __inline__ gint mask_to_shift(guint32 mask);
 static guint32 get_mask(GstStructure *s, char *mask_name);
 static void init_debug(GstSparrow *sparrow);
 static void rng_init(GstSparrow *sparrow, guint32 seed);
 static void simple_negation(guint8 *bytes, guint size);
-
+static void gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out);
 static void calibrate_new_pattern(GstSparrow *sparrow);
+static __inline__ void init_one_square(GstSparrow *sparrow, sparrow_shape_t *shape);
+static void calibrate_init_squares(GstSparrow *sparrow);
+static void add_random_signal(GstSparrow *sparrow, guint8 *out);
+static void calibrate_init_lines(GstSparrow *sparrow);
+static __inline__ void horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y);
+static __inline__ void vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x);
+static __inline__ void rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape);
+static void draw_shapes(GstSparrow *sparrow, guint8 *out);
+static __inline__ void record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal);
+static __inline__ void find_lag(GstSparrow *sparrow);
+static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
+static __inline__ void debug_calibration(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
+static __inline__ void calibrate_find_square(GstSparrow *sparrow, guint8 *in);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *in);
 static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
 static void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+static void extract_caps(sparrow_format *im, GstCaps *caps);
+static __inline__ IplImage *init_ipl_image(sparrow_format *dim);
 
 
 /*
