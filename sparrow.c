@@ -283,6 +283,21 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   }
 }
 
+static inline void
+colour_coded_pixel(guint8* pixel, guint32 weight, guint32 lag){
+  if (weight){
+    guint32 c = lag_false_colour[lag];
+    if (weight == 1){
+      c >>= 2;
+      c &= 0x3f3f3f3f;
+    }
+    if (weight == 2){
+      c >>= 1;
+      c &= 0x7f7f7f7f;
+    }
+    *pixel = c;
+  }
+}
 
 static inline void
 find_lag(GstSparrow *sparrow){
@@ -293,12 +308,18 @@ find_lag(GstSparrow *sparrow){
     guint expected_hits_min = sparrow->calibrate.transitions * 3 / 4;
     guint expected_hits_max = sparrow->calibrate.transitions * 5 / 4;
 
+#ifdef DEBUG_CALIBRATION
+    guint32 *frame = (guint32 *)sparrow->debug_frame;
+    memset(frame, 0, sparrow->in.size);
+#endif
     for (i = 0; i < sparrow->in.pixcount; i++){
       lag_times_t *lt = &(sparrow->lag_table[i]);
       if (lt->hits > CALIBRATION_MIN_HITS){
         guint32 sum = 0;
         guint16 peak = 0;
         int offset = 0;
+        guint32 centre;
+        guint32 confidence;
         for(j = 0; j < MAX_CALIBRATION_LAG; j++){
           guint16 v = lt->lag[j];
           sum += v;
@@ -307,9 +328,6 @@ find_lag(GstSparrow *sparrow){
             offset = j;
           }
         }
-        //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
-        lt->centre = offset;
-
         /* Heuristic for confidence:
            one point for each of:
            * the peak is twice average
@@ -318,65 +336,54 @@ find_lag(GstSparrow *sparrow){
 
            There of course is a proper way, but it might be slower.
         */
-        guint32 peak2 = peak * MAX_CALIBRATION_LAG;
-        lt->confidence = 2 * ((peak2 >> 1) >= sum);
-        lt->confidence += ((peak2 * 3) >> 2) >= sum;
-        if (lt->hits > expected_hits_min && lt->hits < expected_hits_max){
-          lt->confidence *= 4;
+        //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
+        centre = offset;
+        guint32 peak2 = peak * MAX_CALIBRATION_LAG; //scale to make sum equivalant to mean
+        confidence = 2 * ((peak2 / 2) >= sum);
+        confidence += ((peak2 * 3) / 4) >= sum;
+        if (lt->hits > expected_hits_min &&
+            lt->hits < expected_hits_max){
+          confidence *= 4;
         }
-        lt->confidence *= lt->hits;
-        votes[offset] += lt->confidence;
+        confidence *= lt->hits;
+
+        votes[offset] += confidence;
+#ifdef DEBUG_CALIBRATION
+        colour_coded_pixel(&frame[i], confidence, peak);
+#endif
       }
     }
+
+    /* find votes */
+    guint max_vote;
+    guint offset;
+    guint total;
+    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+      total += votes[j];
+      if (votes[j] > max_vote){
+        max_vote = votes[j];
+        offset = j;
+      }
+    }
+#ifdef DEBUG_CALIBRATION
+    if (total){
+      /*draw a histogram on the screen*/
+      guint8 *row = sparrow->debug_frame;
+      for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+        row += sparrow->in.width * PIXSIZE;
+        memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE) / total);
+      }
+    }
+    if ((max_vote + (total >> 2)) > total){
+      GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
+    }
+    debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+#endif
   }
   else {
     GST_DEBUG("transitions %u is less than threshold %u\n",
         sparrow->calibrate.transitions, CALIBRATION_START_LAG_SEARCH);
   }
-
-  guint32 *frame = (guint32 *)sparrow->debug_frame;
-  memset(frame, 0, sparrow->in.size);
-  for (i = 0 ; i < sparrow->in.pixcount; i++){
-    guint32 p = sparrow->lag_table[i].confidence;
-    if (p){
-      guint32 c = lag_false_colour[sparrow->lag_table[i].centre];
-      if (p == 1){
-        c >>= 2;
-        c &= 0x3f3f3f3f;
-      }
-      if (p == 2){
-        c >>= 1;
-        c &= 0x7f7f7f7f;
-      }
-      frame[i] = c;
-    }
-  }
-  /* find votes */
-  guint max_vote;
-  guint offset;
-  guint total;
-  for (j = 0; j < MAX_CALIBRATION_LAG; j++){
-    total += votes[j];
-    if (votes[j] > max_vote){
-      max_vote = votes[j];
-      offset = j;
-    }
-  }
-  if (total){
-    /*draw a histogram on the screen*/
-    guint8 *row = sparrow->debug_frame;
-    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
-      row += sparrow->in.width * PIXSIZE;
-      memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE) / total);
-    }
-  }
-  if ((max_vote + (total >> 2)) > total){
-    GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
-  }
-
-
-
-  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
 }
 
 

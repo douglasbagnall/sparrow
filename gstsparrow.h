@@ -91,8 +91,8 @@ typedef guint32 pix_t;
 
 #define MAX_CALIBRATION_LAG 16
 typedef struct lag_times_s {
-  guint32 centre;
-  guint32 confidence;
+  //guint32 centre;
+  //guint32 confidence;
   guint32 hits;
   guint16 lag[MAX_CALIBRATION_LAG];
 } lag_times_t;
