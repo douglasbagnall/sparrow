@@ -287,48 +287,54 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 static inline void
 find_lag(GstSparrow *sparrow){
   guint i, j;
-  for (i = 0; i < sparrow->in.pixcount; i++){
-    lag_times_t *lt = &(sparrow->lag_table[i]);
-    if (lt->hits > CALIBRATION_MIN_HITS){
-      guint32 sum = 0;
-      guint16 peak = 0;
-      int offset = 0;
-      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
-        guint16 v = lt->lag[j];
-        sum += v;
-        if (v > peak){
-          peak = v;
-          offset = j;
+  guint votes[MAX_CALIBRATION_LAG] = {0};
+
+  if (sparrow->calibrate.transitions >= CALIBRATION_START_LAG_SEARCH){
+    guint expected_hits_min = sparrow->calibrate.transitions * 3 / 4;
+    guint expected_hits_max = sparrow->calibrate.transitions * 5 / 4;
+
+    for (i = 0; i < sparrow->in.pixcount; i++){
+      lag_times_t *lt = &(sparrow->lag_table[i]);
+      if (lt->hits > CALIBRATION_MIN_HITS){
+        guint32 sum = 0;
+        guint16 peak = 0;
+        int offset = 0;
+        for(j = 0; j < MAX_CALIBRATION_LAG; j++){
+          guint16 v = lt->lag[j];
+          sum += v;
+          if (v > peak){
+            peak = v;
+            offset = j;
+          }
         }
+        //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
+        lt->centre = offset;
+
+        /* Heuristic for confidence:
+           one point for each of:
+           * the peak is twice average
+           * the peak is 4/3 average
+           * the number of hits is close to the number of transitions
+
+           There of course is a proper way, but it might be slower.
+        */
+        guint32 peak2 = peak * MAX_CALIBRATION_LAG;
+        lt->confidence = peak2 >> 1 >= sum;
+        lt->confidence += ((peak2 * 3) >> 2) >= sum;
+        if (lt->hits > expected_hits_min && lt->hits < expected_hits_max){
+          lt->confidence *= 8;
+        }
+        votes[offset] += lt->confidence;
       }
-      //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
-      lt->centre = offset;
-
-
-      //lt->confidence = sparrow->frame_count * peak / (sum / MAX_CALIBRATION_LAG);
-      /* perhaps confidence should not grow so strongly with number of hits,
-         because there will be a peak after any number of random hits
-       */
-      /* sum >= peak */
-      /* sum <= MAX_CALIBRATION_LAG * peak */
-      /*mean == sum / MAX_CALIBRATION_LAG */
-      /* mean <=  peak */
-      /* strong  peak --> mean * 2 < peak */
-      /* strong  peak -->  sum     < peak * MAX_CALIBRATION_LAG >> 1  */
-      /* weakish peak --> mean * 4 > peak * 3 */
-      /* weakish peak -->  sum * 4 > peak * 3 * MAX_CALIBRATION_LAG */
-      /* weakish peak -->  sum     > peak * 3 * MAX_CALIBRATION_LAG >> 2 */
-      guint32 peak2 = peak * MAX_CALIBRATION_LAG;
-      lt->confidence = peak2 >> 1 > sum;
-      lt->confidence += (peak2 * 3) >> 2 > sum;
-      lt->confidence += (lt->hits > (sparrow->calibrate.transitions >> 1) &&
-          (lt->hits < (sparrow->calibrate.transitions + (sparrow->calibrate.transitions >> 1))));
-
     }
   }
-
+  else {
+    GST_DEBUG("transitions %u is less than threshold %u\n",
+        sparrow->calibrate.transitions, CALIBRATION_START_LAG_SEARCH);
+  }
 
   guint32 *frame = (guint32 *)sparrow->debug_frame;
+  memset(frame, 0, sparrow->in.size);
   for (i = 0 ; i < sparrow->in.pixcount; i++){
     guint32 p = sparrow->lag_table[i].confidence;
     if (p){
@@ -342,6 +348,23 @@ find_lag(GstSparrow *sparrow){
         c &= 0x7f7f7f7f;
       }
       frame[i] = c;
+    }
+  }
+  /* find votes */
+  guint max_vote;
+  guint offset;
+  for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+    if (votes[j] > max_vote){
+      max_vote = votes[j];
+      offset = j;
+    }
+  }
+  if (max_vote){
+    /*draw a histogram on the screen*/
+    guint8 *row = sparrow->debug_frame;
+    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
+      row += sparrow->in.width * PIXSIZE;
+      memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE / 2) / max_vote);
     }
   }
 

@@ -70,6 +70,12 @@ typedef guint32 pix_t;
 #define CALIBRATE_PATTERN_L 100
 #define CALIBRATE_SELF_SIZE 16
 
+#define CALIBRATION_MIN_HITS 4
+#define MAX_CALIBRATE_SHAPES 4
+
+#define CALIBRATION_START_LAG_SEARCH (CALIBRATION_MIN_HITS * (CALIBRATE_ON_MAX_T + \
+          CALIBRATE_ON_MIN_T + CALIBRATE_OFF_MAX_T + CALIBRATE_OFF_MIN_T) / 8)
+
 
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
@@ -82,8 +88,6 @@ typedef guint32 pix_t;
 #define GST_IS_SPARROW_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
-#define CALIBRATION_MIN_HITS 5
-#define MAX_CALIBRATE_SHAPES 4
 
 #define MAX_CALIBRATION_LAG 16
 typedef struct lag_times_s {
