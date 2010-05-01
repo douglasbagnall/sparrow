@@ -166,8 +166,8 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   if (value){
     switch (prop_id) {
     case PROP_CALIBRATE:
-      sparrow->calibrate = g_value_get_boolean(value);
-      GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate);
+      sparrow->calibrate_flag = g_value_get_boolean(value);
+      GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate_flag);
       break;
     case PROP_DEBUG:
       sparrow->debug = g_value_get_boolean(value);
@@ -195,7 +195,7 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
 
   switch (prop_id) {
     case PROP_CALIBRATE:
-      g_value_set_boolean (value, sparrow->calibrate);
+      g_value_set_boolean (value, sparrow->calibrate_flag);
       break;
     case PROP_DEBUG:
       g_value_set_boolean(value, sparrow->debug);

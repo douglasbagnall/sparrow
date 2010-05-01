@@ -106,6 +106,27 @@ typedef struct sparrow_format_s {
   guint32 bmask;
 } sparrow_format;
 
+enum calibration_shape {
+  VERTICAL;
+  HORIZONTAL;
+  FULLSCREEN;
+  RECTANGLE;
+}
+
+typedef struct sparrow_calibrate_s {
+  /*calibration state, and shape and pattern definition */
+  calibration_shape shape;
+  gint x;
+  gint y;
+  gint w;
+  gint h;
+  gint on;         /*for calibration pattern */
+  gint wait;
+  guint32 pattern[CALIBRATE_PATTERN_L];
+  guint32 index;
+  guint32 transitions;
+} sparrow_calibrate_t;
+
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -122,9 +143,10 @@ struct _GstSparrow
 
   sparrow_format in;
   sparrow_format out;
+  sparrow_calibrate_t calibrate;
 
   /* properties */
-  gint calibrate;  /*whether to calibrate */
+  gint calibrate_flag;  /*whether to calibrate */
 
   /* misc */
   dsfmt_t *dsfmt;  /*rng*/
@@ -132,15 +154,6 @@ struct _GstSparrow
   /*state */
   gint state;
   gint next_state;
-
-  /*calibration state */
-  gint calibrate_x;          /* for inital square */
-  gint calibrate_y;
-  gint calibrate_size;       /* for inital square */
-  gint calibrate_on;         /*for calibration pattern */
-  gint calibrate_wait;
-  guint32 calibrate_pattern[CALIBRATE_PATTERN_L];
-  guint32 calibrate_index;
 
   lag_times_t *lag_table;
   guint32 lag_record;
