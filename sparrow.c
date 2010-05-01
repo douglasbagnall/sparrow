@@ -319,7 +319,7 @@ find_lag(GstSparrow *sparrow){
            There of course is a proper way, but it might be slower.
         */
         guint32 peak2 = peak * MAX_CALIBRATION_LAG;
-        lt->confidence = peak2 >> 1 >= sum;
+        lt->confidence = 2 * ((peak2 >> 1) >= sum);
         lt->confidence += ((peak2 * 3) >> 2) >= sum;
         if (lt->hits > expected_hits_min && lt->hits < expected_hits_max){
           lt->confidence *= 8;
