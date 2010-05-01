@@ -41,7 +41,7 @@ typedef enum {
   SPARROW_PLAY,
 } sparrow_states;
 
-#define CALIBRATE_SIGNAL_THRESHOLD 16
+#define CALIBRATE_SIGNAL_THRESHOLD 32
 
 
 
