@@ -39,7 +39,7 @@ static __inline__ void vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x
 static __inline__ void rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape);
 static void draw_shapes(GstSparrow *sparrow, guint8 *out);
 static __inline__ void record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal);
-static __inline__ void find_lag(GstSparrow *sparrow);
+static __inline__ int find_lag(GstSparrow *sparrow);
 static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
@@ -298,19 +298,23 @@ colour_coded_pixel(guint8* pixel, guint32 weight, guint32 lag){
   }
 }
 
-static inline void
+/*return 0 if a reasonably likely lag has been found */
+
+static inline int
 find_lag(GstSparrow *sparrow){
+  int res = 0;
   guint i, j;
   guint votes[MAX_CALIBRATION_LAG] = {0};
+  guint32 *frame = (guint32 *)sparrow->debug_frame;
+  //GST_DEBUG("sparrow->debug is %d\n", sparrow->debug);
 
   if (sparrow->calibrate.transitions >= CALIBRATION_START_LAG_SEARCH){
     guint expected_hits_min = sparrow->calibrate.transitions * 3 / 4;
     guint expected_hits_max = sparrow->calibrate.transitions * 5 / 4;
 
-#ifdef DEBUG_CALIBRATION
-    guint32 *frame = (guint32 *)sparrow->debug_frame;
-    memset(frame, 0, sparrow->in.size);
-#endif
+    if (sparrow->debug){
+      memset(frame, 0, sparrow->in.size);
+    }
     for (i = 0; i < sparrow->in.pixcount; i++){
       lag_times_t *lt = &(sparrow->lag_table[i]);
       if (lt->hits > CALIBRATION_MIN_HITS){
@@ -338,18 +342,20 @@ find_lag(GstSparrow *sparrow){
         //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
         centre = offset;
         guint32 peak2 = peak * MAX_CALIBRATION_LAG; //scale to make sum equivalant to mean
-        confidence = 2 * ((peak2 / 2) >= sum);
-        confidence += ((peak2 * 3) / 4) >= sum;
+        confidence = ((peak2 * 7 >= sum * 8) +
+            (peak2 * 6 >= sum * 8) +
+            (peak2 * 5 >= sum * 8) +
+            (peak2 * 4 >= sum * 8));
         if (lt->hits > expected_hits_min &&
             lt->hits < expected_hits_max){
           confidence *= 4;
+          //GST_DEBUG("hits %u, transitions %u\n", lt->hits, sparrow->calibrate.transitions);
         }
         confidence *= lt->hits;
-
         votes[offset] += confidence;
-#ifdef DEBUG_CALIBRATION
-        colour_coded_pixel(&frame[i], confidence, peak);
-#endif
+        if (sparrow->debug){
+          colour_coded_pixel(&frame[i], confidence, offset);
+        }
       }
     }
 
@@ -364,7 +370,11 @@ find_lag(GstSparrow *sparrow){
         offset = j;
       }
     }
-#ifdef DEBUG_CALIBRATION
+    if ((max_vote + (total >> 2)) > total){
+      GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
+      res = 1;
+      sparrow->lag = offset;
+    }
     if (total){
       /*draw a histogram on the screen*/
       guint8 *row = sparrow->debug_frame;
@@ -373,18 +383,12 @@ find_lag(GstSparrow *sparrow){
         memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE) / total);
       }
     }
-    if ((max_vote + (total >> 2)) > total){
-      GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
-    }
+  }
+  if (sparrow->debug){
     debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
-#endif
   }
-  else {
-    GST_DEBUG("transitions %u is less than threshold %u\n",
-        sparrow->calibrate.transitions, CALIBRATION_START_LAG_SEARCH);
-  }
+  return res;
 }
-
 
 static inline void
 debug_calibration_histogram(GstSparrow *sparrow){
@@ -497,9 +501,11 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
         record_calibration(sparrow, i, signal);
       }
     }
-    if(sparrow->debug){
-      //debug_calibration_histogram(sparrow);
-      find_lag(sparrow);
+
+    int r = find_lag(sparrow);
+    if (r){
+      GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
+      sparrow->state = SPARROW_FIND_GRID;
     }
   }
 }

@@ -169,6 +169,7 @@ struct _GstSparrow
 
   lag_times_t *lag_table;
   guint32 lag_record;
+  guint32 lag;
 
   /*buffer pointers for previous frames */
   guint8 *in_frame;
