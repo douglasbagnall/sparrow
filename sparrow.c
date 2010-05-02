@@ -41,7 +41,6 @@ static void draw_shapes(GstSparrow *sparrow, guint8 *out);
 static __inline__ void record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal);
 static __inline__ void find_lag(GstSparrow *sparrow);
 static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
-static __inline__ void debug_calibration(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
 static __inline__ void calibrate_find_square(GstSparrow *sparrow, guint8 *in);
@@ -430,45 +429,9 @@ debug_calibration_histogram(GstSparrow *sparrow){
     }
   }
   debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+
 }
 
-
-static inline void
-debug_calibration(GstSparrow *sparrow){
-  int pixels = sparrow->in.width * sparrow->in.height;
-  guint32 *frame = (guint32 *)sparrow->debug_frame;
-  int i, j;
-  for (i = 0; i < pixels; i++){
-    guint16 peak = 0;
-    int offset = 0;
-    if (sparrow->lag_table[i].hits > 5){
-      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
-        if (sparrow->lag_table[i].lag[j] > peak){
-          peak = sparrow->lag_table[i].lag[j];
-          offset = j;
-        }
-      }
-      guint32 c = lag_false_colour[offset];
-      if (sparrow->lag_table[i].hits < 15){
-        c >>= 2;
-        c &= 0x3f3f3f3f;
-      }
-      else if (sparrow->lag_table[i].hits < 30){
-        c >>= 1;
-        c &= 0x7f7f7f7f;
-      }
-      if (sparrow->lag_table[i].hits > 90){
-        c = (guint32)-1;
-        //GST_DEBUG("%u: %u, ", i, sparrow->lag_table[i].hits);
-      }
-      frame[i] = c;
-    }
-    else{
-      frame[i] = 0;
-    }
-  }
-  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
-}
 
 #define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
 #define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
