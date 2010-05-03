@@ -23,6 +23,7 @@
 #include <math.h>
 
 /* static functions (via `make cproto`) */
+static void change_state(GstSparrow *sparrow, sparrow_state state);
 static __inline__ gint mask_to_shift(guint32 mask);
 static guint32 get_mask(GstStructure *s, char *mask_name);
 static void init_debug(GstSparrow *sparrow);
@@ -506,7 +507,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
     int r = find_lag(sparrow);
     if (r){
       GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      sparrow->state = SPARROW_FIND_GRID;
+      change_state(sparrow, SPARROW_FIND_GRID);
     }
   }
 }
@@ -595,6 +596,30 @@ init_ipl_image(sparrow_format *dim){
   return cvInitImageHeader(im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
 }
 
+static void
+calibrate_init_grid(GstSparrow *sparrow){}
+
+static void
+change_state(GstSparrow *sparrow, sparrow_state state)
+{
+  switch(state){
+  case SPARROW_FIND_SELF:
+    calibrate_init_squares(sparrow);
+    break;
+  case SPARROW_WAIT_FOR_GRID:
+    break;
+  case SPARROW_FIND_GRID:
+    calibrate_init_grid(sparrow);
+    break;
+  case SPARROW_INIT:
+  case SPARROW_FIND_EDGES:
+  case SPARROW_PLAY:
+    break;
+  }
+  sparrow->state = state;
+}
+
+
 
 /*Functions below here are NOT static */
 
@@ -643,10 +668,9 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
     init_debug(sparrow);
   }
 
-  sparrow->state = SPARROW_FIND_SELF;
-
   calibrate_new_pattern(sparrow);
-  calibrate_init_squares(sparrow);
+
+  change_state(sparrow, SPARROW_FIND_SELF);
   return TRUE;
 }
 
