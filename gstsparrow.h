@@ -142,6 +142,15 @@ typedef struct sparrow_calibrate_s {
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
 
+typedef enum {
+  SPARROW_INIT,
+  SPARROW_FIND_SELF,
+  SPARROW_WAIT_FOR_GRID,
+  SPARROW_FIND_EDGES,
+  SPARROW_FIND_GRID,
+  SPARROW_PLAY,
+} sparrow_state;
+
 
 /**
  * GstSparrow:
@@ -164,8 +173,8 @@ struct _GstSparrow
   dsfmt_t *dsfmt;  /*rng*/
 
   /*state */
-  gint state;
-  gint next_state;
+  sparrow_state state;
+  sparrow_state next_state;
 
   lag_times_t *lag_table;
   guint32 lag_record;

@@ -33,13 +33,6 @@ void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
 
 #define SPARROW_CALIBRATE_ON  1
 
-typedef enum {
-  SPARROW_INIT,
-  SPARROW_FIND_SELF,
-  SPARROW_FIND_EDGES,
-  SPARROW_FIND_GRID,
-  SPARROW_PLAY,
-} sparrow_states;
 
 #define CALIBRATE_SIGNAL_THRESHOLD 32
 
