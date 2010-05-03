@@ -76,6 +76,7 @@ typedef guint32 pix_t;
 #define CALIBRATION_START_LAG_SEARCH (CALIBRATION_MIN_HITS * (CALIBRATE_ON_MAX_T + \
           CALIBRATE_ON_MIN_T + CALIBRATE_OFF_MAX_T + CALIBRATE_OFF_MIN_T) / 8)
 
+#define WAIT_COUNTDOWN (MAX(CALIBRATE_OFF_MAX_T, CALIBRATE_ON_MAX_T) + 3)
 
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
@@ -179,6 +180,8 @@ struct _GstSparrow
   lag_times_t *lag_table;
   guint32 lag_record;
   guint32 lag;
+
+  gint32 countdown; /*intra-state timing*/
 
   /*buffer pointers for previous frames */
   guint8 *in_frame;

@@ -566,6 +566,24 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
 #endif
 }
 
+/* wait for the other projector to stop changing: sufficient to look for no
+   significant changes for as long as the longest pattern interval */
+
+static int
+wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  guint32 i;
+  abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
+  for (i = 2; i < sparrow->in.pixcount; i++){ //possibly R, G, or B, but never A
+    guint32 signal = sparrow->work_frame[i * PIXSIZE];
+    if (signal > CALIBRATE_SIGNAL_THRESHOLD){
+      sparrow->countdown = WAIT_COUNTDOWN;
+      break;
+    }
+  }
+  sparrow->countdown--;
+  return (sparrow->countdown == 0);
+}
+
 
 static void
 extract_caps(sparrow_format *im, GstCaps *caps)
@@ -681,6 +699,9 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     find_self(sparrow, in, out);
+    break;
+  case SPARROW_WAIT_FOR_GRID:
+    wait_for_blank(sparrow, in, out);
     break;
   case SPARROW_FIND_GRID:
     find_grid(sparrow, in, out);
