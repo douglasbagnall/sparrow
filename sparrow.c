@@ -283,14 +283,14 @@ record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
 }
 
 static inline void
-colour_coded_pixel(guint8* pixel, guint32 weight, guint32 lag){
+colour_coded_pixel(guint32* pixel, guint32 weight, guint32 lag){
   if (weight){
     guint32 c = lag_false_colour[lag];
-    if (weight == 1){
+    if (weight <= 3){
       c >>= 2;
       c &= 0x3f3f3f3f;
     }
-    if (weight == 2){
+    if (weight >= 6){
       c >>= 1;
       c &= 0x7f7f7f7f;
     }
@@ -309,8 +309,8 @@ find_lag(GstSparrow *sparrow){
   //GST_DEBUG("sparrow->debug is %d\n", sparrow->debug);
 
   if (sparrow->calibrate.transitions >= CALIBRATION_START_LAG_SEARCH){
-    guint expected_hits_min = sparrow->calibrate.transitions * 3 / 4;
-    guint expected_hits_max = sparrow->calibrate.transitions * 5 / 4;
+    guint expected_hits_min = sparrow->calibrate.transitions  / 2;
+    guint expected_hits_max = sparrow->calibrate.transitions + 1;
 
     if (sparrow->debug){
       memset(frame, 0, sparrow->in.size);
