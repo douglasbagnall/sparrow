@@ -475,6 +475,15 @@ pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
   fclose(fh);
 }
 
+static inline void
+abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
+  sparrow->in_ipl[0]->imageData = (char*) a;
+  sparrow->in_ipl[1]->imageData = (char*) b;
+  sparrow->in_ipl[2]->imageData = (char*) target;
+  cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
+}
+
+
 
 /*compare the frame to the new one. regions of change should indicate the
   square is about.
@@ -483,15 +492,7 @@ static inline void
 calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   if(sparrow->prev_frame){
-    IplImage* src1 = sparrow->in_ipl;
-    IplImage* src2 = sparrow->prev_ipl;
-    IplImage* dest = sparrow->work_ipl;
-
-    src1->imageData = (char*) in;
-    src2->imageData = (char*) sparrow->prev_frame;
-    dest->imageData = (char*) sparrow->work_frame;
-
-    cvAbsDiff(src1, src2, dest);
+    abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
 
     guint32 i;
     //pix_t *changes = (pix_t *)sparrow->work_frame;
@@ -632,9 +633,9 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   memset(sparrow->prev_frame, 0, in->size);
 
   /*initialise IPL structs for openCV */
-  sparrow->in_ipl   = init_ipl_image(&(sparrow->in));
-  sparrow->prev_ipl = init_ipl_image(&(sparrow->in));
-  sparrow->work_ipl = init_ipl_image(&(sparrow->in));
+  for (int i = 0; i < 3; i++){
+    sparrow->in_ipl[i] = init_ipl_image(&(sparrow->in));
+  }
 
   rng_init(sparrow, sparrow->rng_seed);
 

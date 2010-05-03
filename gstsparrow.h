@@ -181,9 +181,7 @@ struct _GstSparrow
   GstBuffer *prev_buffer;
   /*don't need work_buffer */
 
-  IplImage* in_ipl;
-  IplImage* prev_ipl;
-  IplImage* work_ipl;
+  IplImage *in_ipl[3];
 
   gboolean debug;
 
