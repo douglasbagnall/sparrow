@@ -35,13 +35,13 @@ void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
 
 
 #define CALIBRATE_SIGNAL_THRESHOLD 32
-
-
+#define ALIGNMENT 16
 
 
 /*memory allocation */
 
-static inline UNUSED void * malloc_or_die(size_t size){
+static inline __attribute__((malloc)) UNUSED void *
+malloc_or_die(size_t size){
   void *p = malloc(size);
   if (!p){
     GST_ERROR("malloc would not allocate %u bytes! seriously!\n", size);
@@ -50,8 +50,8 @@ static inline UNUSED void * malloc_or_die(size_t size){
   return p;
 }
 
-#define ALIGNMENT 16
-static inline UNUSED void * malloc_aligned_or_die(size_t size){
+static inline __attribute__((malloc)) UNUSED void *
+malloc_aligned_or_die(size_t size){
   void *mem;
   int err = posix_memalign(&mem, ALIGNMENT, size);
   if (err){
@@ -62,7 +62,8 @@ static inline UNUSED void * malloc_aligned_or_die(size_t size){
   return mem;
 }
 
-static inline UNUSED void * zalloc_aligned_or_die(size_t size){
+static inline __attribute__((malloc)) UNUSED void *
+zalloc_aligned_or_die(size_t size){
   void *mem = malloc_aligned_or_die(size);
   memset(mem, 0, size);
   return mem;

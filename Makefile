@@ -15,6 +15,7 @@ VECTOR_FLAGS = -msse2 -DHAVE_SSE2 -D__SSE2__ -floop-strip-mine -floop-block
 # -fvisibility=hidden
 #POSSIBLE_OPTIMISING_CFLAGS = -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las \
 # -funsafe-loop-optimizations -Wunsafe-loop-optimizations -fsee -funsafe-math-optimizations and more
+# "-combine -fwhole-program" with __attribute__((externally_visible))
 #POSSIBLE_PESSIMISING_CFLAGS -fmudflap -fmudflapth -fmudflapir
 
 SPARROW_SRC = gstsparrow.c dSFMT/dSFMT.c sparrow.c
@@ -122,7 +123,11 @@ test-tee2: all
 TAGS:
 	$(RM) TAGS
 #	find  -name "*.[ch]" | xargs etags -a
-	etags -R
+	etags -R --exclude=junk --exclude=.git --exclude=prof
+
+cscope:
+	$(RM) cscope.out
+	cscope -b $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
 
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
