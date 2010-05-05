@@ -299,7 +299,7 @@ colour_coded_pixel(guint32* pixel, guint32 weight, guint32 lag){
   }
 }
 
-/*return 0 if a reasonably likely lag has been found */
+/*return 1 if a reasonably likely lag has been found */
 
 static inline int
 find_lag(GstSparrow *sparrow){
@@ -701,7 +701,9 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
     find_self(sparrow, in, out);
     break;
   case SPARROW_WAIT_FOR_GRID:
-    wait_for_blank(sparrow, in, out);
+    if (wait_for_blank(sparrow, in, out)){
+      change_state(sparrow, SPARROW_FIND_GRID);
+    }
     break;
   case SPARROW_FIND_GRID:
     find_grid(sparrow, in, out);
