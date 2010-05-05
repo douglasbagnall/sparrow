@@ -44,7 +44,6 @@ static __inline__ int find_lag(GstSparrow *sparrow);
 static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
-static __inline__ void calibrate_find_square(GstSparrow *sparrow, guint8 *in);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *in);
 static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
@@ -272,14 +271,25 @@ static void draw_shapes(GstSparrow *sparrow, guint8 *out){
 static inline void
 record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
   guint16 *t = sparrow->lag_table[offset].lag;
-  sparrow->lag_table[offset].hits++;
   guint32 r = sparrow->lag_record;
-  while(r){
-    if(r & 1){
-      *t += signal;
+  if (signal > CALIBRATE_SIGNAL_THRESHOLD){
+    sparrow->lag_table[offset].hits++;
+    while(r){
+      if(r & 1){
+        *t += 4;
+      }
+      r >>= 1;
+      t++;
     }
-    r >>= 1;
-    t++;
+  }
+  else{
+    while(r){
+      if((r & 1) && *t){
+        *t -= 1;
+      }
+      r >>= 1;
+      t++;
+    }
   }
 }
 
@@ -291,7 +301,7 @@ colour_coded_pixel(guint32* pixel, guint32 weight, guint32 lag){
       c >>= 2;
       c &= 0x3f3f3f3f;
     }
-    if (weight >= 6){
+    if (weight <= 6){
       c >>= 1;
       c &= 0x7f7f7f7f;
     }
@@ -489,27 +499,26 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
 /*compare the frame to the new one. regions of change should indicate the
   square is about.
 */
-static inline void
+static inline int
 calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
+  int res = 0;
   if(sparrow->prev_frame){
     abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
 
     guint32 i;
     //pix_t *changes = (pix_t *)sparrow->work_frame;
-    for (i = 2; i < sparrow->in.pixcount; i++){ //possibly R, G, or B, but never A
-      guint32 signal = sparrow->work_frame[i * PIXSIZE];
-      if (signal > CALIBRATE_SIGNAL_THRESHOLD){
-        record_calibration(sparrow, i, signal);
-      }
+    for (i = 0; i < sparrow->in.pixcount; i++){
+      guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];//possibly R, G, or B, but never A
+      record_calibration(sparrow, i, signal);
     }
 
-    int r = find_lag(sparrow);
-    if (r){
+    res = find_lag(sparrow);
+    if (res){
       GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      change_state(sparrow, SPARROW_FIND_GRID);
     }
   }
+  return res;
 }
 
 static int cycle_pattern(GstSparrow *sparrow, int repeat){
@@ -555,7 +564,10 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 static void
 find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  calibrate_find_square(sparrow, in);
+  if(calibrate_find_square(sparrow, in)){
+    change_state(sparrow, SPARROW_WAIT_FOR_GRID);
+    return;
+  }
   int on = cycle_pattern(sparrow, TRUE);
   memset(out, 0, sparrow->out.size);
   if (on){
@@ -573,13 +585,14 @@ static int
 wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
   guint32 i;
   abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
-  for (i = 2; i < sparrow->in.pixcount; i++){ //possibly R, G, or B, but never A
-    guint32 signal = sparrow->work_frame[i * PIXSIZE];
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];  //possibly R, G, or B, but never A
     if (signal > CALIBRATE_SIGNAL_THRESHOLD){
       sparrow->countdown = WAIT_COUNTDOWN;
       break;
     }
   }
+  memset(out, 0, sparrow->out.size);
   sparrow->countdown--;
   return (sparrow->countdown == 0);
 }
