@@ -43,7 +43,7 @@ static __inline__ void record_calibration(GstSparrow *sparrow, gint32 offset, gu
 static __inline__ int find_lag(GstSparrow *sparrow);
 static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
-static void pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
+static void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
 static __inline__ void calibrate_find_square(GstSparrow *sparrow, guint8 *in);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
 static void see_grid(GstSparrow *sparrow, guint8 *in);
@@ -447,7 +447,7 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
   char name[PPM_FILENAME_LENGTH];
   int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
   if (res > 0){
-    pgm_dump(&(sparrow->in), data, width, height, name);
+    ppm_dump(&(sparrow->in), data, width, height, name);
   }
 #endif
 }
@@ -455,7 +455,7 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 
 
 static void
-pgm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
+ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
 {
   guint i;
   FILE *fh = fopen(name, "w");
