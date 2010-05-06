@@ -275,18 +275,22 @@ record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
 }
 
 static inline void
-colour_coded_pixel(guint32* pixel, guint32 weight, guint32 lag){
-  if (weight){
-    guint32 c = lag_false_colour[lag];
-    if (weight <= 3){
-      c >>= 2;
-      c &= 0x3f3f3f3f;
+colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){
+  if (shift < 72){
+    shift >>= 3;
+    if (shift == 0){
+      *pixel = (guint32)-1;
     }
-    if (weight <= 6){
-      c >>= 1;
-      c &= 0x7f7f7f7f;
+    else{
+      shift--;
+      guint32 c = lag_false_colour[lag];
+      guint32 mask = (1 << (8 - shift)) - 1;
+      mask |= (mask << 8);
+      mask |= (mask << 16); //XXX LUT would be quicker
+      c >>= shift;
+      c &= mask;
+      *pixel = c;
     }
-    *pixel = c;
   }
 }
 
