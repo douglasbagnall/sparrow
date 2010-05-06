@@ -91,4 +91,31 @@ rng_uniform_double(GstSparrow *sparrow, double limit){
 
 #define DISASTEROUS_CRASH(msg) GST_ERROR("DISASTER: %s\n%-25s  line %4d \n", (msg), __func__, __LINE__);
 
+
+
+static inline guint32
+popcount64(guint64 x64)
+{
+  guint32 x = x64 & (guint32)-1;
+  guint32 y = x64 >> 32;
+  x = x - ((x >> 1) & 0x55555555);
+  y = y - ((y >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  y = (y & 0x33333333) + ((y >> 2) & 0x33333333);
+  x = (x + (x >> 4)) & 0x0F0F0F0F;
+  y = (y + (y >> 4)) & 0x0F0F0F0F;
+  x = x + (x >> 8);
+  y = y + (y >> 8);
+  x = x + (x >> 16);
+  y = y + (y >> 16);
+  return (x + y) & 0x000000FF;
+}
+
+static inline guint32
+hamming_distance64(guint64 a, guint64 b, guint64 mask){
+  a &= mask;
+  b &= mask;
+  return popcount64(a ^ ~b);
+}
+
 #endif /* __SPARROW_SPARROW_H__ */
