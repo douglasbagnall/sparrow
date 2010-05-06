@@ -290,6 +290,7 @@ colour_coded_pixel(guint32* pixel, guint32 weight, guint32 lag){
   }
 }
 
+
 /*return 1 if a reasonably likely lag has been found */
 
 static inline int
@@ -358,18 +359,6 @@ find_lag(GstSparrow *sparrow){
 }
 
 
-    /*flicker most peaky pixel */
-    if (sparrow->frame_count & 4){
-      frame[high_pix] = (guint32)-1 & (sparrow->in.rmask);
-    }
-    else {
-      frame[high_pix] = 0;
-    }
-  }
-  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
-
-}
-
 
 #define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
 #define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
@@ -386,39 +375,6 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 }
 
 
-static inline void
-debug_calibration_histogram(GstSparrow *sparrow){
-  int pixels = sparrow->in.pixcount;
-  guint32 *frame = (guint32 *)sparrow->debug_frame;
-  memcpy(sparrow->debug_frame, sparrow->in_frame, sparrow->in.size);
-  int i, j;
-  static guint32 high_peak = 0;
-  static guint32 high_pix = 0;
-  static guint32 high_offset = 0;
-  for (i = 0; i < pixels; i++){
-    guint16 peak = 0;
-    int offset = 0;
-    if (sparrow->lag_table[i].hits > CALIBRATION_MIN_HITS){
-      for(j = 0; j < MAX_CALIBRATION_LAG; j++){
-        if (sparrow->lag_table[i].lag[j] > peak){
-          peak = sparrow->lag_table[i].lag[j];
-          offset = j;
-        }
-      }
-      if (peak > high_peak){
-        high_peak = peak;
-        high_pix = i;
-        high_offset = offset;
-      }
-    }
-  }
-  if (high_peak){
-    /*draw a histogram on the screen*/
-    guint8 *row = sparrow->debug_frame;
-    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
-      row += sparrow->in.width * PIXSIZE;
-      memset(row, 255, sparrow->lag_table[high_pix].lag[j] * sparrow->in.width * (PIXSIZE / 2) / high_peak);
-    }
 
 static void
 ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
