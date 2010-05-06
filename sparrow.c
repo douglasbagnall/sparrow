@@ -360,7 +360,7 @@ find_lag(GstSparrow *sparrow){
 
 
 
-#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
+#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.ppm"
 #define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
 
 static void
