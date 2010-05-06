@@ -494,6 +494,13 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
   cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
 }
 
+static inline void
+threshold(GstSparrow *sparrow, guint8 *frame, guint8 *target, guint threshold){
+  sparrow->in_ipl[0]->imageData = (char*) frame;
+  sparrow->in_ipl[1]->imageData = (char*) target;
+  //cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
+  cvCmpS(sparrow->in_ipl[0], (double)threshold, sparrow->in_ipl[1], CV_CMP_GT);
+}
 
 
 /*compare the frame to the new one. regions of change should indicate the
