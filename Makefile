@@ -156,6 +156,9 @@ splint:
 	flawfinder $(PWD)
 
 
+unittest:
+	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test test.c
+	./test
 
 
 .PHONY: TAGS all cproto cproto-nonstatic sysprof splint
