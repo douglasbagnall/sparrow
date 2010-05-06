@@ -39,9 +39,8 @@ static __inline__ void horizontal_line(GstSparrow *sparrow, guint8 *out, guint32
 static __inline__ void vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x);
 static __inline__ void rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape);
 static void draw_shapes(GstSparrow *sparrow, guint8 *out);
-static __inline__ void record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal);
-static __inline__ int find_lag(GstSparrow *sparrow);
-static __inline__ void debug_calibration_histogram(GstSparrow *sparrow);
+
+
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
 static int cycle_pattern(GstSparrow *sparrow, int repeat);
@@ -269,28 +268,10 @@ static void draw_shapes(GstSparrow *sparrow, guint8 *out){
 
 
 static inline void
-record_calibration(GstSparrow *sparrow, gint32 offset, guint32 signal){
-  guint16 *t = sparrow->lag_table[offset].lag;
-  guint32 r = sparrow->lag_record;
-  if (signal > CALIBRATE_SIGNAL_THRESHOLD){
-    sparrow->lag_table[offset].hits++;
-    while(r){
-      if(r & 1){
-        *t += 4;
-      }
-      r >>= 1;
-      t++;
-    }
-  }
-  else{
-    while(r){
-      if((r & 1) && *t){
-        *t -= 1;
-      }
-      r >>= 1;
-      t++;
-    }
-  }
+record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
+  //signal = (signal != 0);
+  sparrow->lag_table[offset].record <<= 1;
+  sparrow->lag_table[offset].record |= signal;
 }
 
 static inline void
@@ -315,91 +296,95 @@ static inline int
 find_lag(GstSparrow *sparrow){
   int res = 0;
   guint i, j;
-  guint votes[MAX_CALIBRATION_LAG] = {0};
   guint32 *frame = (guint32 *)sparrow->debug_frame;
-  //GST_DEBUG("sparrow->debug is %d\n", sparrow->debug);
+  if (sparrow->debug){
+    memset(frame, 0, sparrow->in.size);
+  }
+  guint64 target_pattern = sparrow->lag_record;
+  guint32 overall_best = (guint32)-1;
+  guint32 overall_lag = 0;
 
-  if (sparrow->calibrate.transitions >= CALIBRATION_START_LAG_SEARCH){
-    guint expected_hits_min = sparrow->calibrate.transitions  / 2;
-    guint expected_hits_max = sparrow->calibrate.transitions + 1;
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    lag_times_t *lt = &(sparrow->lag_table[i]);
+    guint64 record = lt->record;
+    /*latest frame is least significant bit
+      >> pushes into future,
+      << pushes into past
+      record is presumed to be a few frames past
+      relative to main record, so we push it back.
+    */
+    guint64 mask = (guint64)-1;
+    guint32 best = hamming_distance64(record, target_pattern, mask);
+    guint32 lag = 0;
+    if (record && record + 1){
+      //GST_DEBUG("record %llx mask %llx target %llx\n", record, mask, target_pattern);
+    }
+    else {
+      /*ignore this one! */
+      continue;
+    }
 
+    for (j = 1; j < MAX_CALIBRATION_LAG; j++){
+      record <<= 1;
+      mask <<= 1;
+      guint32 d = hamming_distance64(record, target_pattern, mask);
+      if (d < best){
+        best = d;
+        lag = j; //could break on zero
+      }
+
+      //GST_DEBUG("record %llx mask %llx target %llx\n", record, mask, target_pattern);
+    }
+    if (best < overall_best){
+      overall_best = best;
+      overall_lag = lag;
+      GST_DEBUG("Best now: lag  %u! error %u\n", overall_lag, overall_best);
+      if (overall_best == 0 && ! sparrow->debug) {
+        break;
+      }
+    }
     if (sparrow->debug){
-      memset(frame, 0, sparrow->in.size);
-    }
-    for (i = 0; i < sparrow->in.pixcount; i++){
-      lag_times_t *lt = &(sparrow->lag_table[i]);
-      if (lt->hits > CALIBRATION_MIN_HITS){
-        guint32 sum = 0;
-        guint16 peak = 0;
-        int offset = 0;
-        guint32 centre;
-        guint32 confidence;
-        for(j = 0; j < MAX_CALIBRATION_LAG; j++){
-          guint16 v = lt->lag[j];
-          sum += v;
-          if (v > peak){
-            peak = v;
-            offset = j;
-          }
-        }
-        /* Heuristic for confidence:
-           one point for each of:
-           * the peak is twice average
-           * the peak is 4/3 average
-           * the number of hits is close to the number of transitions
-
-           There of course is a proper way, but it might be slower.
-        */
-        //XXX perhaps adjust centre according to neighbours, using sub-frame values (fixed point)
-        centre = offset;
-        guint32 peak2 = peak * MAX_CALIBRATION_LAG; //scale to make sum equivalant to mean
-        confidence = ((peak2 * 7 >= sum * 8) +
-            (peak2 * 6 >= sum * 8) +
-            (peak2 * 5 >= sum * 8) +
-            (peak2 * 4 >= sum * 8));
-        if (lt->hits > expected_hits_min &&
-            lt->hits < expected_hits_max){
-          confidence *= 4;
-          //GST_DEBUG("hits %u, transitions %u\n", lt->hits, sparrow->calibrate.transitions);
-        }
-        confidence *= lt->hits;
-        votes[offset] += confidence;
-        if (sparrow->debug){
-          colour_coded_pixel(&frame[i], confidence, offset);
-        }
-      }
-    }
-
-    /* find votes */
-    guint max_vote;
-    guint offset;
-    guint total;
-    for (j = 0; j < MAX_CALIBRATION_LAG; j++){
-      total += votes[j];
-      if (votes[j] > max_vote){
-        max_vote = votes[j];
-        offset = j;
-      }
-    }
-    if ((max_vote + (total >> 2)) > total){
-      GST_DEBUG("80%% majority for %u: %u out of %u\n", offset, max_vote, total);
-      res = 1;
-      sparrow->lag = offset;
-    }
-    if (total){
-      /*draw a histogram on the screen*/
-      guint8 *row = sparrow->debug_frame;
-      for (j = 0; j < MAX_CALIBRATION_LAG; j++){
-        row += sparrow->in.width * PIXSIZE;
-        memset(row, 255, votes[j] * sparrow->in.width * (PIXSIZE) / total);
-      }
+      colour_coded_pixel(&frame[i], lag, best);
     }
   }
   if (sparrow->debug){
     debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
   }
+  if (overall_best < 5){
+    sparrow->lag = overall_lag;
+    res = 1;
+  }
   return res;
 }
+
+
+    /*flicker most peaky pixel */
+    if (sparrow->frame_count & 4){
+      frame[high_pix] = (guint32)-1 & (sparrow->in.rmask);
+    }
+    else {
+      frame[high_pix] = 0;
+    }
+  }
+  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+
+}
+
+
+#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
+#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
+
+static void
+debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
+#if SPARROW_PPM_DEBUG
+  char name[PPM_FILENAME_LENGTH];
+  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
+  if (res > 0){
+    ppm_dump(&(sparrow->in), data, width, height, name);
+  }
+#endif
+}
+
 
 static inline void
 debug_calibration_histogram(GstSparrow *sparrow){
@@ -435,35 +420,6 @@ debug_calibration_histogram(GstSparrow *sparrow){
       memset(row, 255, sparrow->lag_table[high_pix].lag[j] * sparrow->in.width * (PIXSIZE / 2) / high_peak);
     }
 
-    /*flicker most peaky pixel */
-    if (sparrow->frame_count & 4){
-      frame[high_pix] = (guint32)-1 & (sparrow->in.rmask);
-    }
-    else {
-      frame[high_pix] = 0;
-    }
-  }
-  debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
-
-}
-
-
-#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.pgm"
-#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
-
-static void
-debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
-#if SPARROW_PPM_DEBUG
-  char name[PPM_FILENAME_LENGTH];
-  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
-  if (res > 0){
-    ppm_dump(&(sparrow->in), data, width, height, name);
-  }
-#endif
-}
-
-
-
 static void
 ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
 {
@@ -495,6 +451,16 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
 }
 
 
+static void
+reset_find_self(GstSparrow *sparrow, gint first){
+  if (first){
+    calibrate_init_squares(sparrow);
+    sparrow->countdown = 64;
+  }
+  else {
+    sparrow->countdown = 32;
+  }
+}
 
 /*compare the frame to the new one. regions of change should indicate the
   square is about.
@@ -504,24 +470,27 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   int res = 0;
   if(sparrow->prev_frame){
-    abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
-
+    //threshold(sparrow, in, sparrow->work_frame, 100);
     guint32 i;
-    //pix_t *changes = (pix_t *)sparrow->work_frame;
     for (i = 0; i < sparrow->in.pixcount; i++){
-      guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];//possibly R, G, or B, but never A
+      int signal = (in[i * PIXSIZE + 2] > 127);//possibly R, G, or B, but never A
       record_calibration(sparrow, i, signal);
     }
-
-    res = find_lag(sparrow);
-    if (res){
-      GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
+    if (sparrow->countdown == 0){
+      res = find_lag(sparrow);
+      if (res){
+        GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
+      }
+      else {
+        reset_find_self(sparrow, 0);
+      }
     }
   }
+  sparrow->countdown--;
   return res;
 }
 
-static int cycle_pattern(GstSparrow *sparrow, int repeat){
+static gboolean cycle_pattern(GstSparrow *sparrow, int repeat){
   if (sparrow->calibrate.wait == 0){
     if(sparrow->calibrate.index == 0){
       //pattern has run out
@@ -535,16 +504,14 @@ static int cycle_pattern(GstSparrow *sparrow, int repeat){
     sparrow->calibrate.index--;
     sparrow->calibrate.wait = sparrow->calibrate.pattern[sparrow->calibrate.index];
     //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
-    sparrow->lag_record = (sparrow->lag_record << 1) | 1;
+    //
     sparrow->calibrate.transitions++;
   }
-  else {
-    sparrow->lag_record = (sparrow->lag_record << 1);
-  }
-  sparrow->lag_record &= ((1 << MAX_CALIBRATION_LAG) - 1);
-  //XXX record the pattern in sparrow->lag_record
   sparrow->calibrate.wait--;
-  return sparrow->calibrate.index & 1;
+  gboolean on = sparrow->calibrate.index & 1;
+  sparrow->lag_record = (sparrow->lag_record << 1) | on;
+  //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
+  return on;
 }
 
 static void
@@ -568,7 +535,7 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
     change_state(sparrow, SPARROW_WAIT_FOR_GRID);
     return;
   }
-  int on = cycle_pattern(sparrow, TRUE);
+  gboolean on = cycle_pattern(sparrow, TRUE);
   memset(out, 0, sparrow->out.size);
   if (on){
     draw_shapes(sparrow, out);
@@ -635,7 +602,7 @@ change_state(GstSparrow *sparrow, sparrow_state state)
 {
   switch(state){
   case SPARROW_FIND_SELF:
-    calibrate_init_squares(sparrow);
+    reset_find_self(sparrow, 1);
     break;
   case SPARROW_WAIT_FOR_GRID:
     break;

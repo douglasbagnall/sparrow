@@ -70,11 +70,8 @@ typedef guint32 pix_t;
 #define CALIBRATE_PATTERN_L 100
 #define CALIBRATE_SELF_SIZE 16
 
-#define CALIBRATION_MIN_HITS 4
 #define MAX_CALIBRATE_SHAPES 4
 
-#define CALIBRATION_START_LAG_SEARCH (CALIBRATION_MIN_HITS * (CALIBRATE_ON_MAX_T + \
-          CALIBRATE_ON_MIN_T + CALIBRATE_OFF_MAX_T + CALIBRATE_OFF_MIN_T) / 8)
 
 #define WAIT_COUNTDOWN (MAX(CALIBRATE_OFF_MAX_T, CALIBRATE_ON_MAX_T) + 3)
 
@@ -92,10 +89,8 @@ typedef guint32 pix_t;
 
 #define MAX_CALIBRATION_LAG 16
 typedef struct lag_times_s {
-  //guint32 centre;
-  //guint32 confidence;
-  guint32 hits;
-  guint16 lag[MAX_CALIBRATION_LAG];
+  //guint32 hits;
+  guint64 record;
 } lag_times_t;
 
 typedef struct sparrow_format_s {
@@ -178,7 +173,7 @@ struct _GstSparrow
   sparrow_state next_state;
 
   lag_times_t *lag_table;
-  guint32 lag_record;
+  guint64 lag_record;
   guint32 lag;
 
   gint32 countdown; /*intra-state timing*/
