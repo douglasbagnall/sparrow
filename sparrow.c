@@ -361,7 +361,9 @@ find_lag(GstSparrow *sparrow){
       overall_best = best;
       overall_lag = lag;
       GST_DEBUG("Best now: lag  %u! error %u\n", overall_lag, overall_best);
-      if (overall_best == 0) {
+      GST_DEBUG("pattern: %s %llx\n", int64_to_binary_string(pattern_debug, target_pattern),
+          target_pattern);
+      if (overall_best < 3) {
         break;
       }
     }
