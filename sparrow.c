@@ -294,6 +294,17 @@ colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){
   }
 }
 
+static inline char *
+int64_to_binary_string(char *s, guint64 n){
+  /* s should be a *65* byte array */
+  int i;
+  for (i = 0; i < 64; i++){
+    s[i] = (n & (1 << (63 - i)))? '1' : '0';
+  }
+  s[64] = 0;
+  return s;
+}
+
 
 /*return 1 if a reasonably likely lag has been found */
 
@@ -308,6 +319,10 @@ find_lag(GstSparrow *sparrow){
   guint64 target_pattern = sparrow->lag_record;
   guint32 overall_best = (guint32)-1;
   guint32 overall_lag = 0;
+  static char pattern_string[65];
+
+  //GST_DEBUG("pattern: %s\n", int64_to_binary_string(pattern_string, target_pattern));
+
 
   for (i = 0; i < sparrow->in.pixcount; i++){
     lag_times_t *lt = &(sparrow->lag_table[i]);
@@ -326,6 +341,8 @@ find_lag(GstSparrow *sparrow){
       /*ignore this one! it'll never usefully match. */
       continue;
     }
+
+    //GST_DEBUG("record: %s\n", int64_to_binary_string(pattern_string, record));
 
     for (j = 1; j < MAX_CALIBRATION_LAG; j++){
       record <<= 1;
