@@ -321,11 +321,9 @@ find_lag(GstSparrow *sparrow){
     guint64 mask = (guint64)-1;
     guint32 best = hamming_distance64(record, target_pattern, mask);
     guint32 lag = 0;
-    if (record && record + 1){
-      //GST_DEBUG("record %llx mask %llx target %llx\n", record, mask, target_pattern);
-    }
-    else {
-      /*ignore this one! */
+    if (record == 0 || ~record == 0){
+      //frame[i] = 0xffffffff;
+      /*ignore this one! it'll never usefully match. */
       continue;
     }
 
@@ -335,21 +333,20 @@ find_lag(GstSparrow *sparrow){
       guint32 d = hamming_distance64(record, target_pattern, mask);
       if (d < best){
         best = d;
-        lag = j; //could break on zero
+        lag = j;
       }
-
       //GST_DEBUG("record %llx mask %llx target %llx\n", record, mask, target_pattern);
+    }
+    if (sparrow->debug){
+      colour_coded_pixel(&frame[i], lag, best);
     }
     if (best < overall_best){
       overall_best = best;
       overall_lag = lag;
       GST_DEBUG("Best now: lag  %u! error %u\n", overall_lag, overall_best);
-      if (overall_best == 0 && ! sparrow->debug) {
+      if (overall_best == 0) {
         break;
       }
-    }
-    if (sparrow->debug){
-      colour_coded_pixel(&frame[i], lag, best);
     }
   }
   if (sparrow->debug){
