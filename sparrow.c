@@ -319,32 +319,32 @@ find_lag(GstSparrow *sparrow){
   guint64 target_pattern = sparrow->lag_record;
   guint32 overall_best = (guint32)-1;
   guint32 overall_lag = 0;
-  static char pattern_string[65];
+  static char pattern_debug[65];
 
-  //GST_DEBUG("pattern: %s\n", int64_to_binary_string(pattern_string, target_pattern));
-
+  GST_DEBUG("pattern: %s %llx\n", int64_to_binary_string(pattern_debug, target_pattern),
+      target_pattern);
 
   for (i = 0; i < sparrow->in.pixcount; i++){
-    lag_times_t *lt = &(sparrow->lag_table[i]);
-    guint64 record = lt->record;
-    /*latest frame is least significant bit
-      >> pushes into future,
-      << pushes into past
-      record is presumed to be a few frames past
-      relative to main record, so we push it back.
-    */
-    guint64 mask = (guint64)-1;
-    guint32 best = hamming_distance64(record, target_pattern, mask);
-    guint32 lag = 0;
+    guint64 record = sparrow->lag_table[i].record;
     if (record == 0 || ~record == 0){
-      //frame[i] = 0xffffffff;
       /*ignore this one! it'll never usefully match. */
+      //frame[i] = 0xffffffff;
       continue;
     }
 
-    //GST_DEBUG("record: %s\n", int64_to_binary_string(pattern_string, record));
+    guint64 mask = (guint64)-1;
+    guint32 best = hamming_distance64(record, target_pattern, mask);
+    guint32 lag = 0;
+
+    GST_DEBUG("record: %s %llx\n", int64_to_binary_string(pattern_debug, record), record);
 
     for (j = 1; j < MAX_CALIBRATION_LAG; j++){
+      /*latest frame is least significant bit
+        >> pushes into future,
+        << pushes into past
+        record is presumed to be a few frames past
+        relative to main record, so we push it back.
+      */
       record <<= 1;
       mask <<= 1;
       guint32 d = hamming_distance64(record, target_pattern, mask);
