@@ -436,7 +436,7 @@ static void
 reset_find_self(GstSparrow *sparrow, gint first){
   if (first){
     calibrate_init_squares(sparrow);
-    sparrow->countdown = 64;
+    sparrow->countdown = 66;
   }
   else {
     sparrow->countdown = 32;
