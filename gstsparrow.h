@@ -129,7 +129,7 @@ typedef struct sparrow_shape_s {
 
 typedef struct sparrow_calibrate_s {
   /*calibration state, and shape and pattern definition */
-  gint on;         /*for calibration pattern */
+  gboolean on;         /*for calibration pattern */
   gint wait;
   guint32 pattern[CALIBRATE_PATTERN_L];
   guint32 index;

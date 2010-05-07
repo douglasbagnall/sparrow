@@ -30,7 +30,6 @@ static void init_debug(GstSparrow *sparrow);
 static void rng_init(GstSparrow *sparrow, guint32 seed);
 static void simple_negation(guint8 *bytes, guint size);
 static void gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out);
-static void calibrate_new_pattern(GstSparrow *sparrow);
 static __inline__ void init_one_square(GstSparrow *sparrow, sparrow_shape_t *shape);
 static void calibrate_init_squares(GstSparrow *sparrow);
 static void add_random_signal(GstSparrow *sparrow, guint8 *out);
@@ -39,11 +38,11 @@ static __inline__ void horizontal_line(GstSparrow *sparrow, guint8 *out, guint32
 static __inline__ void vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x);
 static __inline__ void rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape);
 static void draw_shapes(GstSparrow *sparrow, guint8 *out);
-
+static gboolean cycle_pattern(GstSparrow *sparrow);
 
 static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
 static void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
-static int cycle_pattern(GstSparrow *sparrow, int repeat);
+
 static void see_grid(GstSparrow *sparrow, guint8 *in);
 static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
 static void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
@@ -134,16 +133,6 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
   // }
 }
 
-static void calibrate_new_pattern(GstSparrow *sparrow){
-  int i;
-  sparrow->calibrate.index = CALIBRATE_PATTERN_L;
-  sparrow->calibrate.wait = 0;
-  for (i = 0; i < CALIBRATE_PATTERN_L; i+=2){
-    sparrow->calibrate.pattern[i] = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
-    sparrow->calibrate.pattern[i + 1] = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
-  }
-  GST_DEBUG("New Pattern: wait %u, index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
-}
 
 static inline void
 init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
@@ -474,25 +463,21 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
   return res;
 }
 
-static gboolean cycle_pattern(GstSparrow *sparrow, int repeat){
+
+static gboolean cycle_pattern(GstSparrow *sparrow){
+  gboolean on = sparrow->calibrate.on;
   if (sparrow->calibrate.wait == 0){
-    if(sparrow->calibrate.index == 0){
-      //pattern has run out
-      if (repeat){
-        sparrow->calibrate.index = CALIBRATE_PATTERN_L;
-      }
-      else{
-        calibrate_new_pattern(sparrow);
-      }
+    on = !on;
+    if (on){
+      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
     }
-    sparrow->calibrate.index--;
-    sparrow->calibrate.wait = sparrow->calibrate.pattern[sparrow->calibrate.index];
-    //GST_DEBUG("cycle_wait %u, cycle_index %u\n", sparrow->calibrate.wait, sparrow->calibrate.index);
-    //
+    else{
+      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
+    }
+    sparrow->calibrate.on = on;
     sparrow->calibrate.transitions++;
   }
   sparrow->calibrate.wait--;
-  gboolean on = sparrow->calibrate.index & 1;
   sparrow->lag_record = (sparrow->lag_record << 1) | on;
   //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
   return on;
@@ -505,7 +490,7 @@ see_grid(GstSparrow *sparrow, guint8 *in){
 static void
 find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   see_grid(sparrow, in);
-  int on = cycle_pattern(sparrow, TRUE);
+  int on = cycle_pattern(sparrow);
   memset(out, 0, sparrow->out.size);
   if (on){
     draw_shapes(sparrow, out);
@@ -519,7 +504,7 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
     change_state(sparrow, SPARROW_WAIT_FOR_GRID);
     return;
   }
-  gboolean on = cycle_pattern(sparrow, TRUE);
+  gboolean on = cycle_pattern(sparrow);
   memset(out, 0, sparrow->out.size);
   if (on){
     draw_shapes(sparrow, out);
@@ -649,8 +634,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   if (sparrow->debug){
     init_debug(sparrow);
   }
-
-  calibrate_new_pattern(sparrow);
 
   change_state(sparrow, SPARROW_FIND_SELF);
   return TRUE;
