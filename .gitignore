@@ -10,4 +10,5 @@ junk/
 *.o
 *.so
 prof
+libjpeg-terra
 dSFMT/test-*-M*
