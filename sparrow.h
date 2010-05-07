@@ -115,7 +115,8 @@ static inline guint32
 hamming_distance64(guint64 a, guint64 b, guint64 mask){
   a &= mask;
   b &= mask;
-  return popcount64(a ^ ~b);
+  /* count where the two differ */
+  return popcount64(a ^ b);
 }
 
 #endif /* __SPARROW_SPARROW_H__ */
