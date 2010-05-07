@@ -504,7 +504,7 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if (on){
     draw_shapes(sparrow, out);
   }
-#if 1
+#if FAKE_OTHER_PROJECTION
   add_random_signal(sparrow, out);
 #endif
 }
