@@ -368,6 +368,7 @@ find_lag(GstSparrow *sparrow){
   }
   if (sparrow->debug){
     debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+    //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
   }
   if (overall_best < 5){
     sparrow->lag = overall_lag;
@@ -454,7 +455,7 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
     //threshold(sparrow, in, sparrow->work_frame, 100);
     guint32 i;
     for (i = 0; i < sparrow->in.pixcount; i++){
-      int signal = (in[i * PIXSIZE + 2] > 127);//possibly R, G, or B, but never A
+      int signal = (in[i * PIXSIZE + 2] > 100);//possibly R, G, or B, but never A
       record_calibration(sparrow, i, signal);
     }
     if (sparrow->countdown == 0){
