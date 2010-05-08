@@ -547,7 +547,7 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
   abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
   for (i = 0; i < sparrow->in.pixcount; i++){
     guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];  //possibly R, G, or B, but never A
-    if (signal > CALIBRATE_SIGNAL_THRESHOLD){
+    if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
       sparrow->countdown = WAIT_COUNTDOWN;
       break;
     }

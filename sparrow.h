@@ -34,7 +34,7 @@ void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
 #define SPARROW_CALIBRATE_ON  1
 
 
-#define CALIBRATE_SIGNAL_THRESHOLD 32
+#define CALIBRATE_WAIT_SIGNAL_THRESHOLD 32
 #define ALIGNMENT 16
 
 
