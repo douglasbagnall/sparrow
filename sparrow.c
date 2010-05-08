@@ -309,6 +309,7 @@ find_lag(GstSparrow *sparrow){
   guint64 target_pattern = sparrow->lag_record;
   guint32 overall_best = (guint32)-1;
   guint32 overall_lag = 0;
+  gint32 votes[MAX_CALIBRATION_LAG] = {0};
   static char pattern_debug[65];
 
   GST_DEBUG("pattern: %s %llx\n", int64_to_binary_string(pattern_debug, target_pattern),
@@ -347,6 +348,11 @@ find_lag(GstSparrow *sparrow){
     if (sparrow->debug){
       colour_coded_pixel(&frame[i], lag, best);
     }
+
+    if (best <= 5){
+      votes[lag] += 1 >> (5 - best);
+    }
+
     if (best < overall_best){
       overall_best = best;
       overall_lag = lag;
@@ -358,6 +364,12 @@ find_lag(GstSparrow *sparrow){
       }
     }
   }
+  for (i = 0; i < MAX_CALIBRATION_LAG; i++){
+    if(votes[i]){
+      GST_DEBUG("%d votes for %d\n", votes[i], i);
+    }
+  }
+
   if (sparrow->debug){
     debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
     //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
