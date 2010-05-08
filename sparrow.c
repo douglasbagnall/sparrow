@@ -283,12 +283,13 @@ colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){
   }
 }
 
+
 static inline char *
 int64_to_binary_string(char *s, guint64 n){
   /* s should be a *65* byte array */
   int i;
   for (i = 0; i < 64; i++){
-    s[i] = (n & (1 << (63 - i)))? '*' : '.';
+    s[i] = (n & (1ULL << (63 - i))) ? '*' : '.';
   }
   s[64] = 0;
   return s;
