@@ -265,8 +265,9 @@ record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
 
 static inline void
 colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){
-  if (shift < 18){
-    shift >>= 1;
+#define CCP_SCALE 2
+  if (shift < 9 * CCP_SCALE){
+    shift /= CCP_SCALE;
     if (shift == 0){
       *pixel = (guint32)-1;
     }
