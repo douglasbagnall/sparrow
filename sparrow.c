@@ -327,7 +327,6 @@ find_lag(GstSparrow *sparrow){
     guint32 best = hamming_distance64(record, target_pattern, mask);
     guint32 lag = 0;
 
-    GST_DEBUG("record: %s %llx\n", int64_to_binary_string(pattern_debug, record), record);
 
     for (j = 1; j < MAX_CALIBRATION_LAG; j++){
       /*latest frame is least significant bit
@@ -349,19 +348,22 @@ find_lag(GstSparrow *sparrow){
       colour_coded_pixel(&frame[i], lag, best);
     }
 
-    if (best <= 5){
-      votes[lag] += 1 >> (5 - best);
+    if (best <= CALIBRATE_MAX_VOTE_ERROR){
+      votes[lag] += 1 >> (CALIBRATE_MAX_VOTE_ERROR - best);
     }
 
     if (best < overall_best){
       overall_best = best;
       overall_lag = lag;
-      GST_DEBUG("Best now: lag  %u! error %u\n", overall_lag, overall_best);
-      GST_DEBUG("pattern: %s %llx\n", int64_to_binary_string(pattern_debug, target_pattern),
-          target_pattern);
-      if (overall_best < 3) {
-        break;
-      }
+      char pattern_debug2[65];
+      record = sparrow->lag_table[i].record;
+      GST_DEBUG("Best now: lag  %u! error %u pixel %u\n"
+          "record:  %s %llx\n"
+          "pattern: %s %llx\n",
+          overall_lag, overall_best, i,
+          int64_to_binary_string(pattern_debug, record), record,
+          int64_to_binary_string(pattern_debug2, target_pattern), target_pattern
+      );
     }
   }
   for (i = 0; i < MAX_CALIBRATION_LAG; i++){
@@ -441,10 +443,10 @@ static void
 reset_find_self(GstSparrow *sparrow, gint first){
   if (first){
     calibrate_init_squares(sparrow);
-    sparrow->countdown = 72;
+    sparrow->countdown = CALIBRATE_INITIAL_WAIT;
   }
   else {
-    sparrow->countdown = 32;
+    sparrow->countdown = CALIBRATE_RETRY_WAIT;
   }
 }
 
@@ -460,7 +462,8 @@ calibrate_find_square(GstSparrow *sparrow, guint8 *in){
     //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
     guint32 i;
     for (i = 0; i < sparrow->in.pixcount; i++){
-      int signal = (in[i * PIXSIZE + 2] > 200);//possibly R, G, or B, but never A
+      //possibly R, G, or B, but never A
+      int signal = (in[i * PIXSIZE + 2] > CALIBRATE_SIGNAL_THRESHOLD);
       record_calibration(sparrow, i, signal);
     }
     if (sparrow->countdown == 0){
