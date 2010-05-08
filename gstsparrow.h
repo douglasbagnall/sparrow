@@ -89,7 +89,7 @@ typedef guint32 pix_t;
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 
-#define MAX_CALIBRATION_LAG 16
+#define MAX_CALIBRATION_LAG 12
 typedef struct lag_times_s {
   //guint32 hits;
   guint64 record;
