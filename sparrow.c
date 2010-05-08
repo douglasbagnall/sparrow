@@ -322,7 +322,7 @@ find_lag(GstSparrow *sparrow){
       continue;
     }
 
-    guint64 mask = (guint64)-1;
+    guint64 mask = ((guint64)-1) >> MAX_CALIBRATION_LAG;
     guint32 best = hamming_distance64(record, target_pattern, mask);
     guint32 lag = 0;
 
