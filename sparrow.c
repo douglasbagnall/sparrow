@@ -327,7 +327,6 @@ find_lag(GstSparrow *sparrow){
     guint32 best = hamming_distance64(record, target_pattern, mask);
     guint32 lag = 0;
 
-
     for (j = 1; j < MAX_CALIBRATION_LAG; j++){
       /*latest frame is least significant bit
         >> pushes into future,
@@ -355,12 +354,12 @@ find_lag(GstSparrow *sparrow){
       overall_best = best;
       overall_lag = lag;
       char pattern_debug2[65];
-      record = sparrow->lag_table[i].record;
+      guint64 r = sparrow->lag_table[i].record;
       GST_DEBUG("Best now: lag  %u! error %u pixel %u\n"
           "record:  %s %llx\n"
           "pattern: %s %llx\n",
           overall_lag, overall_best, i,
-          int64_to_binary_string(pattern_debug, record), record,
+          int64_to_binary_string(pattern_debug, r), r,
           int64_to_binary_string(pattern_debug2, target_pattern), target_pattern
       );
     }
