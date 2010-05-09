@@ -52,17 +52,17 @@ clean:
 	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
-	$(CC)  $(DSFMT_FLAGS) $(INCLUDES) -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
+	$(CC)  $(DSFMT_FLAGS)  -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
 
 .c.o:
-	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
-#	$(CC) $(INCLUDES) -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
+	$(CC)  -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+#	$(CC)  -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
 
 %.s:	%.c
-	$(CC) $(INCLUDES) -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CC)  -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 %.i:	%.c
-	$(CC) $(INCLUDES) -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CC)  -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
@@ -158,7 +158,7 @@ splint:
 
 
 unittest:
-	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test test.c
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test test.c
 	./test
 
 unittest-shifts:
