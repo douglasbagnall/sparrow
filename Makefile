@@ -161,7 +161,13 @@ unittest:
 	./test
 
 unittest-shifts:
-	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test shift_test.c
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test shift_test.c
+	./test
+
+CV_LINKS = -lcv -lcvaux -lhighgui
+
+unittest-edges:
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) -o test test-find-edge.c
 	./test
 
 
