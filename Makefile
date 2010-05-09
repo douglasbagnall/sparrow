@@ -4,8 +4,9 @@ all::
 #LDFLAGS =
 DEFINES = -DDSFMT_MEXP=19937
 WARNINGS = -Wall -Wextra -Wno-unused-parameter
-ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
+ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
+
 
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
 
