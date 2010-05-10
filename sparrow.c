@@ -23,69 +23,9 @@
 #include <math.h>
 
 /* static functions (via `make cproto`) */
-static void change_state(GstSparrow *sparrow, sparrow_state state);
-static __inline__ gint mask_to_shift(guint32 mask);
-static guint32 get_mask(GstStructure *s, char *mask_name);
-static void init_debug(GstSparrow *sparrow);
-static void rng_init(GstSparrow *sparrow, guint32 seed);
-static void simple_negation(guint8 *bytes, guint size);
-static void gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out);
-static __inline__ void init_one_square(GstSparrow *sparrow, sparrow_shape_t *shape);
-static void calibrate_init_squares(GstSparrow *sparrow);
-static void add_random_signal(GstSparrow *sparrow, guint8 *out);
-static void calibrate_init_lines(GstSparrow *sparrow);
-static __inline__ void horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y);
-static __inline__ void vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x);
-static __inline__ void rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape);
-static void draw_shapes(GstSparrow *sparrow, guint8 *out);
-static gboolean cycle_pattern(GstSparrow *sparrow);
-
-static void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
-static void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name);
-
-static void see_grid(GstSparrow *sparrow, guint8 *in);
-static void find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
-static void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
-static void extract_caps(sparrow_format *im, GstCaps *caps);
-static __inline__ IplImage *init_ipl_image(sparrow_format *dim);
 
 
-/*
-#ifdef HAVE_LIBOIL
-#include <liboil/liboil.h>
-#include <liboil/liboilcpu.h>
-#include <liboil/liboilfunction.h>
-#endif
-*/
-
-static inline gint
-mask_to_shift(guint32 mask){
-  /*mask is big-endian, so these numbers are reversed */
-  switch(mask){
-  case 0x000000ff:
-    return 24;
-  case 0x0000ff00:
-    return 16;
-  case 0x00ff0000:
-    return 8;
-  case 0xff000000:
-    return 0;
-  }
-  GST_WARNING("mask not byte aligned: %x\n", mask);
-  return 0;
-}
-
-static guint32 get_mask(GstStructure *s, char *mask_name){
-  gint32 mask;
-  int res = gst_structure_get_int(s, mask_name, &mask);
-  if (!res){
-    GST_WARNING("No mask for '%s' !\n", mask_name);
-  }
-  return (guint32)mask;
-}
-
-
-
+/* set up whatever debugging methods are enabled */
 static void
 init_debug(GstSparrow *sparrow){
   if (!sparrow->debug_frame){
@@ -94,7 +34,6 @@ init_debug(GstSparrow *sparrow){
 }
 
 /*RNG code */
-
 /*seed with -1 for automatic seed choice */
 static void rng_init(GstSparrow *sparrow, guint32 seed){
   GST_DEBUG("in RNG init\n");
@@ -134,269 +73,12 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-static inline void
-init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
-    shape->shape = RECTANGLE;
-    shape->w = CALIBRATE_SELF_SIZE;
-    shape->h = CALIBRATE_SELF_SIZE;
-    shape->x  = RANDINT(sparrow, sparrow->out.width / 8,
-        sparrow->out.width * 7 / 8 - shape->w);
-    shape->y  = RANDINT(sparrow, sparrow->out.height / 8,
-        sparrow->out.height * 7 / 8 - shape->h);
-}
-
-static void calibrate_init_squares(GstSparrow *sparrow){
-  int i;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    init_one_square(sparrow, &(sparrow->shapes[i]));
-  }
-}
-
-
-static void add_random_signal(GstSparrow *sparrow, guint8 *out){
-  int i;
-  static sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
-  static int been_here = 0;
-  static int countdown = 0;
-  static int on = 0;
-  if (! been_here){
-    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-      init_one_square(sparrow, &shapes[i]);
-    }
-    been_here = 1;
-  }
-  if (! countdown){
-    on = ! on;
-    countdown = on ? RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T) :
-      RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
-  }
-  if (on){
-    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-      rectangle(sparrow, out, &shapes[i]);
-    }
-  }
-  countdown--;
-}
-
-
-static void calibrate_init_lines(GstSparrow *sparrow){
-  int i;
-  sparrow_shape_t* shape = sparrow->shapes;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape[i].w = 1;
-    shape[i].h = 1;
-    shape[i].x = 0;
-    shape[i].y = 0;
-    shape[i].shape = NO_SHAPE;
-  }
-  /* shape[0] will be set to vertical or horizontal in due course */
-}
-
-
-
-/* in a noisy world, try to find the spot you control by stoping and watching
-   for a while.
- */
-
-static inline void
-horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y){
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + y * stride;
-  memset(line, 255, stride);
-}
-
-static inline void
-vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
-  guint y;
-  guint32 *p = (guint32 *)out;
-  p += x;
-  for(y = 0; y < (guint)(sparrow->out.height); y++){
-    *p = -1;
-    p += sparrow->out.width;
-  }
-}
-
-static inline void
-rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
-  guint y;
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + shape->y * stride + shape->x * PIXSIZE;
-  for(y = 0; y < (guint)shape->h; y++){
-    memset(line, 255, shape->w * PIXSIZE);
-    line += stride;
-  }
-}
-
-
-
-static void draw_shapes(GstSparrow *sparrow, guint8 *out){
-  int i;
-  sparrow_shape_t *shape;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape = sparrow->shapes + i;
-    switch (shape->shape){
-    case NO_SHAPE:
-      goto done; /* an empty one ends the list */
-    case VERTICAL_LINE:
-      vertical_line(sparrow, out, shape->x);
-      break;
-    case HORIZONTAL_LINE:
-      horizontal_line(sparrow, out, shape->x);
-      break;
-    case RECTANGLE:
-      rectangle(sparrow, out, shape);
-      break;
-    case FULLSCREEN:
-      memset(out, 255, sparrow->out.size);
-      break;
-    }
-  }
- done:
-  return;
-}
-
-
-static inline void
-record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
-  //signal = (signal != 0);
-  sparrow->lag_table[offset].record <<= 1;
-  sparrow->lag_table[offset].record |= signal;
-}
-
-static inline void
-colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){
-#define CCP_SCALE 2
-  if (shift < 9 * CCP_SCALE){
-    shift /= CCP_SCALE;
-    if (shift == 0){
-      *pixel = (guint32)-1;
-    }
-    else{
-      shift--;
-      guint32 c = lag_false_colour[lag];
-      guint32 mask = (1 << (8 - shift)) - 1;
-      mask |= (mask << 8);
-      mask |= (mask << 16); //XXX LUT would be quicker
-      c >>= shift;
-      c &= mask;
-      *pixel = c;
-    }
-  }
-}
-
-
-static inline char *
-int64_to_binary_string(char *s, guint64 n){
-  /* s should be a *65* byte array */
-  int i;
-  for (i = 0; i < 64; i++){
-    s[i] = (n & (1ULL << (63 - i))) ? '*' : '.';
-  }
-  s[64] = 0;
-  return s;
-}
-
-
-/*return 1 if a reasonably likely lag has been found */
-
-static inline int
-find_lag(GstSparrow *sparrow){
-  int res = 0;
-  guint i, j;
-  guint32 *frame = (guint32 *)sparrow->debug_frame;
-  if (sparrow->debug){
-    memset(frame, 0, sparrow->in.size);
-  }
-  guint64 target_pattern = sparrow->lag_record;
-  guint32 overall_best = (guint32)-1;
-  guint32 overall_lag = 0;
-  char pattern_debug[65];
-  int votes[MAX_CALIBRATION_LAG] = {0};
-
-  GST_DEBUG("pattern: %s %llx\n", int64_to_binary_string(pattern_debug, target_pattern),
-      target_pattern);
-
-  for (i = 0; i < sparrow->in.pixcount; i++){
-    guint64 record = sparrow->lag_table[i].record;
-    if (record == 0 || ~record == 0){
-      /*ignore this one! it'll never usefully match. */
-      //frame[i] = 0xffffffff;
-      continue;
-    }
-
-    guint64 mask = ((guint64)-1) >> MAX_CALIBRATION_LAG;
-    guint32 best = hamming_distance64(record, target_pattern, mask);
-    guint32 lag = 0;
-
-    for (j = 1; j < MAX_CALIBRATION_LAG; j++){
-      /*latest frame is least significant bit
-        >> pushes into future,
-        << pushes into past
-        record is presumed to be a few frames past
-        relative to main record, so we push it back.
-      */
-      record <<= 1;
-      mask <<= 1;
-      guint32 d = hamming_distance64(record, target_pattern, mask);
-      if (d < best){
-        best = d;
-        lag = j;
-      }
-    }
-    if (sparrow->debug){
-      colour_coded_pixel(&frame[i], lag, best);
-    }
-
-    if (best <= CALIBRATE_MAX_VOTE_ERROR){
-      votes[lag] += 1 >> (CALIBRATE_MAX_VOTE_ERROR - best);
-    }
-
-    if (best < overall_best){
-      overall_best = best;
-      overall_lag = lag;
-      char pattern_debug2[65];
-      guint64 r = sparrow->lag_table[i].record;
-      GST_DEBUG("Best now: lag  %u! error %u pixel %u\n"
-          "record:  %s %llx\n"
-          "pattern: %s %llx\n",
-          overall_lag, overall_best, i,
-          int64_to_binary_string(pattern_debug, r), r,
-          int64_to_binary_string(pattern_debug2, target_pattern), target_pattern
-      );
-    }
-  }
-
-  if (sparrow->debug){
-    debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
-  }
-
-  /*calculate votes winner, as a check for winner-takes-all */
-  guint popular_lag;
-  int popular_votes = -1;
-  for (i = 0; i < MAX_CALIBRATION_LAG; i++){
-    if(votes[i] > popular_votes){
-      popular_votes = votes[i];
-      popular_lag = i;
-    }
-    if (votes[i]){
-      GST_DEBUG("%d votes for %d\n", votes[i], i);
-    }
-  }
-  /*votes and best have to agree, and best has to be low */
-  if (overall_best <= CALIBRATE_MAX_BEST_ERROR &&
-      overall_lag == popular_lag){
-    sparrow->lag = overall_lag;
-    res = 1;
-  }
-  return res;
-}
-
 
 
 #define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.ppm"
 #define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
 
-static void
+void INVISIBLE
 debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 #if SPARROW_PPM_DEBUG
   char name[PPM_FILENAME_LENGTH];
@@ -408,7 +90,7 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 }
 
 
-
+/*spit out the frame as a ppm image */
 static void
 ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
 {
@@ -431,175 +113,15 @@ ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
   fclose(fh);
 }
 
-static inline void
-abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
-  sparrow->in_ipl[0]->imageData = (char*) a;
-  sparrow->in_ipl[1]->imageData = (char*) b;
-  sparrow->in_ipl[2]->imageData = (char*) target;
-  cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
-}
-
-static inline void
-threshold(GstSparrow *sparrow, guint8 *frame, guint8 *target, guint threshold){
-  sparrow->in_ipl[0]->imageData = (char*) frame;
-  sparrow->in_ipl[1]->imageData = (char*) target;
-  //cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
-  cvCmpS(sparrow->in_ipl[0], (double)threshold, sparrow->in_ipl[1], CV_CMP_GT);
-}
-
-static void
-reset_find_self(GstSparrow *sparrow, gint first){
-  if (first){
-    calibrate_init_squares(sparrow);
-    sparrow->countdown = CALIBRATE_INITIAL_WAIT;
+/* Extract a colour (R,G,B) bitmask from gobject  */
+static guint32 get_mask(GstStructure *s, char *mask_name){
+  gint32 mask;
+  int res = gst_structure_get_int(s, mask_name, &mask);
+  if (!res){
+    GST_WARNING("No mask for '%s' !\n", mask_name);
   }
-  else {
-    sparrow->countdown = CALIBRATE_RETRY_WAIT;
-  }
+  return (guint32)mask;
 }
-
-/*compare the frame to the new one. regions of change should indicate the
-  square is about.
-*/
-static inline int
-calibrate_find_self(GstSparrow *sparrow, guint8 *in){
-  //GST_DEBUG("finding square\n");
-  int res = 0;
-  if(sparrow->prev_frame){
-    //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
-    guint32 i;
-    guint32 *frame = (guint32 *)in;
-    for (i = 0; i < sparrow->in.pixcount; i++){
-      int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
-      record_calibration(sparrow, i, signal);
-    }
-    if (sparrow->countdown == 0){
-      res = find_lag(sparrow);
-      if (res){
-        GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      }
-      else {
-        reset_find_self(sparrow, 0);
-      }
-    }
-  }
-  sparrow->countdown--;
-  return res;
-}
-
-
-static gboolean cycle_pattern(GstSparrow *sparrow){
-  gboolean on = sparrow->calibrate.on;
-  if (sparrow->calibrate.wait == 0){
-    on = !on;
-    if (on){
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
-    }
-    else{
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
-    }
-    sparrow->calibrate.on = on;
-    sparrow->calibrate.transitions++;
-  }
-  sparrow->calibrate.wait--;
-  sparrow->lag_record = (sparrow->lag_record << 1) | on;
-  //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
-  return on;
-}
-
-static void
-see_grid(GstSparrow *sparrow, guint8 *in){
-}
-
-static void
-find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  see_grid(sparrow, in);
-  int on = cycle_pattern(sparrow);
-  memset(out, 0, sparrow->out.size);
-  if (on){
-    draw_shapes(sparrow, out);
-  }
-}
-
-static void
-see_edges(GstSparrow *sparrow, guint8 *in){
-  /* there is a big flash of white. or not.  look for the largest area of
-     light.
-
-     perhaps, threshold at one or two levels.  or more. if they agree they are
-     probably right.
-
-     or floodfill (and fill in)
-
-     canny edge detection:
-     http://opencv.willowgarage.com/documentation/c/feature_detection.html#canny
-
- */
-  guint i;
-  for (i = 0; i < sparrow->in.pixcount; i++){
-
-    guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];
-    if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
-      sparrow->countdown = WAIT_COUNTDOWN;
-      break;
-    }
-  }
-
-
-}
-
-static void
-find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  see_edges(sparrow, in);
-  int on = cycle_pattern(sparrow);
-  if (on){
-    memset(out, 255, sparrow->out.size);
-  }
-  else {
-    memset(out, 0, sparrow->out.size);
-  }
-}
-
-static void
-init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  //reset_pattern(GstSparrow *sparrow);
-}
-
-static void
-find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  if(calibrate_find_self(sparrow, in)){
-    change_state(sparrow, SPARROW_WAIT_FOR_GRID);
-    return;
-  }
-  gboolean on = cycle_pattern(sparrow);
-  memset(out, 0, sparrow->out.size);
-  if (on){
-    draw_shapes(sparrow, out);
-  }
-#if FAKE_OTHER_PROJECTION
-  add_random_signal(sparrow, out);
-#endif
-}
-
-/* wait for the other projector to stop changing: sufficient to look for no
-   significant changes for as long as the longest pattern interval */
-
-static int
-wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  guint32 i;
-  abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
-  for (i = 0; i < sparrow->in.pixcount; i++){
-    guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];  //possibly R, G, or B, but never A
-    if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
-      sparrow->countdown = WAIT_COUNTDOWN;
-      break;
-    }
-  }
-  memset(out, 0, sparrow->out.size);
-  sparrow->countdown--;
-  return (sparrow->countdown == 0);
-}
-
 
 static void
 extract_caps(sparrow_format *im, GstCaps *caps)
@@ -623,22 +145,17 @@ extract_caps(sparrow_format *im, GstCaps *caps)
       im->pixcount, im->size);
 }
 
-static inline IplImage *
-init_ipl_image(sparrow_format *dim){
-  CvSize size = {dim->width, dim->height};
-  IplImage* im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-  return cvInitImageHeader(im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
-}
-
-static void
-calibrate_init_grid(GstSparrow *sparrow){}
-
-static void
+/*when a state is done, it calls back here and names its preferrred
+  successor */
+void INVISIBLE
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
   switch(state){
   case SPARROW_FIND_SELF:
     reset_find_self(sparrow, 1);
+    break;
+  case SPARROW_FIND_EDGES:
+    init_find_edges(sparrow);
     break;
   case SPARROW_WAIT_FOR_GRID:
     break;
@@ -654,7 +171,7 @@ change_state(GstSparrow *sparrow, sparrow_state state)
 
 
 
-/*Functions below here are NOT static */
+/*Functions below here are called from gstsparrow.c and are NOT static */
 
 void INVISIBLE
 sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
@@ -712,9 +229,6 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     find_self(sparrow, in, out);
-    break;
-  case SPARROW_FIND_EDGES:
-    init_find_edges(sparrow);
     break;
   case SPARROW_WAIT_FOR_GRID:
     if (wait_for_blank(sparrow, in, out)){

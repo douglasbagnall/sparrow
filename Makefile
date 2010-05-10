@@ -42,7 +42,7 @@ LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o sparrow.o dSFMT/dSFMT.o
+libgstsparrow.so: gstsparrow.o sparrow.o calibrate.o dSFMT/dSFMT.o
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
