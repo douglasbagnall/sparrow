@@ -19,29 +19,41 @@
 #define JA_THRESHOLD MAX(threshold - 2, 0)
 
 
-static inline int
-expand_one_mono(int x, int y, int c, int threshold,
+static inline void
+expand_one_mono(int x, int y, int c,
     CvPoint *nexts, int *n_nexts, guint8 *im, guint8 *mask, int w, int h){
   guint8 p = im[y * w + x];
   guint8 *m = &mask[y * w + x];
-  if (*m){
-    int diff = p - c;
-    if (diff  <= threshold){
-      *m = 0;
-      nexts[*n_nexts].x = x;
-      nexts[*n_nexts].y = y;
-      (*n_nexts)++;
-      return 1;
-    }
-    else{
-      *m = 128;
-    }
+  if (*m && (p == c)){
+    *m = 0;
+    nexts[*n_nexts].x = x;
+    nexts[*n_nexts].y = y;
+    (*n_nexts)++;
   }
-  return 0;
 }
 
+static inline void
+zap_line(int x, int y, int c, int dir,
+    CvPoint *nexts, int *n_nexts, guint8 *im, guint8 *mask, int w, int h){
+  guint8 p = im[y * w + x];
+  guint8 *m = &mask[y * w + x];
+  while (*m && (p == c)){
+    *m = 0;
+    nexts[*n_nexts].x = x;
+    nexts[*n_nexts].y = y;
+    (*n_nexts)++;
+    x += dir;
+    if (x >= w || x <= 0){
+      break;
+    }
+    guint8 *m = &mask[y * w + x];
+    guint8 p = im[y * w + x];
+  }
+}
+
+
 static IplImage*
-floodfill_mono(IplImage *im, IplImage *mim, CvPoint start, int threshold)
+floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 {
   guint8 * data = (guint8 *)im->imageData;
   guint8 * mdata = (guint8 *)mim->imageData;
@@ -53,16 +65,13 @@ floodfill_mono(IplImage *im, IplImage *mim, CvPoint start, int threshold)
   CvPoint *nexts;
 
   //malloc 2 lists of points. These *could* be as large as the image (but never should be)
-  starts = malloc(w * h * 2 * sizeof(CvPoint));
+  void * mem = malloc(w * h * 2 * sizeof(CvPoint));
+  starts = mem;
   nexts = starts + w * h;
 
   n_starts = 1;
   starts[0] = start;
 
-  /* expand with a wavefront, each point consuming its neighbours that
-     differ from it by less than the threshold. If the neighbour is too
-     different, it tries jumping ahead in that direction, to see if there is
-     more on the other side. ("wavefront with sparks")*/
   while(n_starts){
     n_nexts = 0;
     int i;
@@ -71,24 +80,16 @@ floodfill_mono(IplImage *im, IplImage *mim, CvPoint start, int threshold)
       int y = starts[i].y;
       int c = data[y * w + x];
       if (x > 0){
-        if (! expand_one_mono(x - 1, y, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
-            x > JUMPAHEAD - 1)
-          expand_one_mono(x - JUMPAHEAD, y, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+        expand_one_mono(x - 1, y, c, nexts, &n_nexts, data, mdata, w, h);
       }
       if (x < w - 1){
-        if (! expand_one_mono(x + 1, y, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
-            x < w - JUMPAHEAD - 1)
-          expand_one_mono(x + JUMPAHEAD, y, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+        expand_one_mono(x + 1, y, c, nexts, &n_nexts, data, mdata, w, h);
       }
       if (y > 0){
-        if (! expand_one_mono(x, y - 1, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
-            y > JUMPAHEAD - 1)
-          expand_one_mono(x, y - JUMPAHEAD, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+        expand_one_mono(x, y - 1, c, nexts, &n_nexts, data, mdata, w, h);
       }
       if (y < h - 1){
-        if (! expand_one_mono(x, y + 1, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
-            y < h - JUMPAHEAD - 1)
-          expand_one_mono(x, y + JUMPAHEAD, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+        expand_one_mono(x, y + 1, c, nexts, &n_nexts, data, mdata, w, h);
       }
     }
     CvPoint *tmp = starts;
@@ -96,60 +97,8 @@ floodfill_mono(IplImage *im, IplImage *mim, CvPoint start, int threshold)
     nexts = tmp;
     n_starts = n_nexts;
   }
-  free(starts < nexts ? starts : nexts);
-
+  free(mem);
   return im;
-}
-
-
-
-
-static IplImage* UNUSED
-test_find_edges_gcg(IplImage *im)
-{
-  /* find the colour of the centre. it gives an approximate value to use as
-     threshold
-   */
-
-  int w = im->width;
-  int h = im->height;
-  CvSize size = {w, h};
-  CvPoint middle = {w/2, h/2};
-  CvScalar paint = cvScalarAll(99);
-  CvScalar margin = cvScalarAll(2);
-
-  IplImage *green = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  IplImage *mask_simple = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  IplImage *out = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  cvSplit(im, NULL, green, NULL, NULL);
-
-  cvSmooth(green, mask_simple, CV_GAUSSIAN, 3, 0, 0, 0);
-
-  cvCanny(mask_simple, out, 70, 190, 3);
-  cvSmooth(out, mask_simple, CV_GAUSSIAN, 3, 0, 0, 0);
-  cvFloodFill(mask_simple, middle, paint, margin, margin, NULL,
-      4, NULL);
-  return mask_simple;
-  //return out;
-}
-
-static UNUSED IplImage*
-test_find_edges_close_cmp(IplImage *im)
-{
-  /* find the colour of the centre. it gives an approximate value to use as
-     threshold
-   */
-  int w = im->width;
-  int h = im->height;
-  CvSize size = {w, h};
-  IplImage *green = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  IplImage *mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  //IplImage *out = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  cvSplit(im, NULL, green, NULL, NULL);
-
-  cvMorphologyEx(green, mask, NULL, NULL, CV_MOP_OPEN, 1);
-  cvCmpS(mask, 88, mask, CV_CMP_GT);
-  return mask;
 }
 
 
@@ -214,10 +163,13 @@ test_find_edges_hist(IplImage *im)
   CvScalar paint = cvScalarAll(99);
   CvScalar margin = cvScalarAll(0);
 
-  cvFloodFill(mask, middle, paint, margin, margin, NULL, 4, NULL);
 
+  //cvFloodFill(mask, middle, paint, margin, margin, NULL, 4, NULL);
+  IplImage *mask2 = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
+  memset(mask2->imageData, 255, w*h);
+  floodfill_mono_superfast(mask, mask2, middle);
 
-  return mask;
+  return mask2;
 }
 
 
