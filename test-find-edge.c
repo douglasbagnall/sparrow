@@ -15,9 +15,6 @@
 #define IMG_IN_NAME "images/test-image.png"
 #define IMG_OUT_NAME "images/test-image-%s.png"
 
-#define JUMPAHEAD 5
-#define JA_THRESHOLD MAX(threshold - 2, 0)
-
 
 static inline void
 expand_one_mono(int x, int y, int c,
@@ -31,26 +28,6 @@ expand_one_mono(int x, int y, int c,
     (*n_nexts)++;
   }
 }
-
-static inline void
-zap_line(int x, int y, int c, int dir,
-    CvPoint *nexts, int *n_nexts, guint8 *im, guint8 *mask, int w, int h){
-  guint8 p = im[y * w + x];
-  guint8 *m = &mask[y * w + x];
-  while (*m && (p == c)){
-    *m = 0;
-    nexts[*n_nexts].x = x;
-    nexts[*n_nexts].y = y;
-    (*n_nexts)++;
-    x += dir;
-    if (x >= w || x <= 0){
-      break;
-    }
-    guint8 *m = &mask[y * w + x];
-    guint8 p = im[y * w + x];
-  }
-}
-
 
 static IplImage*
 floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
@@ -106,19 +83,18 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 static UNUSED IplImage*
 test_find_edges_hist(IplImage *im)
 {
-  /* find the colour of the centre. it gives an approximate value to use as
-     threshold
-   */
+  int w = im->width;
+  int h = im->height;
+  CvSize small_size = {w / 8, h / 8};
+  CvPoint middle = {w/2, h/2};
+
+  IplImage *small = cvCreateImage(small_size, IPL_DEPTH_8U, 1); /*for quicker histogram */
+  IplImage *mask = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
   IplImage *green = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
   cvSplit(im, NULL, green, NULL, NULL);
 
-  IplImage *mask = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
-
-  int w = im->width;
-  int h = im->height;
-  CvSize small_size = {w / 4, h / 4};
-  IplImage *small = cvCreateImage(small_size, IPL_DEPTH_8U, 1);
   cvResize(green, small, CV_INTER_NN);
+  //small = green;
 
   int hist_size[] = {255};
   float range[] = {0, 255};
@@ -156,19 +132,10 @@ test_find_edges_hist(IplImage *im)
   printf("found best threshold %d -- %d pixel change at %d/%d pixels\n",
       best_t, best_d, totals[best_t], pixels);
 
-  //cvMorphologyEx(green, mask, NULL, NULL, CV_MOP_OPEN, 1);
   cvCmpS(green, best_t, mask, CV_CMP_GT);
-
-  CvPoint middle = {w/2, h/2};
-  CvScalar paint = cvScalarAll(99);
-  CvScalar margin = cvScalarAll(0);
-
-
-  //cvFloodFill(mask, middle, paint, margin, margin, NULL, 4, NULL);
   IplImage *mask2 = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
   memset(mask2->imageData, 255, w*h);
   floodfill_mono_superfast(mask, mask2, middle);
-
   return mask2;
 }
 
