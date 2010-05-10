@@ -15,6 +15,113 @@
 #define IMG_IN_NAME "images/test-image.png"
 #define IMG_OUT_NAME "images/test-image-%s.png"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline int
+expand_one_mono(int x, int y, int c, int threshold,
+    CvPoint *nexts, int *n_nexts, guint8 *im, guint8 *mask, int w, int h){
+  guint8 p = im[y * w + x];
+  guint8 *m = &mask[y * w + x];
+  if (*m){
+    int diff = p - c;
+    if (diff  <= threshold){
+      *m = 0;
+      nexts[*n_nexts].x = x;
+      nexts[*n_nexts].y = y;
+      (*n_nexts)++;
+      return 1;
+    }
+    else{
+      *m = 128;
+    }
+  }
+  return 0;
+}
+
+static IplImage*
+floodfill_mono(IplImage *im, IplImage *mim, CvPoint start, int threshold)
+{
+  guint8 * data = (guint8 *)im->imageData;
+  guint8 * mdata = (guint8 *)mim->imageData;
+  int w = im->width;
+  int h = im->height;
+  int n_starts;
+  int n_nexts = 0;
+  CvPoint *starts;
+  CvPoint *nexts;
+
+  //malloc 2 lists of points. These *could* be as large as the image (but never should be)
+  starts = malloc(w * h * 2 * sizeof(CvPoint));
+  nexts = starts + w * h;
+
+  n_starts = 1;
+  starts[0] = start;
+
+  /* expand with a wavefront, each point consuming its neighbours that
+     differ from it by less than the threshold. If the neighbour is too
+     different, it tries jumping ahead in that direction, to see if there is
+     more on the other side. ("wavefront with sparks")*/
+  while(n_starts){
+    n_nexts = 0;
+    int i;
+    int c;
+    for (i = 0; i < n_starts; i++){
+      int x = starts[i].x;
+      int y = starts[i].y;
+      int c = data[y * w + x];
+#define JUMPAHEAD 10
+#define JA_THRESHOLD (threshold - 2)
+      if (x > 0){
+        if (! expand_one_mono(x - 1, y, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
+            x > JUMPAHEAD - 1)
+          expand_one_mono(x - JUMPAHEAD, y, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+      }
+      if (x < w - 1){
+        if (! expand_one_mono(x + 1, y, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
+            x < w - JUMPAHEAD - 1)
+          expand_one_mono(x + JUMPAHEAD, y, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+      }
+      if (y > 0){
+        if (! expand_one_mono(x, y - 1, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
+            y > JUMPAHEAD - 1)
+          expand_one_mono(x, y - JUMPAHEAD, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+      }
+      if (y < h - 1){
+        if (! expand_one_mono(x, y + 1, c, threshold, nexts, &n_nexts, data, mdata, w, h) &&
+            y < h - JUMPAHEAD - 1)
+          expand_one_mono(x, y + JUMPAHEAD, c, JA_THRESHOLD, nexts, &n_nexts, data, mdata, w, h);
+      }
+    }
+    CvPoint *tmp = starts;
+    starts = nexts;
+    nexts = tmp;
+    n_starts = n_nexts;
+  }
+  free(starts < nexts ? starts : nexts);
+
+  return im;
+}
+
+
+
+
+
+
 /* if point (x,y) is close enough to colour (r,g,b) in Euclidean RGB space,
    add it to the nexts list. otherwise, not.*/
 
@@ -23,7 +130,7 @@ expand_one(int x, int y, int r, int g, int b,
     int threshold, CvPoint *nexts, int *n_nexts, guint32 *im, guint8 *mask, int w, int h){
   guint8 *p = (guint8*) &im[y * w + x];
   guint8 *m = &mask[y * w + x];
-  //printf("looking at point %d, %d. rgb is %x.%x.%x, threshold %d, p %x %x %x mask %x\n", 
+  //printf("looking at point %d, %d. rgb is %x.%x.%x, threshold %d, p %x %x %x mask %x\n",
   //    x, y, r, g, b, threshold, p[0], p[1], p[2], *m);
   if (*m){
     int diff = ((p[0] - r) * (p[0] - r) +
@@ -69,7 +176,7 @@ floodfill(IplImage *im, IplImage *mim, CvPoint start, int threshold)
      differ from it by less than the threshold. If the neighbour is too
      different, it tries jumping ahead in that direction, to see if there is
      more on the other side. ("wavefront with sparks")*/
-  while(n_starts){    
+  while(n_starts){
     n_nexts = 0;
     int i;
     int r, g, b;
@@ -136,12 +243,12 @@ test_find_edges_gcg(IplImage *im)
   IplImage *mask_simple = cvCreateImage(size, IPL_DEPTH_8U, 1);
   IplImage *out = cvCreateImage(size, IPL_DEPTH_8U, 1);
   cvSplit(im, NULL, green, NULL, NULL);
-  
+
   cvSmooth(green, mask_simple, CV_GAUSSIAN, 3, 0, 0, 0);
-  
+
   cvCanny(mask_simple, out, 70, 190, 3);
   cvSmooth(out, mask_simple, CV_GAUSSIAN, 3, 0, 0, 0);
-  cvFloodFill(mask_simple, middle, paint, margin, margin, NULL, 
+  cvFloodFill(mask_simple, middle, paint, margin, margin, NULL,
       4, NULL);
   return mask_simple;
   //return out;
@@ -152,14 +259,14 @@ test_find_edges_close_cmp(IplImage *im)
 {
   /* find the colour of the centre. it gives an approximate value to use as
      threshold
-   */ 
+   */
   int w = im->width;
   int h = im->height;
   CvSize size = {w, h};
   IplImage *green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   IplImage *mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
   //IplImage *out = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  cvSplit(im, NULL, green, NULL, NULL);  
+  cvSplit(im, NULL, green, NULL, NULL);
 
   cvMorphologyEx(green, mask, NULL, NULL, CV_MOP_OPEN, 1);
   cvCmpS(mask, 88, mask, CV_CMP_GT);
@@ -169,21 +276,21 @@ test_find_edges_close_cmp(IplImage *im)
 
 static IplImage *sharpen(IplImage *im)
 {
-  IplImage* imf = cvCreateImage(cvGetSize(im), IPL_DEPTH_32F, 1);  
-  IplImage* lapl = cvCreateImage(cvGetSize(im), IPL_DEPTH_32F, 1);  
+  IplImage* imf = cvCreateImage(cvGetSize(im), IPL_DEPTH_32F, 1);
+  IplImage* lapl = cvCreateImage(cvGetSize(im), IPL_DEPTH_32F, 1);
   IplImage *out = cvCreateImage(cvGetSize(im), IPL_DEPTH_8U, 1);
 
   cvConvert(im, imf);
-  
+
   CvMat* kernel = cvCreateMat(3, 3, CV_32FC1);
   cvSet(kernel, cvScalarAll(-1.0), NULL);
   cvSet2D(kernel, 1, 1, cvScalarAll(15.0));
 
-  cvSmooth(imf, imf, CV_GAUSSIAN, 3, 0, 0, 0);  
+  cvSmooth(imf, imf, CV_GAUSSIAN, 3, 0, 0, 0);
   //cvFilter2D(imf, lapl, kernel, cvPoint(-1, -1));
 
   cvLaplace(imf, lapl, 3);
-  
+
   double maxv = 0.0;
   double minv = DBL_MAX;
   CvPoint minl = {0, 0};
@@ -220,22 +327,22 @@ test_find_edges(IplImage *im)
 {
   /* find the colour of the centre. it gives an approximate value to use as
      threshold
-   */ 
+   */
   int w = im->width;
   int h = im->height;
   CvSize size = {w, h};
   IplImage *green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   //IplImage *mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
   //IplImage *out = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  cvSplit(im, NULL, green, NULL, NULL);  
+  cvSplit(im, NULL, green, NULL, NULL);
 
   sharpen(green);
   //cvMorphologyEx(green, mask, NULL, NULL, CV_MOP_OPEN, 1);
   //cvCmpS(mask, 88, mask, CV_CMP_GT);
   //cvLaplace(green, mask, 3);
 
-  //cvSmooth(green, mask, CV_GAUSSIAN, 3, 0, 0, 0);  
-  //cvErode(mask, out, NULL, 2);  
+  //cvSmooth(green, mask, CV_GAUSSIAN, 3, 0, 0, 0);
+  //cvErode(mask, out, NULL, 2);
   //cvDilate(out, mask, NULL, 2);
 
   //cvSmooth(green, out, CV_GAUSSIAN, 5, 0, 0, 0);
@@ -260,22 +367,26 @@ test_find_edges_floodfill(IplImage *im){
   int h = im->height;
   CvPoint centre = {w/2, h/2};
   CvSize size = {w, h};
-  IplImage *rgba = cvCreateImage(size, IPL_DEPTH_8U, 4);
-  cvCvtColor(im, rgba, CV_RGB2RGBA);
+  //IplImage *rgba = cvCreateImage(size, IPL_DEPTH_8U, 4);
+  //cvCvtColor(im, rgba, CV_RGB2RGBA);
+
+  IplImage *green = cvCreateImage(size, IPL_DEPTH_8U, 1);
+  cvSplit(im, NULL, green, NULL, NULL);
 
   IplImage *mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  debug_lineno();
+
   debug("%p %p\n",&(mask->imageData), mask->imageData);
   memset(mask->imageData, 255, w*h);
-  debug_lineno();
-  //cvSmooth(rgba, rgba, CV_GAUSSIAN, 3, 0, 0, 0);  
 
-  floodfill(rgba, mask, centre, 32);
+  //cvSmooth(green, green, CV_GAUSSIAN, 3, 0, 0, 0);
+  //cvMorphologyEx(green, green, NULL, NULL, CV_MOP_OPEN, 1);
+
+  floodfill_mono(green, mask, centre, 0);
 
 
-  //cvSplit(im, NULL, NULL, NULL, alpha);  
-  //cvSplit(im, alpha, NULL, NULL, NULL);  
-  
+  //cvSplit(im, NULL, NULL, NULL, alpha);
+  //cvSplit(im, alpha, NULL, NULL, NULL);
+
   return mask;
 }
 
@@ -287,7 +398,7 @@ int main(int argc, char **argv)
   IplImage *im_in = cvLoadImage(IMG_IN_NAME, CV_LOAD_IMAGE_UNCHANGED);
   //IplImage *im_out = cvCreateImage(CvSize size, int depth, int channels);
   //IplImage *im_out = cvCloneImage(im);
-  
+
   gettimeofday(&tv1, NULL);
 
 
@@ -295,10 +406,10 @@ int main(int argc, char **argv)
 
 
   gettimeofday(&tv2, NULL);
-  t = ((tv2.tv_sec - tv1.tv_sec) * 1000000 + 
+  t = ((tv2.tv_sec - tv1.tv_sec) * 1000000 +
       tv2.tv_usec - tv1.tv_usec);
-  printf("took %u microseconds (%0.5f of a frame)\n", 
-      t, (double)t * (25.0 / 1000000.0)); 
+  printf("took %u microseconds (%0.5f of a frame)\n",
+      t, (double)t * (25.0 / 1000000.0));
 
 
   char *filename;
