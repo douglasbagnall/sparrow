@@ -466,12 +466,11 @@ calibrate_find_self(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   int res = 0;
   if(sparrow->prev_frame){
-    //threshold(sparrow, in, sparrow->work_frame, 100);
     //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
     guint32 i;
+    guint32 *frame = (guint32 *)in;
     for (i = 0; i < sparrow->in.pixcount; i++){
-      //possibly R, G, or B, but never A
-      int signal = (in[i * PIXSIZE + 2] > CALIBRATE_SIGNAL_THRESHOLD);
+      int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
       record_calibration(sparrow, i, signal);
     }
     if (sparrow->countdown == 0){
@@ -522,6 +521,49 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
+static void
+see_edges(GstSparrow *sparrow, guint8 *in){
+  /* there is a big flash of white. or not.  look for the largest area of
+     light.
+
+     perhaps, threshold at one or two levels.  or more. if they agree they are
+     probably right.
+
+     or floodfill (and fill in)
+
+     canny edge detection:
+     http://opencv.willowgarage.com/documentation/c/feature_detection.html#canny
+
+ */
+  guint i;
+  for (i = 0; i < sparrow->in.pixcount; i++){
+
+    guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];
+    if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
+      sparrow->countdown = WAIT_COUNTDOWN;
+      break;
+    }
+  }
+
+
+}
+
+static void
+find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  see_edges(sparrow, in);
+  int on = cycle_pattern(sparrow);
+  if (on){
+    memset(out, 255, sparrow->out.size);
+  }
+  else {
+    memset(out, 0, sparrow->out.size);
+  }
+}
+
+static void
+init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  //reset_pattern(GstSparrow *sparrow);
+}
 
 static void
 find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -604,7 +646,6 @@ change_state(GstSparrow *sparrow, sparrow_state state)
     calibrate_init_grid(sparrow);
     break;
   case SPARROW_INIT:
-  case SPARROW_FIND_EDGES:
   case SPARROW_PLAY:
     break;
   }
@@ -672,13 +713,16 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   case SPARROW_FIND_SELF:
     find_self(sparrow, in, out);
     break;
+  case SPARROW_FIND_EDGES:
+    init_find_edges(sparrow);
+    break;
   case SPARROW_WAIT_FOR_GRID:
     if (wait_for_blank(sparrow, in, out)){
-      change_state(sparrow, SPARROW_FIND_GRID);
+      change_state(sparrow, SPARROW_FIND_EDGES);
     }
     break;
-  case SPARROW_FIND_GRID:
-    find_grid(sparrow, in, out);
+  case SPARROW_FIND_EDGES:
+    find_edges(sparrow, in, out);
     break;
   default:
     gamma_negation(sparrow, in, out);
