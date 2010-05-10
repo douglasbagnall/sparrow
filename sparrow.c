@@ -462,7 +462,7 @@ reset_find_self(GstSparrow *sparrow, gint first){
   square is about.
 */
 static inline int
-calibrate_find_square(GstSparrow *sparrow, guint8 *in){
+calibrate_find_self(GstSparrow *sparrow, guint8 *in){
   //GST_DEBUG("finding square\n");
   int res = 0;
   if(sparrow->prev_frame){
@@ -525,7 +525,7 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 static void
 find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  if(calibrate_find_square(sparrow, in)){
+  if(calibrate_find_self(sparrow, in)){
     change_state(sparrow, SPARROW_WAIT_FOR_GRID);
     return;
   }
