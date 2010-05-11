@@ -96,6 +96,7 @@ static void calibrate_init_squares(GstSparrow *sparrow){
   for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
     init_one_square(sparrow, &(sparrow->shapes[i]));
   }
+  sparrow->n_shapes = MAX_CALIBRATE_SHAPES;
 }
 
 /*fake other projection */
@@ -125,8 +126,9 @@ static void add_random_signal(GstSparrow *sparrow, guint8 *out){
 }
 
 
-INVISIBLE void
-calibrate_init_lines(GstSparrow *sparrow){
+UNUSED
+static void
+init_lines(GstSparrow *sparrow){
   int i;
   sparrow_shape_t* shape = sparrow->shapes;
   for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
@@ -296,8 +298,8 @@ threshold(GstSparrow *sparrow, guint8 *frame, guint8 *target, guint threshold){
 
 
 void INVISIBLE
-reset_find_self(GstSparrow *sparrow, gint first){
-  if (first){
+init_find_self(GstSparrow *sparrow){
+  if (! sparrow->n_shapes){
     calibrate_init_squares(sparrow);
     sparrow->countdown = CALIBRATE_INITIAL_WAIT;
   }
@@ -327,7 +329,7 @@ calibrate_find_self(GstSparrow *sparrow, guint8 *in){
         GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
       }
       else {
-        reset_find_self(sparrow, 0);
+        init_find_self(sparrow);
       }
     }
   }
@@ -392,8 +394,6 @@ see_edges(GstSparrow *sparrow, guint8 *in){
       break;
     }
   }
-
-
 }
 
 INVISIBLE sparrow_state
@@ -410,9 +410,10 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 INVISIBLE void
-init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+init_find_edges(GstSparrow *sparrow){
   //reset_pattern(GstSparrow *sparrow);
 }
+
 
 INVISIBLE sparrow_state
 mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -449,6 +450,8 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return (sparrow->countdown == 0);
 }
 
+INVISIBLE void
+init_wait_for_grid(GstSparrow *sparrow){}
 
 INVISIBLE sparrow_state
 mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -458,4 +461,4 @@ mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void calibrate_init_grid(GstSparrow *sparrow){}
+INVISIBLE void init_find_grid(GstSparrow *sparrow){}

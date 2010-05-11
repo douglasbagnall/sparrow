@@ -24,13 +24,14 @@
 #include "sparrow_gamma_lut.h"
 
 /* calibrate.c */
-INVISIBLE void calibrate_init_lines(GstSparrow *sparrow);
-INVISIBLE void reset_find_self(GstSparrow *sparrow, gint first);
-INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void init_find_self(GstSparrow *sparrow);
+INVISIBLE void init_wait_for_grid(GstSparrow *sparrow);
+INVISIBLE void init_find_grid(GstSparrow *sparrow);
+INVISIBLE void init_find_edges(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE void calibrate_init_grid(GstSparrow *sparrow);
-INVISIBLE void init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+INVISIBLE sparrow_state mode_find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);

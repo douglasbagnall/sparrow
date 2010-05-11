@@ -197,15 +197,16 @@ change_state(GstSparrow *sparrow, sparrow_state state)
 {
   switch(state){
   case SPARROW_FIND_SELF:
-    reset_find_self(sparrow, 1);
+    init_find_self(sparrow);
+    break;
+  case SPARROW_WAIT_FOR_GRID:
+    init_wait_for_grid(sparrow);
     break;
   case SPARROW_FIND_EDGES:
     init_find_edges(sparrow);
     break;
-  case SPARROW_WAIT_FOR_GRID:
-    break;
   case SPARROW_FIND_GRID:
-    calibrate_init_grid(sparrow);
+    init_find_grid(sparrow);
     break;
   case SPARROW_INIT:
   case SPARROW_PLAY:

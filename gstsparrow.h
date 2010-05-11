@@ -170,6 +170,8 @@ struct _GstSparrow
   sparrow_format in;
   sparrow_format out;
   sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
+  int n_shapes;
+
   sparrow_calibrate_t calibrate;
 
   /* properties */
