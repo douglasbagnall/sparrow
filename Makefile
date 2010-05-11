@@ -131,12 +131,14 @@ cscope:
 	$(RM) cscope.out
 	cscope -b $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
 
+CPROTO_INCLUDES = $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
+
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
-	cproto $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
+	cproto $(CPROTO_INCLUDES) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
 
 cproto-nonstatic:
-	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
+	cproto $(CPROTO_INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
 
 
 #oprofile: all
