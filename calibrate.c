@@ -308,35 +308,6 @@ init_find_self(GstSparrow *sparrow){
   }
 }
 
-/*compare the frame to the new one. regions of change should indicate the
-  square is about.
-*/
-static inline int
-calibrate_find_self(GstSparrow *sparrow, guint8 *in){
-  //GST_DEBUG("finding square\n");
-  int res = 0;
-  if(sparrow->prev_frame){
-    //debug_frame(sparrow, sparrow->in_frame, sparrow->in.width, sparrow->in.height);
-    guint32 i;
-    guint32 *frame = (guint32 *)in;
-    for (i = 0; i < sparrow->in.pixcount; i++){
-      int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
-      record_calibration(sparrow, i, signal);
-    }
-    if (sparrow->countdown == 0){
-      res = find_lag(sparrow);
-      if (res){
-        GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      }
-      else {
-        init_find_self(sparrow);
-      }
-    }
-  }
-  sparrow->countdown--;
-  return res;
-}
-
 
 static gboolean cycle_pattern(GstSparrow *sparrow){
   gboolean on = sparrow->calibrate.on;
@@ -417,18 +388,37 @@ init_find_edges(GstSparrow *sparrow){
 
 INVISIBLE sparrow_state
 mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  if(calibrate_find_self(sparrow, in)){
-    return SPARROW_WAIT_FOR_GRID;
+  int ret = SPARROW_STATUS_QUO;
+  guint32 i;
+  guint32 *frame = (guint32 *)in;
+  /* record the current signal */
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
+    record_calibration(sparrow, i, signal);
   }
-  gboolean on = cycle_pattern(sparrow);
-  memset(out, 0, sparrow->out.size);
-  if (on){
-    draw_shapes(sparrow, out);
+  if (sparrow->countdown == 0){
+    /* analyse the signal */
+    int r = find_lag(sparrow);
+    if (r){
+      GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
+      ret = SPARROW_WAIT_FOR_GRID;
+    }
+    else {
+      init_find_self(sparrow);
+    }
   }
+  sparrow->countdown--;
+  if(ret == SPARROW_STATUS_QUO){
+    gboolean on = cycle_pattern(sparrow);
+    memset(out, 0, sparrow->out.size);
+    if (on){
+      draw_shapes(sparrow, out);
+    }
 #if FAKE_OTHER_PROJECTION
-  add_random_signal(sparrow, out);
+    add_random_signal(sparrow, out);
 #endif
-  return SPARROW_STATUS_QUO;
+  }
+  return ret;
 }
 
 /* wait for the other projector to stop changing: sufficient to look for no
