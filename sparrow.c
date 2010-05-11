@@ -50,28 +50,7 @@ static void rng_init(GstSparrow *sparrow, guint32 seed){
   GST_DEBUG("RNG seeded with %u\n", seed);
 }
 
-/* here we go */
-
-UNUSED
-static void
-simple_negation(guint8 * bytes, guint size){
-  guint i;
-  guint32 * data = (guint32 *)bytes;
-  //could use sse for superspeed
-  for (i = 0; i < size / 4; i++){
-    data[i] = ~data[i];
-  }
-}
-
-static void
-gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  //guint i;
-  //XXX  could try oil_tablelookup_u8
-  //for (i = 0; i < size; i++){
-  //  out[i] = sparrow_rgb_gamma_full_range_REVERSE[in[i]];
-  // }
-}
-
+/** debugging: write frames out somewhere. **/
 
 /*spit out the frame as a ppm image */
 static void
@@ -111,6 +90,7 @@ debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
 #endif
 }
 
+/** interpret gst attributes **/
 
 /* Extract a colour (R,G,B) bitmask from gobject  */
 static guint32 get_mask(GstStructure *s, char *mask_name){
@@ -142,30 +122,6 @@ extract_caps(sparrow_format *im, GstCaps *caps)
   GST_DEBUG("shifts: r %u g %u b %u\n", im->rshift, im->gshift, im->bshift);
   GST_DEBUG("dimensions: w %u h %u pix %u size %u\n", im->width, im->height,
       im->pixcount, im->size);
-}
-
-/*when a state is done, it calls back here and names its preferrred
-  successor */
-void INVISIBLE
-change_state(GstSparrow *sparrow, sparrow_state state)
-{
-  switch(state){
-  case SPARROW_FIND_SELF:
-    reset_find_self(sparrow, 1);
-    break;
-  case SPARROW_FIND_EDGES:
-    init_find_edges(sparrow);
-    break;
-  case SPARROW_WAIT_FOR_GRID:
-    break;
-  case SPARROW_FIND_GRID:
-    calibrate_init_grid(sparrow);
-    break;
-  case SPARROW_INIT:
-  case SPARROW_PLAY:
-    break;
-  }
-  sparrow->state = state;
 }
 
 
@@ -221,6 +177,42 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   return TRUE;
 }
 
+void
+INVISIBLE
+sparrow_finalise(GstSparrow *sparrow)
+{
+  //free everything
+
+  //cvReleaseImageHeader(IplImage** image)
+}
+
+
+/*when a state is done, it calls back here and names its preferred
+  successor */
+void INVISIBLE
+change_state(GstSparrow *sparrow, sparrow_state state)
+{
+  switch(state){
+  case SPARROW_FIND_SELF:
+    reset_find_self(sparrow, 1);
+    break;
+  case SPARROW_FIND_EDGES:
+    init_find_edges(sparrow);
+    break;
+  case SPARROW_WAIT_FOR_GRID:
+    break;
+  case SPARROW_FIND_GRID:
+    calibrate_init_grid(sparrow);
+    break;
+  case SPARROW_INIT:
+  case SPARROW_PLAY:
+    break;
+  }
+  sparrow->state = state;
+}
+
+
+
 /*called by gst_sparrow_transform_ip */
 void INVISIBLE
 sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
@@ -243,12 +235,3 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   sparrow->frame_count++;
 }
 
-void
-INVISIBLE
-sparrow_finalise(GstSparrow *sparrow)
-{
-  //free everything
-
-
-  //cvReleaseImageHeader(IplImage** image)
-}

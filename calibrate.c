@@ -449,3 +449,4 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
+INVISIBLE calibrate_init_grid(GstSparrow *sparrow){}
