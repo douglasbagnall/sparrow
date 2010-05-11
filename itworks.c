@@ -34,6 +34,7 @@ simple_negation(guint8 * bytes, guint size){
   }
 }
 
+UNUSED
 static void
 gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //guint i;

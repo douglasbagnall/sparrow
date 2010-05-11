@@ -23,6 +23,7 @@
 #include <math.h>
 
 /* static functions (via `make cproto`) */
+static void change_state(GstSparrow *sparrow, sparrow_state state);
 
 
 /* set up whatever debugging methods are enabled */
@@ -209,6 +210,8 @@ change_state(GstSparrow *sparrow, sparrow_state state)
   case SPARROW_INIT:
   case SPARROW_PLAY:
     break;
+  default:
+    GST_DEBUG("change_state got unknown state: %d\n", state);
   }
   sparrow->state = state;
 }

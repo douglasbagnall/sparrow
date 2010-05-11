@@ -458,4 +458,4 @@ mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE calibrate_init_grid(GstSparrow *sparrow){}
+INVISIBLE void calibrate_init_grid(GstSparrow *sparrow){}
