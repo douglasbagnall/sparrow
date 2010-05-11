@@ -73,23 +73,6 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-
-
-#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.ppm"
-#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
-
-void INVISIBLE
-debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
-#if SPARROW_PPM_DEBUG
-  char name[PPM_FILENAME_LENGTH];
-  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
-  if (res > 0){
-    ppm_dump(&(sparrow->in), data, width, height, name);
-  }
-#endif
-}
-
-
 /*spit out the frame as a ppm image */
 static void
 ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
@@ -112,6 +95,22 @@ ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
   fflush(fh);
   fclose(fh);
 }
+
+
+#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.ppm"
+#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
+
+void INVISIBLE
+debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
+#if SPARROW_PPM_DEBUG
+  char name[PPM_FILENAME_LENGTH];
+  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
+  if (res > 0){
+    ppm_dump(&(sparrow->in), data, width, height, name);
+  }
+#endif
+}
+
 
 /* Extract a colour (R,G,B) bitmask from gobject  */
 static guint32 get_mask(GstStructure *s, char *mask_name){

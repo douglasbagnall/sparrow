@@ -23,12 +23,21 @@
 #include "sparrow_false_colour_lut.h"
 #include "sparrow_gamma_lut.h"
 
+/* calibrate.c */
+INVISIBLE void calibrate_init_lines(GstSparrow *sparrow);
+INVISIBLE void reset_find_self(GstSparrow *sparrow, gint first);
+INVISIBLE void find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE int wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
-void INVISIBLE sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
-void INVISIBLE  sparrow_pre_init(GstSparrow *sparrow);
-gboolean INVISIBLE sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
-void INVISIBLE sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
-void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
+/* sparrow.c */
+INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
+INVISIBLE void change_state(GstSparrow *sparrow, sparrow_state state);
+INVISIBLE void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
+INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
+INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
+INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 
 
 #define SPARROW_CALIBRATE_ON  1

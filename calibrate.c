@@ -408,7 +408,7 @@ find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
-INVISIBLE static
+INVISIBLE void
 init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //reset_pattern(GstSparrow *sparrow);
 }
