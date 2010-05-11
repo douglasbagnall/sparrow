@@ -148,6 +148,7 @@ typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
 
 typedef enum {
+  SPARROW_STATUS_QUO = 0,
   SPARROW_INIT,
   SPARROW_FIND_SELF,
   SPARROW_WAIT_FOR_GRID,

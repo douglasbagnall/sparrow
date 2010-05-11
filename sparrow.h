@@ -26,19 +26,21 @@
 /* calibrate.c */
 INVISIBLE void calibrate_init_lines(GstSparrow *sparrow);
 INVISIBLE void reset_find_self(GstSparrow *sparrow, gint first);
-INVISIBLE void find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE void find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE int wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE void calibrate_init_grid(GstSparrow *sparrow);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
-INVISIBLE void change_state(GstSparrow *sparrow, sparrow_state state);
 INVISIBLE void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
 INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
 INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
+
+/*itworks.c*/
+INVISIBLE void mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 
 #define SPARROW_CALIBRATE_ON  1

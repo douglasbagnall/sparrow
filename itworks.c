@@ -42,3 +42,9 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //  out[i] = sparrow_rgb_gamma_full_range_REVERSE[in[i]];
   // }
 }
+
+INVISIBLE sparrow_state
+mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  //do actual stuff here
+  return SPARROW_STATUS_QUO;
+}

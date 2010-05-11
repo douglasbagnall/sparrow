@@ -126,7 +126,7 @@ extract_caps(sparrow_format *im, GstCaps *caps)
 
 
 
-/*Functions below here are called from gstsparrow.c and are NOT static */
+/*Most functions below here are called from gstsparrow.c and are NOT static */
 
 void INVISIBLE
 sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
@@ -141,12 +141,16 @@ sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
   sparrow->in_frame = GST_BUFFER_DATA(inbuf);
 }
 
-/* called by gst_sparrow_init() */
+/* called by gst_sparrow_init(). The source/sink capabilities (and commandline
+   arguments[?]) are unknown at this stage, so there isn't much useful to do
+   here.*/
 void INVISIBLE
 sparrow_pre_init(GstSparrow *sparrow){
 }
 
-/* called by gst_sparrow_set_caps() */
+/* called by gst_sparrow_set_caps(). This sets up everything after gstreamer
+   has worked out what the pipeline will look like.
+ */
 gboolean INVISIBLE
 sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->in), incaps);
@@ -177,19 +181,17 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   return TRUE;
 }
 
-void
-INVISIBLE
+void INVISIBLE
 sparrow_finalise(GstSparrow *sparrow)
 {
   //free everything
-
   //cvReleaseImageHeader(IplImage** image)
 }
 
 
-/*when a state is done, it calls back here and names its preferred
-  successor */
-void INVISIBLE
+/* initialisation functions and sparrow_transform() use this to set up a new
+   state. */
+static void
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
   switch(state){
@@ -212,26 +214,33 @@ change_state(GstSparrow *sparrow, sparrow_state state)
 }
 
 
+/*called by gst_sparrow_transform_ip every frame.
 
-/*called by gst_sparrow_transform_ip */
+  decide what to do based on sparrow->state. All the processing is done in a
+  "mode_*" function, which returns a state or SPARROW_STATUS_QUO.  If a state
+  is returned, then change_state() is called to initialise the state, even if
+  it is the current state (so states can use this to reset).
+*/
 void INVISIBLE
 sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
 {
+  sparrow_state new_state;
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
-    find_self(sparrow, in, out);
+    new_state = mode_find_self(sparrow, in, out);
     break;
   case SPARROW_WAIT_FOR_GRID:
-    if (wait_for_blank(sparrow, in, out)){
-      change_state(sparrow, SPARROW_FIND_EDGES);
-    }
+    new_state = mode_wait_for_grid(sparrow, in, out);
     break;
   case SPARROW_FIND_EDGES:
-    find_edges(sparrow, in, out);
+    new_state = mode_find_edges(sparrow, in, out);
     break;
   default:
-    gamma_negation(sparrow, in, out);
+    new_state = mode_process_frame(sparrow, in, out);
   }
   sparrow->frame_count++;
+  if (new_state != SPARROW_STATUS_QUO){
+    change_state(sparrow, new_state);
+  }
 }
 

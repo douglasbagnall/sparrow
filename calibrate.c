@@ -396,8 +396,8 @@ see_edges(GstSparrow *sparrow, guint8 *in){
 
 }
 
-INVISIBLE void
-find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+INVISIBLE sparrow_state
+mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   see_edges(sparrow, in);
   int on = cycle_pattern(sparrow);
   if (on){
@@ -406,6 +406,7 @@ find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   else {
     memset(out, 0, sparrow->out.size);
   }
+  return SPARROW_STATUS_QUO;
 }
 
 INVISIBLE void
@@ -413,11 +414,10 @@ init_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //reset_pattern(GstSparrow *sparrow);
 }
 
-INVISIBLE void
-find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
+INVISIBLE sparrow_state
+mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if(calibrate_find_self(sparrow, in)){
-    change_state(sparrow, SPARROW_WAIT_FOR_GRID);
-    return;
+    return SPARROW_WAIT_FOR_GRID;
   }
   gboolean on = cycle_pattern(sparrow);
   memset(out, 0, sparrow->out.size);
@@ -427,12 +427,13 @@ find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
 #if FAKE_OTHER_PROJECTION
   add_random_signal(sparrow, out);
 #endif
+  return SPARROW_STATUS_QUO;
 }
 
 /* wait for the other projector to stop changing: sufficient to look for no
    significant changes for as long as the longest pattern interval */
 
-INVISIBLE int
+static int
 wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
   guint32 i;
   abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
@@ -448,5 +449,13 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return (sparrow->countdown == 0);
 }
 
+
+INVISIBLE sparrow_state
+mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  if (wait_for_blank(sparrow, in, out)){
+    return SPARROW_FIND_EDGES;
+  }
+  return SPARROW_STATUS_QUO;
+}
 
 INVISIBLE calibrate_init_grid(GstSparrow *sparrow){}
