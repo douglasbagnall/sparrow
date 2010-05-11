@@ -23,7 +23,62 @@
 #include <math.h>
 
 
+/*drawing*/
 
+static inline void
+horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y){
+  guint stride = sparrow->out.width * PIXSIZE;
+  guint8 *line = out + y * stride;
+  memset(line, 255, stride);
+}
+
+static inline void
+vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
+  guint y;
+  guint32 *p = (guint32 *)out;
+  p += x;
+  for(y = 0; y < (guint)(sparrow->out.height); y++){
+    *p = -1;
+    p += sparrow->out.width;
+  }
+}
+
+static inline void
+rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
+  guint y;
+  guint stride = sparrow->out.width * PIXSIZE;
+  guint8 *line = out + shape->y * stride + shape->x * PIXSIZE;
+  for(y = 0; y < (guint)shape->h; y++){
+    memset(line, 255, shape->w * PIXSIZE);
+    line += stride;
+  }
+}
+
+static void draw_shapes(GstSparrow *sparrow, guint8 *out){
+  int i;
+  sparrow_shape_t *shape;
+  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+    shape = sparrow->shapes + i;
+    switch (shape->shape){
+    case NO_SHAPE:
+      goto done; /* an empty one ends the list */
+    case VERTICAL_LINE:
+      vertical_line(sparrow, out, shape->x);
+      break;
+    case HORIZONTAL_LINE:
+      horizontal_line(sparrow, out, shape->x);
+      break;
+    case RECTANGLE:
+      rectangle(sparrow, out, shape);
+      break;
+    case FULLSCREEN:
+      memset(out, 255, sparrow->out.size);
+      break;
+    }
+  }
+ done:
+  return;
+}
 
 static inline void
 init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
@@ -85,66 +140,6 @@ calibrate_init_lines(GstSparrow *sparrow){
 }
 
 
-
-/* in a noisy world, try to find the spot you control by stoping and watching
-   for a while.
- */
-
-static inline void
-horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y){
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + y * stride;
-  memset(line, 255, stride);
-}
-
-static inline void
-vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
-  guint y;
-  guint32 *p = (guint32 *)out;
-  p += x;
-  for(y = 0; y < (guint)(sparrow->out.height); y++){
-    *p = -1;
-    p += sparrow->out.width;
-  }
-}
-
-static inline void
-rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
-  guint y;
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + shape->y * stride + shape->x * PIXSIZE;
-  for(y = 0; y < (guint)shape->h; y++){
-    memset(line, 255, shape->w * PIXSIZE);
-    line += stride;
-  }
-}
-
-
-static void draw_shapes(GstSparrow *sparrow, guint8 *out){
-  int i;
-  sparrow_shape_t *shape;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape = sparrow->shapes + i;
-    switch (shape->shape){
-    case NO_SHAPE:
-      goto done; /* an empty one ends the list */
-    case VERTICAL_LINE:
-      vertical_line(sparrow, out, shape->x);
-      break;
-    case HORIZONTAL_LINE:
-      horizontal_line(sparrow, out, shape->x);
-      break;
-    case RECTANGLE:
-      rectangle(sparrow, out, shape);
-      break;
-    case FULLSCREEN:
-      memset(out, 255, sparrow->out.size);
-      break;
-    }
-  }
- done:
-  return;
-}
 
 
 static inline void
