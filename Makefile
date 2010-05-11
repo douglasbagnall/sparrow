@@ -174,4 +174,4 @@ unittest-edges:
 	./test
 
 
-.PHONY: TAGS all cproto cproto-nonstatic sysprof splint
+.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges
