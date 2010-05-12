@@ -44,7 +44,7 @@ expand_one_mono(int x, int y, int c,
   start: a point of the right colour.
 */
 
-INVISIBLE IplImage*
+static IplImage*
 floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 {
   guint8 * data = (guint8 *)im->imageData;
@@ -100,7 +100,7 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 
 /* find a suitable threshold level by looking at the histogram of a monochrome
    image */
-INVISIBLE int
+static int
 find_edges_threshold(IplImage *im)
 {
   int w = im->width;

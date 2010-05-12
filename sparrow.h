@@ -29,12 +29,10 @@ INVISIBLE void init_pick_colour(GstSparrow *sparrow);
 INVISIBLE void init_wait_for_grid(GstSparrow *sparrow);
 INVISIBLE void init_find_grid(GstSparrow *sparrow);
 INVISIBLE void init_find_edges(GstSparrow *sparrow);
-INVISIBLE void init_find_screen(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 /* sparrow.c */
@@ -49,8 +47,8 @@ INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 /*floodfill.c */
-INVISIBLE int find_edges_threshold(IplImage *im);
-INVISIBLE IplImage* floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start);
+INVISIBLE void init_find_screen(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 
 #define SPARROW_CALIBRATE_ON  1
