@@ -29,10 +29,12 @@ INVISIBLE void init_pick_colour(GstSparrow *sparrow);
 INVISIBLE void init_wait_for_grid(GstSparrow *sparrow);
 INVISIBLE void init_find_grid(GstSparrow *sparrow);
 INVISIBLE void init_find_edges(GstSparrow *sparrow);
+INVISIBLE void init_find_screen(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 /* sparrow.c */

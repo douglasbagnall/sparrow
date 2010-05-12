@@ -354,7 +354,7 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 static void
-see_edges(GstSparrow *sparrow, guint8 *in){
+see_screen(GstSparrow *sparrow, guint8 *in){
   /* there is a big flash of white. or not.  look for the largest area of
      light.
 
@@ -379,8 +379,8 @@ see_edges(GstSparrow *sparrow, guint8 *in){
 }
 
 INVISIBLE sparrow_state
-mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  see_edges(sparrow, in);
+mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  see_screen(sparrow, in);
   int on = cycle_pattern(sparrow);
   if (on){
     memset(out, 255, sparrow->out.size);
@@ -392,7 +392,7 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 INVISIBLE void
-init_find_edges(GstSparrow *sparrow){
+init_find_screen(GstSparrow *sparrow){
   //reset_pattern(GstSparrow *sparrow);
 }
 
@@ -459,7 +459,7 @@ init_wait_for_grid(GstSparrow *sparrow){}
 INVISIBLE sparrow_state
 mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if (wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
-    return SPARROW_FIND_EDGES;
+    return SPARROW_FIND_SCREEN;
   }
   return SPARROW_STATUS_QUO;
 }
