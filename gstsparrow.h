@@ -263,7 +263,7 @@ TIMER_STOP(GstSparrow *sparrow)
 {
   struct timeval *start = &(sparrow->timer_start);
   struct timeval *stop = &(sparrow->timer_stop);
-  if (start.time_t == 0){
+  if (start->tv_sec == 0){
     GST_DEBUG("the timer isn't running!\n");
     return;
   }
@@ -272,7 +272,7 @@ TIMER_STOP(GstSparrow *sparrow)
       stop->tv_usec - start->tv_usec);
   GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
       t, (double)t * (25.0 / 1000000.0));
-  start->time_t = 0; /* mark it as unused */
+  start->tv_sec = 0; /* mark it as unused */
 }
 
 /* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we

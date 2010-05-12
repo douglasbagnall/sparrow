@@ -171,8 +171,8 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
   memset(sparrow->prev_frame, 0, in->size);
 
-  sparrow->timer_start = {0, 0};
-  sparrow->timer_stop = {0, 0};
+  sparrow->timer_start.tv_sec = 0;
+  sparrow->timer_stop.tv_sec = 0;
 
   /*initialise IPL structs for openCV */
   for (int i = 0; i < 3; i++){
