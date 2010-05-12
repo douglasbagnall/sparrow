@@ -354,12 +354,6 @@ find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-INVISIBLE sparrow_state
-mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  return SPARROW_STATUS_QUO;
-}
-
-
 
 /* wait for the other projector to stop changing, for as many frames as are
    set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
@@ -451,6 +445,3 @@ init_pick_colour(GstSparrow *sparrow)
   sparrow->countdown = WAIT_COUNTDOWN;
 }
 
-
-INVISIBLE void
-init_find_edges(GstSparrow *sparrow){}
