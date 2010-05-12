@@ -119,6 +119,9 @@ extract_caps(sparrow_format *im, GstCaps *caps)
 
   im->pixcount = im->width * im->height;
   im->size = im->pixcount * PIXSIZE;
+  im->colours[SPARROW_WHITE] = im->rmask | im->gmask | im->bmask;
+  im->colours[SPARROW_GREEN] = im->gmask;
+  im->colours[SPARROW_MAGENTA] = im->rmask | im->bmask;
 
   GST_DEBUG("\ncaps:\n%" GST_PTR_FORMAT, caps);
   GST_DEBUG("shifts: r %u g %u b %u\n", im->rshift, im->gshift, im->bshift);

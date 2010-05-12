@@ -96,6 +96,12 @@ typedef guint32 pix_t;
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 
+typedef enum {
+  SPARROW_WHITE = 0,
+  SPARROW_GREEN,
+  SPARROW_MAGENTA
+} sparrow_colour;
+
 #define MAX_CALIBRATION_LAG 12
 typedef struct lag_times_s {
   //guint32 hits;
@@ -114,6 +120,7 @@ typedef struct sparrow_format_s {
   guint32 rmask;
   guint32 gmask;
   guint32 bmask;
+  guint32 colours[3];
 } sparrow_format;
 
 enum calibration_shape {
@@ -141,6 +148,8 @@ typedef struct sparrow_calibrate_s {
   guint32 pattern[CALIBRATE_PATTERN_L];
   guint32 index;
   guint32 transitions;
+  guint32 incolour;
+  guint32 outcolour;
 } sparrow_calibrate_t;
 
 
