@@ -391,20 +391,13 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void
-init_find_screen(GstSparrow *sparrow){
-  //reset_pattern(GstSparrow *sparrow);
-}
-
-
 /* wait for the other projector to stop changing, for as many frames as are
    set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
 
    If sparrow->countdown is already 0, do nothing.
 
    If something happens, reset sparrow->countdown to <blanktime>.
- */
-
+*/
 static int
 wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
   if (sparrow->countdown){
@@ -426,13 +419,6 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
   return (sparrow->countdown == 0);
 }
 
-/* Choose between green or magenta, randomly and iteratively, until the
-   other one chooses something else.  But first wait for blank? */
-INVISIBLE void
-init_pick_colour(GstSparrow *sparrow)
-{
-  sparrow->countdown = WAIT_COUNTDOWN;
-}
 
 static inline void
 new_calibration_colour(GstSparrow *sparrow){
@@ -442,6 +428,8 @@ new_calibration_colour(GstSparrow *sparrow){
   //sparrow->calibrate.wait == 0;
 }
 
+/* Choose between green or magenta, randomly and iteratively, until the
+   other one chooses something else.  But first wait for blank? */
 
 INVISIBLE sparrow_state
 mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -453,8 +441,6 @@ mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void
-init_wait_for_grid(GstSparrow *sparrow){}
 
 INVISIBLE sparrow_state
 mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -464,7 +450,13 @@ mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void init_find_grid(GstSparrow *sparrow){}
+/*init functions */
+
+INVISIBLE void
+init_wait_for_grid(GstSparrow *sparrow){}
+
+INVISIBLE void
+init_find_grid(GstSparrow *sparrow){}
 
 void INVISIBLE
 init_find_self(GstSparrow *sparrow){
@@ -481,4 +473,15 @@ init_find_self(GstSparrow *sparrow){
   else {
     sparrow->countdown = CALIBRATE_RETRY_WAIT;
   }
+}
+
+INVISIBLE void
+init_pick_colour(GstSparrow *sparrow)
+{
+  sparrow->countdown = WAIT_COUNTDOWN;
+}
+
+INVISIBLE void
+init_find_screen(GstSparrow *sparrow){
+  //reset_pattern(GstSparrow *sparrow);
 }
