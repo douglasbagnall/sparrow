@@ -109,12 +109,13 @@ extract_caps(sparrow_format *im, GstCaps *caps)
   GstStructure *s = gst_caps_get_structure (caps, 0);
   gst_structure_get_int(s, "width", &(im->width));
   gst_structure_get_int(s, "height", &(im->height));
-  im->rmask = get_mask(s, "red_mask");
-  im->rshift = mask_to_shift(im->rmask);
-  im->gmask = get_mask(s, "green_mask");
-  im->gshift = mask_to_shift(im->gmask);
-  im->bmask = get_mask(s, "blue_mask");
-  im->bshift = mask_to_shift(im->bmask);
+  im->rshift = mask_to_shift(get_mask(s, "red_mask"));
+  im->gshift = mask_to_shift(get_mask(s, "green_mask"));
+  im->bshift = mask_to_shift(get_mask(s, "blue_mask"));
+  /* recalculate shifts as little-endian */
+  im->rmask = 0xff << im->rshift;
+  im->gmask = 0xff << im->gshift;
+  im->bmask = 0xff << im->bshift;
 
   im->pixcount = im->width * im->height;
   im->size = im->pixcount * PIXSIZE;
