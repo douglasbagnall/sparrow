@@ -95,13 +95,6 @@ init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
         sparrow->out.height * 7 / 8 - shape->h);
 }
 
-static void calibrate_init_squares(GstSparrow *sparrow){
-  int i;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    init_one_square(sparrow, &(sparrow->shapes[i]));
-  }
-  sparrow->n_shapes = MAX_CALIBRATE_SHAPES;
-}
 
 /*fake other projection */
 static void add_random_signal(GstSparrow *sparrow, guint8 *out){
@@ -129,6 +122,25 @@ static void add_random_signal(GstSparrow *sparrow, guint8 *out){
   countdown--;
 }
 
+static gboolean cycle_pattern(GstSparrow *sparrow){
+  gboolean on = sparrow->calibrate.on;
+  if (sparrow->calibrate.wait == 0){
+    on = !on;
+    if (on){
+      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
+    }
+    else{
+      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
+    }
+    sparrow->calibrate.on = on;
+    sparrow->calibrate.transitions++;
+  }
+  sparrow->calibrate.wait--;
+  sparrow->lag_record = (sparrow->lag_record << 1) | on;
+  //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
+  return on;
+}
+
 
 UNUSED
 static void
@@ -143,16 +155,6 @@ init_lines(GstSparrow *sparrow){
     shape[i].shape = NO_SHAPE;
   }
   /* shape[0] will be set to vertical or horizontal in due course */
-}
-
-
-
-
-static inline void
-record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
-  //signal = (signal != 0);
-  sparrow->lag_table[offset].record <<= 1;
-  sparrow->lag_table[offset].record |= signal;
 }
 
 static inline void
@@ -283,6 +285,48 @@ find_lag(GstSparrow *sparrow){
   return res;
 }
 
+static inline void
+record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
+  //signal = (signal != 0);
+  sparrow->lag_table[offset].record <<= 1;
+  sparrow->lag_table[offset].record |= signal;
+}
+
+
+INVISIBLE sparrow_state
+mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  int ret = SPARROW_STATUS_QUO;
+  guint32 i;
+  guint32 *frame = (guint32 *)in;
+  /* record the current signal */
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
+    record_calibration(sparrow, i, signal);
+  }
+  if (sparrow->countdown == 0){
+    /* analyse the signal */
+    int r = find_lag(sparrow);
+    if (r){
+      GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
+      ret = SPARROW_WAIT_FOR_GRID;
+    }
+    else {
+      init_find_self(sparrow);
+    }
+  }
+
+  memset(out, 0, sparrow->out.size);
+  gboolean on = cycle_pattern(sparrow);
+  if (on){
+    draw_shapes(sparrow, out);
+  }
+#if FAKE_OTHER_PROJECTION
+  add_random_signal(sparrow, out);
+#endif
+  sparrow->countdown--;
+  return ret;
+}
+
 
 static inline void
 abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
@@ -292,35 +336,8 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
   cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
 }
 
-static inline void
-threshold(GstSparrow *sparrow, guint8 *frame, guint8 *target, guint threshold){
-  sparrow->in_ipl[0]->imageData = (char*) frame;
-  sparrow->in_ipl[1]->imageData = (char*) target;
-  //cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
-  cvCmpS(sparrow->in_ipl[0], (double)threshold, sparrow->in_ipl[1], CV_CMP_GT);
-}
 
 
-
-
-static gboolean cycle_pattern(GstSparrow *sparrow){
-  gboolean on = sparrow->calibrate.on;
-  if (sparrow->calibrate.wait == 0){
-    on = !on;
-    if (on){
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
-    }
-    else{
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
-    }
-    sparrow->calibrate.on = on;
-    sparrow->calibrate.transitions++;
-  }
-  sparrow->calibrate.wait--;
-  sparrow->lag_record = (sparrow->lag_record << 1) | on;
-  //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
-  return on;
-}
 
 static void
 see_grid(GstSparrow *sparrow, guint8 *in){
@@ -380,58 +397,60 @@ init_find_edges(GstSparrow *sparrow){
 }
 
 
-INVISIBLE sparrow_state
-mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  int ret = SPARROW_STATUS_QUO;
-  guint32 i;
-  guint32 *frame = (guint32 *)in;
-  /* record the current signal */
-  for (i = 0; i < sparrow->in.pixcount; i++){
-    int signal = (((frame[i] >> sparrow->in.gshift) & 255) > CALIBRATE_SIGNAL_THRESHOLD);
-    record_calibration(sparrow, i, signal);
-  }
-  if (sparrow->countdown == 0){
-    /* analyse the signal */
-    int r = find_lag(sparrow);
-    if (r){
-      GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      ret = SPARROW_WAIT_FOR_GRID;
-    }
-    else {
-      init_find_self(sparrow);
-    }
-  }
-  sparrow->countdown--;
-  if(ret == SPARROW_STATUS_QUO){
-    gboolean on = cycle_pattern(sparrow);
-    memset(out, 0, sparrow->out.size);
-    if (on){
-      draw_shapes(sparrow, out);
-    }
-#if FAKE_OTHER_PROJECTION
-    add_random_signal(sparrow, out);
-#endif
-  }
-  return ret;
-}
+/* wait for the other projector to stop changing, for as many frames as are
+   set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
 
-/* wait for the other projector to stop changing: sufficient to look for no
-   significant changes for as long as the longest pattern interval */
+   If sparrow->countdown is already 0, do nothing.
+
+   If something happens, reset sparrow->countdown to <blanktime>.
+ */
 
 static int
-wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  guint32 i;
-  abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
-  for (i = 0; i < sparrow->in.pixcount; i++){
-    guint32 signal = sparrow->work_frame[i * PIXSIZE + 2];  //possibly R, G, or B, but never A
-    if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
-      sparrow->countdown = WAIT_COUNTDOWN;
-      break;
+wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
+  if (sparrow->countdown){
+    guint32 i;
+    abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
+    //Use the green channel
+    for (i = (sparrow->in.gshift >> 8);
+         i < sparrow->in.pixcount * PIXSIZE;
+         i += 4){
+      guint8 signal = sparrow->work_frame[i];
+      if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
+        sparrow->countdown = blanktime;
+        break;
+      }
     }
+    memset(out, 0, sparrow->out.size);
+    sparrow->countdown--;
   }
-  memset(out, 0, sparrow->out.size);
-  sparrow->countdown--;
   return (sparrow->countdown == 0);
+}
+
+/* Choose between green or magenta, randomly and iteratively, until the
+   other one chooses something else.  But first wait for blank? */
+INVISIBLE void
+init_pick_colour(GstSparrow *sparrow)
+{
+  sparrow->countdown = WAIT_COUNTDOWN;
+}
+
+static inline void
+new_calibration_colour(GstSparrow *sparrow){
+  int c = RANDINT(sparrow, 1, 3);
+  sparrow->calibrate.incolour = sparrow->in.colours[c];
+  sparrow->calibrate.outcolour = sparrow->out.colours[c];
+  //sparrow->calibrate.wait == 0;
+}
+
+
+INVISIBLE sparrow_state
+mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  if(wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
+    new_calibration_colour(sparrow);
+    sparrow->calibrate.wait = sparrow->lag + 2;
+  }
+  sparrow->calibrate.wait--;
+  return SPARROW_STATUS_QUO;
 }
 
 INVISIBLE void
@@ -439,7 +458,7 @@ init_wait_for_grid(GstSparrow *sparrow){}
 
 INVISIBLE sparrow_state
 mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  if (wait_for_blank(sparrow, in, out)){
+  if (wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
     return SPARROW_FIND_EDGES;
   }
   return SPARROW_STATUS_QUO;
