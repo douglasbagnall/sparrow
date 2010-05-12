@@ -45,12 +45,16 @@ vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
 
 static inline void
 rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
-  guint y;
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + shape->y * stride + shape->x * PIXSIZE;
-  for(y = 0; y < (guint)shape->h; y++){
-    memset(line, 255, shape->w * PIXSIZE);
-    line += stride;
+  int y, x;
+  guint stride = sparrow->out.width;
+  guint32 *line = ((guint32 *)out) + shape->y * stride + shape->x;
+  for (x = 0; x < shape->w; x++){
+    line[x] = sparrow->calibrate.outcolour;
+  }
+  guint32 *line2 = line + stride;
+  for(y = 1; y < shape->h; y++){
+    memcpy(line2, line, shape->w * PIXSIZE);
+    line2 += stride;
   }
 }
 
