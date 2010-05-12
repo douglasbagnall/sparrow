@@ -193,7 +193,6 @@ struct _GstSparrow
 
   /*state */
   sparrow_state state;
-  sparrow_state next_state;
 
   lag_times_t *lag_table;
   guint64 lag_record;

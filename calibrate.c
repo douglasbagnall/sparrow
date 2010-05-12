@@ -379,6 +379,11 @@ see_screen(GstSparrow *sparrow, guint8 *in){
 }
 
 INVISIBLE sparrow_state
+mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  return SPARROW_STATUS_QUO;
+}
+
+INVISIBLE sparrow_state
 mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   see_screen(sparrow, in);
   int on = cycle_pattern(sparrow);
@@ -485,3 +490,6 @@ INVISIBLE void
 init_find_screen(GstSparrow *sparrow){
   //reset_pattern(GstSparrow *sparrow);
 }
+
+INVISIBLE void
+init_find_edges(GstSparrow *sparrow){}

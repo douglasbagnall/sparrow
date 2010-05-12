@@ -200,7 +200,7 @@ static void
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
   if (state == SPARROW_NEXT_STATE){
-    state == sparrow->state + 1;
+    state = sparrow->state + 1;
   }
   switch(state){
   case SPARROW_FIND_SELF:
