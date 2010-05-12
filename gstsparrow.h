@@ -95,6 +95,18 @@ typedef guint32 pix_t;
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 
+
+typedef enum {
+  SPARROW_STATUS_QUO = 0,
+  SPARROW_INIT,
+  SPARROW_FIND_SELF,
+  SPARROW_PICK_COLOUR,
+  SPARROW_WAIT_FOR_GRID,
+  SPARROW_FIND_EDGES,
+  SPARROW_FIND_GRID,
+  SPARROW_PLAY,
+} sparrow_state;
+
 typedef enum {
   SPARROW_WHITE = 0,
   SPARROW_GREEN,
@@ -152,17 +164,6 @@ typedef struct sparrow_calibrate_s {
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
-
-typedef enum {
-  SPARROW_STATUS_QUO = 0,
-  SPARROW_INIT,
-  SPARROW_FIND_SELF,
-  SPARROW_WAIT_FOR_GRID,
-  SPARROW_FIND_EDGES,
-  SPARROW_FIND_GRID,
-  SPARROW_PLAY,
-} sparrow_state;
-
 
 /**
  * GstSparrow:
