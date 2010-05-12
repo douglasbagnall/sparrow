@@ -48,6 +48,10 @@ INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 /*itworks.c*/
 INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
+/*floodfill.c */
+INVISIBLE int find_edges_threshold(IplImage *im);
+INVISIBLE IplImage* floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start);
+
 
 #define SPARROW_CALIBRATE_ON  1
 
