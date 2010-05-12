@@ -301,16 +301,6 @@ threshold(GstSparrow *sparrow, guint8 *frame, guint8 *target, guint threshold){
 }
 
 
-void INVISIBLE
-init_find_self(GstSparrow *sparrow){
-  if (! sparrow->n_shapes){
-    calibrate_init_squares(sparrow);
-    sparrow->countdown = CALIBRATE_INITIAL_WAIT;
-  }
-  else {
-    sparrow->countdown = CALIBRATE_RETRY_WAIT;
-  }
-}
 
 
 static gboolean cycle_pattern(GstSparrow *sparrow){
@@ -456,3 +446,20 @@ mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 INVISIBLE void init_find_grid(GstSparrow *sparrow){}
+
+void INVISIBLE
+init_find_self(GstSparrow *sparrow){
+  sparrow->calibrate.incolour = sparrow->in.colours[SPARROW_WHITE];
+  sparrow->calibrate.outcolour = sparrow->out.colours[SPARROW_WHITE];
+  if (! sparrow->n_shapes){
+    int i;
+    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+      init_one_square(sparrow, &(sparrow->shapes[i]));
+    }
+    sparrow->n_shapes = MAX_CALIBRATE_SHAPES;
+    sparrow->countdown = CALIBRATE_INITIAL_WAIT;
+  }
+  else {
+    sparrow->countdown = CALIBRATE_RETRY_WAIT;
+  }
+}
