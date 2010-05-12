@@ -106,6 +106,9 @@ typedef enum {
   SPARROW_WAIT_FOR_GRID,
   SPARROW_FIND_GRID,
   SPARROW_PLAY,
+
+
+  SPARROW_NEXT_STATE /*magical last state: alias for next in sequence */
 } sparrow_state;
 
 typedef enum {

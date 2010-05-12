@@ -199,6 +199,9 @@ sparrow_finalise(GstSparrow *sparrow)
 static void
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
+  if (state == SPARROW_NEXT_STATE){
+    state == sparrow->state + 1;
+  }
   switch(state){
   case SPARROW_FIND_SELF:
     init_find_self(sparrow);

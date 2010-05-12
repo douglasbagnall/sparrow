@@ -308,7 +308,7 @@ mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
     int r = find_lag(sparrow);
     if (r){
       GST_DEBUG("lag is set at %u! after %u cycles\n", sparrow->lag, sparrow->frame_count);
-      ret = SPARROW_WAIT_FOR_GRID;
+      ret = SPARROW_NEXT_STATE;
     }
     else {
       init_find_self(sparrow);
@@ -445,7 +445,7 @@ mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
 INVISIBLE sparrow_state
 mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if (wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
-    return SPARROW_FIND_SCREEN;
+    return SPARROW_NEXT_STATE;
   }
   return SPARROW_STATUS_QUO;
 }
