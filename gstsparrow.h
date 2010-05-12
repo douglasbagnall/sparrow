@@ -77,6 +77,7 @@ typedef guint32 pix_t;
 
 #define CALIBRATE_SIGNAL_THRESHOLD 200
 
+#define SPARROW_N_IPL_IN 3
 
 #define MAX_CALIBRATE_SHAPES 4
 
@@ -166,6 +167,12 @@ typedef struct sparrow_calibrate_s {
   guint32 outcolour;
 } sparrow_calibrate_t;
 
+typedef struct sparrow_find_screen_s {
+  IplImage *green;
+  IplImage *working;
+  IplImage *mask;
+} sparrow_find_screen_t;
+
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -211,7 +218,7 @@ struct _GstSparrow
   GstBuffer *prev_buffer;
   /*don't need work_buffer */
 
-  IplImage *in_ipl[3];
+  IplImage *in_ipl[SPARROW_N_IPL_IN];
 
   gboolean debug;
 
@@ -220,6 +227,10 @@ struct _GstSparrow
   guint32 frame_count;
   struct timeval timer_start;
   struct timeval timer_stop;
+  sparrow_find_screen_t findscreen;
+
+  guint8 *screenmask;
+  IplImage *screenmask_ipl;
 };
 
 struct _GstSparrowClass
