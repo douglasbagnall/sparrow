@@ -151,3 +151,70 @@ find_edges_threshold(IplImage *im)
   return best_t;
 }
 
+
+/* a minature state progression within this one, in case the processing is too
+   much for one frame.*/
+INVISIBLE sparrow_state
+mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  sparrow->countdown--;
+  sparrow_find_screen_t *finder = &(sparrow->findscreen);
+  IplImage *im = sparrow->in_ipl[0];
+  IplImage *green = finder->green;
+  IplImage *working = finder->working;
+  IplImage *mask = finder->mask;
+  CvPoint middle, corner;
+  switch (sparrow->countdown){
+  case 2:
+    /* time to look and see if the screen is there.
+       Look at the histogram of a single channel. */
+    im->imageData = (char*)in;
+    guint32 gshift = sparrow->in.gshift;
+    cvSplit(im,
+        (gshift == 24) ? green : NULL,
+        (gshift == 16) ? green : NULL,
+        (gshift ==  8) ? green : NULL,
+        (gshift ==  0) ? green : NULL);
+    int best_t = find_edges_threshold(green);
+    /*XXX if best_t is wrong, add to sparrow->countdown: probably the light is
+      not really on.  But what counts as wrong? */
+    cvCmpS(green, best_t, mask, CV_CMP_GT);
+    goto black;
+  case 1:
+    /* floodfill where the screen is, removing outlying bright spots*/
+    middle = (CvPoint){sparrow->in.width / 2, sparrow->in.height / 2};
+    memset(working->imageData, 255, sparrow->in.size);
+    floodfill_mono_superfast(mask, working, middle);
+    goto black;
+  case 0:
+    /* floodfill the border, removing onscreen dirt.*/
+    corner = (CvPoint){0, 0};
+    memset(mask->imageData, 255, sparrow->in.size);
+    floodfill_mono_superfast(working, mask, corner);
+    sparrow->screenmask = (guint8*)mask->imageData;
+    sparrow->screenmask_ipl = mask;
+    cvReleaseImage(&(finder->green));
+    cvReleaseImage(&(finder->working));
+    goto finish;
+  default:
+    /*send white and wait for the picture to arrive back. */
+    memset(out, 255, sparrow->out.size);
+    return SPARROW_STATUS_QUO;
+  }
+ black:
+  memset(out, 0, sparrow->out.size);
+  return SPARROW_STATUS_QUO;
+ finish:
+  memset(out, 0, sparrow->out.size);
+  return SPARROW_NEXT_STATE;
+}
+
+
+INVISIBLE void
+init_find_screen(GstSparrow *sparrow){
+  sparrow->countdown = sparrow->lag + 4;
+  sparrow_find_screen_t *finder = &(sparrow->findscreen);
+  CvSize size = {sparrow->in.width, sparrow->in.height};
+  finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
+  finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
+  finder->mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
+}
