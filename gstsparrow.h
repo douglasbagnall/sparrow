@@ -26,6 +26,7 @@
 #define __GST_VIDEO_SPARROW_H__
 
 #include <gst/video/gstvideofilter.h>
+#include <sys/time.h>
 
 G_BEGIN_DECLS
 
@@ -217,6 +218,8 @@ struct _GstSparrow
   guint32 rng_seed;
 
   guint32 frame_count;
+  struct timeval timer_start;
+  struct timeval timer_stop;
 };
 
 struct _GstSparrowClass
@@ -249,9 +252,28 @@ enum
 #define DEFAULT_PROP_DEBUG FALSE
 #define DEFAULT_PROP_RNG_SEED -1
 
+/*timing utility code */
 
+#define TIMER_START(sparrow) (((sparrow)->timer_start.time_t) ? \
+  (GST_DEBUG("timer already running!\n")) : \
+  (gettimeofday(&((sparrow)->tv1), NULL))
 
-
+static inline void
+TIMER_STOP(GstSparrow *sparrow)
+{
+  struct timeval *start = &(sparrow->timer_start);
+  struct timeval *stop = &(sparrow->timer_stop);
+  if (start.time_t == 0){
+    GST_DEBUG("the timer isn't running!\n");
+    return;
+  }
+  gettimeofday(stop, NULL);
+  guint32 t = ((stop->tv_sec - start->tv_sec) * 1000000 +
+      stop->tv_usec - start->tv_usec);
+  GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
+      t, (double)t * (25.0 / 1000000.0));
+  start->time_t = 0; /* mark it as unused */
+}
 
 /* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
    need our own debug channel. */
