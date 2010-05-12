@@ -67,7 +67,6 @@ typedef guint32 pix_t;
 #define CALIBRATE_ON_MAX_T 7
 #define CALIBRATE_OFF_MIN_T 2
 #define CALIBRATE_OFF_MAX_T 9
-#define CALIBRATE_PATTERN_L 100
 #define CALIBRATE_SELF_SIZE 24
 
 #define CALIBRATE_MAX_VOTE_ERROR 5
@@ -145,8 +144,6 @@ typedef struct sparrow_calibrate_s {
   /*calibration state, and shape and pattern definition */
   gboolean on;         /*for calibration pattern */
   gint wait;
-  guint32 pattern[CALIBRATE_PATTERN_L];
-  guint32 index;
   guint32 transitions;
   guint32 incolour;
   guint32 outcolour;
@@ -256,7 +253,7 @@ enum
    need our own debug channel. */
 #ifdef GST_DISABLE_GST_DEBUG
 
-#undef GEST_DEBUG
+#undef GST_DEBUG
 
 static FILE *_sparrow_bloody_debug_flags = NULL;
 static void
