@@ -24,25 +24,6 @@
 
 
 /*drawing*/
-
-static inline void
-horizontal_line(GstSparrow *sparrow, guint8 *out, guint32 y){
-  guint stride = sparrow->out.width * PIXSIZE;
-  guint8 *line = out + y * stride;
-  memset(line, 255, stride);
-}
-
-static inline void
-vertical_line(GstSparrow *sparrow, guint8 *out, guint32 x){
-  guint y;
-  guint32 *p = (guint32 *)out;
-  p += x;
-  for(y = 0; y < (guint)(sparrow->out.height); y++){
-    *p = -1;
-    p += sparrow->out.width;
-  }
-}
-
 static inline void
 rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
   int y, x;
@@ -66,17 +47,10 @@ static void draw_shapes(GstSparrow *sparrow, guint8 *out){
     switch (shape->shape){
     case NO_SHAPE:
       goto done; /* an empty one ends the list */
-    case VERTICAL_LINE:
-      vertical_line(sparrow, out, shape->x);
-      break;
-    case HORIZONTAL_LINE:
-      horizontal_line(sparrow, out, shape->x);
-      break;
     case RECTANGLE:
       rectangle(sparrow, out, shape);
       break;
-    case FULLSCREEN:
-      memset(out, 255, sparrow->out.size);
+    default:
       break;
     }
   }
@@ -141,21 +115,6 @@ static gboolean cycle_pattern(GstSparrow *sparrow){
   return on;
 }
 
-
-UNUSED
-static void
-init_lines(GstSparrow *sparrow){
-  int i;
-  sparrow_shape_t* shape = sparrow->shapes;
-  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape[i].w = 1;
-    shape[i].h = 1;
-    shape[i].x = 0;
-    shape[i].y = 0;
-    shape[i].shape = NO_SHAPE;
-  }
-  /* shape[0] will be set to vertical or horizontal in due course */
-}
 
 static inline void
 colour_coded_pixel(guint32* pixel, guint32 lag, guint32 shift){

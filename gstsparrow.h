@@ -149,8 +149,7 @@ enum calibration_shape {
 };
 
 typedef struct sparrow_shape_s {
-  /*Calibration shape definition -- a rectangle or line.
-   For lines, only one dimension is used.*/
+  /*Calibration shape definition -- a rectangle.*/
   enum calibration_shape shape;
   gint x;
   gint y;
