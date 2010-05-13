@@ -184,6 +184,11 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   if (sparrow->debug){
     init_debug(sparrow);
   }
+#if TIMER_LOG
+  sparrow->timer_log = fopen(TIMER_LOG_FILE, "w");
+#else
+  sparrow->timer_log = NULL;
+#endif
 
   change_state(sparrow, SPARROW_FIND_SELF);
   return TRUE;
@@ -192,6 +197,9 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 void INVISIBLE
 sparrow_finalise(GstSparrow *sparrow)
 {
+  if (sparrow->timer_log){
+    fclose(sparrow->timer_log);
+  }
   //free everything
   //cvReleaseImageHeader(IplImage** image)
 }
@@ -245,6 +253,9 @@ void INVISIBLE
 sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
 {
   sparrow_state new_state;
+#if TIME_TRANSFORM
+  TIMER_START(sparrow);
+#endif
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     new_state = mode_find_self(sparrow, in, out);
@@ -268,5 +279,8 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   if (new_state != SPARROW_STATUS_QUO){
     change_state(sparrow, new_state);
   }
+#if TIME_TRANSFORM
+  TIMER_STOP(sparrow);
+#endif
 }
 

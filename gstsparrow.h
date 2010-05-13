@@ -32,6 +32,8 @@ G_BEGIN_DECLS
 
 #define SPARROW_PPM_DEBUG 1
 
+#define TIMER_LOG 0
+#define TIMER_LOG_FILE "/tmp/timer.log"
 
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
@@ -230,6 +232,7 @@ struct _GstSparrow
 
   guint8 *screenmask;
   IplImage *screenmask_ipl;
+  FILE * timer_log;
 };
 
 struct _GstSparrowClass
@@ -263,10 +266,16 @@ enum
 #define DEFAULT_PROP_RNG_SEED -1
 
 /*timing utility code */
+#define TIME_TRANSFORM 1
 
-#define TIMER_START(sparrow) (((sparrow)->timer_start.time_t) ? \
-  (GST_DEBUG("timer already running!\n")) : \
-  (gettimeofday(&((sparrow)->tv1), NULL))
+#define TIMER_START(sparrow) do{                        \
+    if ((sparrow)->timer_start.tv_sec){                 \
+      GST_DEBUG("timer already running!\n");            \
+    }                                                   \
+    else {                                              \
+      gettimeofday(&((sparrow)->timer_start), NULL);    \
+    }                                                   \
+  } while (0)
 
 static inline void
 TIMER_STOP(GstSparrow *sparrow)
@@ -280,8 +289,13 @@ TIMER_STOP(GstSparrow *sparrow)
   gettimeofday(stop, NULL);
   guint32 t = ((stop->tv_sec - start->tv_sec) * 1000000 +
       stop->tv_usec - start->tv_usec);
-  GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
-      t, (double)t * (25.0 / 1000000.0));
+  if (sparrow->timer_log == NULL){
+    GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
+        t, (double)t * (25.0 / 1000000.0));
+  }
+  else {
+    fprintf(sparrow->timer_log, "%d %d\n", sparrow->state, t);
+  }
   start->tv_sec = 0; /* mark it as unused */
 }
 
