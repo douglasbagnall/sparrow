@@ -26,11 +26,13 @@
 #define __GST_VIDEO_SPARROW_H__
 
 #include <gst/video/gstvideofilter.h>
+#include <sys/time.h>
 
 G_BEGIN_DECLS
 
 #define SPARROW_PPM_DEBUG 1
 
+#define TIMER_LOG_FILE "/tmp/timer.log"
 
 #include "sparrowconfig.h"
 #include "dSFMT/dSFMT.h"
@@ -42,10 +44,10 @@ G_BEGIN_DECLS
 #warning UNUSED is set
 #endif
 
-/* the common recommendation is to default to 'hidden' and specifically mark
-   the unhidden ('default') ones, but this might muck with gstreamer macros,
-   some of which declare functions, and most sparrow functions are static
-   anyway, so it is simpler to whitelist visibility.
+/* the common recommendation for function visibility is to default to 'hidden'
+   and specifically mark the unhidden ('default') ones, but this might muck
+   with gstreamer macros, some of which declare functions, and most sparrow
+   functions are static anyway, so it is simpler to whitelist visibility.
 
    http://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#index-fvisibility-2135
 
@@ -67,14 +69,20 @@ typedef guint32 pix_t;
 #define CALIBRATE_ON_MAX_T 7
 #define CALIBRATE_OFF_MIN_T 2
 #define CALIBRATE_OFF_MAX_T 9
-#define CALIBRATE_PATTERN_L 100
-#define CALIBRATE_SELF_SIZE 16
+#define CALIBRATE_SELF_SIZE 24
 
-#define CALIBRATION_MIN_HITS 4
+#define CALIBRATE_MAX_VOTE_ERROR 5
+#define CALIBRATE_MAX_BEST_ERROR 2
+#define CALIBRATE_INITIAL_WAIT 72
+#define CALIBRATE_RETRY_WAIT 16
+
+#define CALIBRATE_SIGNAL_THRESHOLD 200
+
+#define SPARROW_N_IPL_IN 3
+
 #define MAX_CALIBRATE_SHAPES 4
 
-#define CALIBRATION_START_LAG_SEARCH (CALIBRATION_MIN_HITS * (CALIBRATE_ON_MAX_T + \
-          CALIBRATE_ON_MIN_T + CALIBRATE_OFF_MAX_T + CALIBRATE_OFF_MIN_T) / 8)
+#define FAKE_OTHER_PROJECTION 1
 
 #define WAIT_COUNTDOWN (MAX(CALIBRATE_OFF_MAX_T, CALIBRATE_ON_MAX_T) + 3)
 
@@ -90,12 +98,32 @@ typedef guint32 pix_t;
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 
-#define MAX_CALIBRATION_LAG 16
+
+typedef enum {
+  SPARROW_STATUS_QUO = 0,
+  SPARROW_INIT,
+  SPARROW_FIND_SELF,
+  SPARROW_FIND_SCREEN,
+  SPARROW_FIND_EDGES,
+  SPARROW_PICK_COLOUR,
+  SPARROW_WAIT_FOR_GRID,
+  SPARROW_FIND_GRID,
+  SPARROW_PLAY,
+
+
+  SPARROW_NEXT_STATE /*magical last state: alias for next in sequence */
+} sparrow_state;
+
+typedef enum {
+  SPARROW_WHITE = 0,
+  SPARROW_GREEN,
+  SPARROW_MAGENTA
+} sparrow_colour;
+
+#define MAX_CALIBRATION_LAG 12
 typedef struct lag_times_s {
-  //guint32 centre;
-  //guint32 confidence;
-  guint32 hits;
-  guint16 lag[MAX_CALIBRATION_LAG];
+  //guint32 hits;
+  guint64 record;
 } lag_times_t;
 
 typedef struct sparrow_format_s {
@@ -110,6 +138,7 @@ typedef struct sparrow_format_s {
   guint32 rmask;
   guint32 gmask;
   guint32 bmask;
+  guint32 colours[3];
 } sparrow_format;
 
 enum calibration_shape {
@@ -121,8 +150,7 @@ enum calibration_shape {
 };
 
 typedef struct sparrow_shape_s {
-  /*Calibration shape definition -- a rectangle or line.
-   For lines, only one dimension is used.*/
+  /*Calibration shape definition -- a rectangle.*/
   enum calibration_shape shape;
   gint x;
   gint y;
@@ -132,26 +160,22 @@ typedef struct sparrow_shape_s {
 
 typedef struct sparrow_calibrate_s {
   /*calibration state, and shape and pattern definition */
-  gint on;         /*for calibration pattern */
+  gboolean on;         /*for calibration pattern */
   gint wait;
-  guint32 pattern[CALIBRATE_PATTERN_L];
-  guint32 index;
   guint32 transitions;
+  guint32 incolour;
+  guint32 outcolour;
 } sparrow_calibrate_t;
+
+typedef struct sparrow_find_screen_s {
+  IplImage *green;
+  IplImage *working;
+  IplImage *mask;
+} sparrow_find_screen_t;
 
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
-
-typedef enum {
-  SPARROW_INIT,
-  SPARROW_FIND_SELF,
-  SPARROW_WAIT_FOR_GRID,
-  SPARROW_FIND_EDGES,
-  SPARROW_FIND_GRID,
-  SPARROW_PLAY,
-} sparrow_state;
-
 
 /**
  * GstSparrow:
@@ -165,6 +189,8 @@ struct _GstSparrow
   sparrow_format in;
   sparrow_format out;
   sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
+  int n_shapes;
+
   sparrow_calibrate_t calibrate;
 
   /* properties */
@@ -175,10 +201,9 @@ struct _GstSparrow
 
   /*state */
   sparrow_state state;
-  sparrow_state next_state;
 
   lag_times_t *lag_table;
-  guint32 lag_record;
+  guint64 lag_record;
   guint32 lag;
 
   gint32 countdown; /*intra-state timing*/
@@ -193,13 +218,22 @@ struct _GstSparrow
   GstBuffer *prev_buffer;
   /*don't need work_buffer */
 
-  IplImage *in_ipl[3];
+  IplImage *in_ipl[SPARROW_N_IPL_IN];
 
   gboolean debug;
 
   guint32 rng_seed;
 
   guint32 frame_count;
+  struct timeval timer_start;
+  struct timeval timer_stop;
+  sparrow_find_screen_t findscreen;
+
+  guint8 *screenmask;
+  IplImage *screenmask_ipl;
+
+  gboolean use_timer;
+  FILE * timer_log;
 };
 
 struct _GstSparrowClass
@@ -225,22 +259,54 @@ enum
   PROP_0,
   PROP_CALIBRATE,
   PROP_DEBUG,
+  PROP_TIMER,
   PROP_RNG_SEED
 };
 
 #define DEFAULT_PROP_CALIBRATE TRUE
 #define DEFAULT_PROP_DEBUG FALSE
+#define DEFAULT_PROP_TIMER FALSE
 #define DEFAULT_PROP_RNG_SEED -1
 
+/*timing utility code */
+#define TIME_TRANSFORM 1
 
+#define TIMER_START(sparrow) do{                        \
+    if ((sparrow)->timer_start.tv_sec){                 \
+      GST_DEBUG("timer already running!\n");            \
+    }                                                   \
+    else {                                              \
+      gettimeofday(&((sparrow)->timer_start), NULL);    \
+    }                                                   \
+  } while (0)
 
-
+static inline void
+TIMER_STOP(GstSparrow *sparrow)
+{
+  struct timeval *start = &(sparrow->timer_start);
+  struct timeval *stop = &(sparrow->timer_stop);
+  if (start->tv_sec == 0){
+    GST_DEBUG("the timer isn't running!\n");
+    return;
+  }
+  gettimeofday(stop, NULL);
+  guint32 t = ((stop->tv_sec - start->tv_sec) * 1000000 +
+      stop->tv_usec - start->tv_usec);
+  if (sparrow->timer_log == NULL){
+    GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
+        t, (double)t * (25.0 / 1000000.0));
+  }
+  else {
+    fprintf(sparrow->timer_log, "%d %6d\n", sparrow->state, t);
+  }
+  start->tv_sec = 0; /* mark it as unused */
+}
 
 /* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
    need our own debug channel. */
 #ifdef GST_DISABLE_GST_DEBUG
 
-#undef GEST_DEBUG
+#undef GST_DEBUG
 
 static FILE *_sparrow_bloody_debug_flags = NULL;
 static void

@@ -131,8 +131,13 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
           DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_DEBUG,
-      g_param_spec_boolean ("debug", "Debug", "add a debug screen [off]",
+      g_param_spec_boolean ("debug", "Debug", "save PPM files of internal state [off]",
           DEFAULT_PROP_DEBUG,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_TIMER,
+      g_param_spec_boolean ("timer", "Timer", "Time each transform [off]",
+          DEFAULT_PROP_TIMER,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_RNG_SEED,
@@ -173,6 +178,10 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       sparrow->debug = g_value_get_boolean(value);
       GST_DEBUG("debug_value is %d\n", sparrow->debug);
       break;
+    case PROP_TIMER:
+      sparrow->use_timer = g_value_get_boolean(value);
+      GST_DEBUG("timer_value is %d\n", sparrow->use_timer);
+      break;
     case PROP_RNG_SEED:
       sparrow->rng_seed = g_value_get_uint(value);
       GST_DEBUG("rng seed is %d\n", sparrow->rng_seed);
@@ -199,6 +208,9 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
       break;
     case PROP_DEBUG:
       g_value_set_boolean(value, sparrow->debug);
+      break;
+    case PROP_TIMER:
+      g_value_set_boolean(value, sparrow->use_timer);
       break;
     case PROP_RNG_SEED:
       g_value_set_uint(value, sparrow->rng_seed);

@@ -4,8 +4,9 @@ all::
 #LDFLAGS =
 DEFINES = -DDSFMT_MEXP=19937
 WARNINGS = -Wall -Wextra -Wno-unused-parameter
-ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
+ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
+
 
 DSFMT_FLAGS =  -finline-functions -fomit-frame-pointer -DNDEBUG -fno-strict-aliasing --param max-inline-insns-single=1800  -Wmissing-prototypes  -std=c99
 
@@ -36,12 +37,12 @@ GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib
 INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE)
 
 LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
-	-lglib-2.0 -lgstvideo-0.10 -lcxcore
+	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv
 #  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o sparrow.o dSFMT/dSFMT.o
+libgstsparrow.so: gstsparrow.o sparrow.o calibrate.o itworks.o floodfill.o edges.o dSFMT/dSFMT.o
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
@@ -51,17 +52,17 @@ clean:
 	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
-	$(CC)  $(DSFMT_FLAGS) $(INCLUDES) -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
+	$(CC)  $(DSFMT_FLAGS)  -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
 
 .c.o:
-	$(CC) $(INCLUDES) -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
-#	$(CC) $(INCLUDES) -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
+	$(CC)  -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+#	$(CC)  -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
 
 %.s:	%.c
-	$(CC) $(INCLUDES) -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CC)  -S  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 %.i:	%.c
-	$(CC) $(INCLUDES) -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CC)  -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 sparrow_gamma_lut.h: gamma.py
 	python $< > $@
@@ -130,12 +131,14 @@ cscope:
 	$(RM) cscope.out
 	cscope -b $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
 
+CPROTO_INCLUDES = $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
+
 cproto:
 #	cproto $(INCLUDES) -DUNUSED='' -S -i -X 0 *.c
-	cproto $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
+	cproto $(CPROTO_INCLUDES) -DUNUSED=''  $(DEFINES) -S -X 0 *.c
 
 cproto-nonstatic:
-	cproto $(INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
+	cproto $(CPROTO_INCLUDES) -DUNUSED=''  $(DEFINES)  -X 0 *.c
 
 
 #oprofile: all
@@ -157,8 +160,18 @@ splint:
 
 
 unittest:
-	$(CC) $(INCLUDES) -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test test.c
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test test.c
+	./test
+
+unittest-shifts:
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) -o test shift_test.c
+	./test
+
+CV_LINKS = -lcv -lcvaux -lhighgui
+
+unittest-edges:
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) -o test test-find-edge.c
 	./test
 
 
-.PHONY: TAGS all cproto cproto-nonstatic sysprof splint
+.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges

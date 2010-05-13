@@ -23,18 +23,38 @@
 #include "sparrow_false_colour_lut.h"
 #include "sparrow_gamma_lut.h"
 
+/* calibrate.c */
+INVISIBLE void init_find_self(GstSparrow *sparrow);
+INVISIBLE void init_pick_colour(GstSparrow *sparrow);
+INVISIBLE void init_wait_for_grid(GstSparrow *sparrow);
+INVISIBLE void init_find_grid(GstSparrow *sparrow);
+INVISIBLE void init_find_edges(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
-void INVISIBLE sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
-void INVISIBLE  sparrow_pre_init(GstSparrow *sparrow);
-gboolean INVISIBLE sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
-void INVISIBLE sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
-void INVISIBLE sparrow_finalise(GstSparrow *sparrow);
+/* sparrow.c */
+INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
+INVISIBLE void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
+INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
+INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
+INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
+
+/*itworks.c*/
+INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
+
+/*floodfill.c */
+INVISIBLE void init_find_screen(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 
 #define SPARROW_CALIBRATE_ON  1
 
 
-#define CALIBRATE_SIGNAL_THRESHOLD 32
+#define CALIBRATE_WAIT_SIGNAL_THRESHOLD 32
 #define ALIGNMENT 16
 
 
@@ -115,7 +135,33 @@ static inline guint32
 hamming_distance64(guint64 a, guint64 b, guint64 mask){
   a &= mask;
   b &= mask;
-  return popcount64(a ^ ~b);
+  /* count where the two differ */
+  return popcount64(a ^ b);
 }
+
+static inline gint
+mask_to_shift(guint32 mask){
+  /*mask is big-endian, so these numbers are reversed */
+  switch(mask){
+  case 0x000000ff:
+    return 24;
+  case 0x0000ff00:
+    return 16;
+  case 0x00ff0000:
+    return 8;
+  case 0xff000000:
+    return 0;
+  }
+  GST_WARNING("mask not byte aligned: %x\n", mask);
+  return 0;
+}
+
+static inline IplImage *
+init_ipl_image(sparrow_format *dim){
+  CvSize size = {dim->width, dim->height};
+  IplImage* im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+  return cvInitImageHeader(im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+}
+
 
 #endif /* __SPARROW_SPARROW_H__ */
