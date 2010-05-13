@@ -184,11 +184,8 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   if (sparrow->debug){
     init_debug(sparrow);
   }
-#if TIMER_LOG
-  sparrow->timer_log = fopen(TIMER_LOG_FILE, "w");
-#else
-  sparrow->timer_log = NULL;
-#endif
+
+  sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
 
   change_state(sparrow, SPARROW_FIND_SELF);
   return TRUE;

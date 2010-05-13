@@ -32,7 +32,6 @@ G_BEGIN_DECLS
 
 #define SPARROW_PPM_DEBUG 1
 
-#define TIMER_LOG 0
 #define TIMER_LOG_FILE "/tmp/timer.log"
 
 #include "sparrowconfig.h"
@@ -45,10 +44,10 @@ G_BEGIN_DECLS
 #warning UNUSED is set
 #endif
 
-/* the common recommendation is to default to 'hidden' and specifically mark
-   the unhidden ('default') ones, but this might muck with gstreamer macros,
-   some of which declare functions, and most sparrow functions are static
-   anyway, so it is simpler to whitelist visibility.
+/* the common recommendation for function visibility is to default to 'hidden'
+   and specifically mark the unhidden ('default') ones, but this might muck
+   with gstreamer macros, some of which declare functions, and most sparrow
+   functions are static anyway, so it is simpler to whitelist visibility.
 
    http://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#index-fvisibility-2135
 
@@ -232,6 +231,8 @@ struct _GstSparrow
 
   guint8 *screenmask;
   IplImage *screenmask_ipl;
+
+  gboolean use_timer;
   FILE * timer_log;
 };
 
@@ -258,11 +259,13 @@ enum
   PROP_0,
   PROP_CALIBRATE,
   PROP_DEBUG,
+  PROP_TIMER,
   PROP_RNG_SEED
 };
 
 #define DEFAULT_PROP_CALIBRATE TRUE
 #define DEFAULT_PROP_DEBUG FALSE
+#define DEFAULT_PROP_TIMER FALSE
 #define DEFAULT_PROP_RNG_SEED -1
 
 /*timing utility code */
@@ -294,7 +297,7 @@ TIMER_STOP(GstSparrow *sparrow)
         t, (double)t * (25.0 / 1000000.0));
   }
   else {
-    fprintf(sparrow->timer_log, "%d %d\n", sparrow->state, t);
+    fprintf(sparrow->timer_log, "%d %6d\n", sparrow->state, t);
   }
   start->tv_sec = 0; /* mark it as unused */
 }
