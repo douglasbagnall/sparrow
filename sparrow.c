@@ -158,6 +158,7 @@ sparrow_pre_init(GstSparrow *sparrow){
  */
 gboolean INVISIBLE
 sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
+  change_state(sparrow, SPARROW_INIT);
   extract_caps(&(sparrow->in), incaps);
   extract_caps(&(sparrow->out), outcaps);
   sparrow_format *in = &(sparrow->in);
@@ -187,7 +188,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 
   sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
 
-  change_state(sparrow, SPARROW_FIND_SELF);
+  change_state(sparrow, SPARROW_NEXT_STATE);
   return TRUE;
 }
 
