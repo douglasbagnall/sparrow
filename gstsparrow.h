@@ -272,34 +272,39 @@ enum
 #define TIME_TRANSFORM 1
 
 #define TIMER_START(sparrow) do{                        \
+  if (sparrow->timer_log){                              \
     if ((sparrow)->timer_start.tv_sec){                 \
       GST_DEBUG("timer already running!\n");            \
     }                                                   \
     else {                                              \
       gettimeofday(&((sparrow)->timer_start), NULL);    \
     }                                                   \
+  }                                                     \
   } while (0)
 
 static inline void
 TIMER_STOP(GstSparrow *sparrow)
 {
-  struct timeval *start = &(sparrow->timer_start);
-  struct timeval *stop = &(sparrow->timer_stop);
-  if (start->tv_sec == 0){
-    GST_DEBUG("the timer isn't running!\n");
-    return;
-  }
-  gettimeofday(stop, NULL);
-  guint32 t = ((stop->tv_sec - start->tv_sec) * 1000000 +
-      stop->tv_usec - start->tv_usec);
-  if (sparrow->timer_log == NULL){
+  if (sparrow->timer_log){
+    struct timeval *start = &(sparrow->timer_start);
+    struct timeval *stop = &(sparrow->timer_stop);
+    if (start->tv_sec == 0){
+      GST_DEBUG("the timer isn't running!\n");
+      return;
+    }
+    gettimeofday(stop, NULL);
+    guint32 t = ((stop->tv_sec - start->tv_sec) * 1000000 +
+        stop->tv_usec - start->tv_usec);
+
+#if SPARROW_NOISY_DEBUG
     GST_DEBUG("took %u microseconds (%0.5f of a frame)\n",
         t, (double)t * (25.0 / 1000000.0));
-  }
-  else {
+#endif
+
     fprintf(sparrow->timer_log, "%d %6d\n", sparrow->state, t);
+    fflush(sparrow->timer_log);
+    start->tv_sec = 0; /* mark it as unused */
   }
-  start->tv_sec = 0; /* mark it as unused */
 }
 
 /* GST_DISABLE_GST_DEBUG is set in gstreamer compilation. If it is set, we
