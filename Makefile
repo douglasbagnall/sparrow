@@ -37,7 +37,7 @@ GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib
 INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE)
 
 LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
-	-lglib-2.0 -lgstvideo-0.10 -lcxcore
+	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv
 #  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
 
 all:: libgstsparrow.so
