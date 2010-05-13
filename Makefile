@@ -88,6 +88,14 @@ TEST_V4L2_PIPE_TAIL = $(TEST_V4L2_SHAPE) ! $(TEST_PIPE_TAIL)
 test: all
 	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
+test-valgrind: debug
+	valgrind --log-file=valgrind.log --trace-children=yes --suppressions=valgrind-python.supp \
+	 gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL) 2> gst.log
+
+test-nemiver: debug
+	nemiver "gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)"
+
+
 test-times: all
 	timeout -3 20 time -v gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
@@ -147,9 +155,7 @@ cproto-nonstatic:
 #	! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 #	opreport $(OP_OPTS)
 
-sysprof:
-	make clean
-	make CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
+sysprof: debug
 	lsmod | grep -q 'sysprof_module' || sudo modprobe sysprof-module
 	sysprof &
 	@echo "click the start button!"
@@ -174,4 +180,8 @@ unittest-edges:
 	./test
 
 
-.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges
+debug:
+	make -B CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
+
+
+.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges debug
