@@ -57,10 +57,9 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
   CvPoint *nexts;
 
   //malloc 2 lists of points. These *could* be as large as the image (but never should be)
-  void * mem = malloc(w * h * 2 * sizeof(CvPoint));
+  void * mem = malloc_or_die(w * h * 2 * sizeof(CvPoint));
   starts = mem;
   nexts = starts + w * h;
-
   n_starts = 1;
   starts[0] = start;
 
@@ -157,11 +156,14 @@ find_edges_threshold(IplImage *im)
 INVISIBLE sparrow_state
 mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow->countdown--;
+  GST_DEBUG("in find_screen with countdown %d\n", sparrow->countdown);
   sparrow_find_screen_t *finder = &(sparrow->findscreen);
   IplImage *im = sparrow->in_ipl[0];
   IplImage *green = finder->green;
   IplImage *working = finder->working;
   IplImage *mask = finder->mask;
+  /* size is 1 byte per pixel, not 4! */
+  size_t size = sparrow->in.pixcount;
   CvPoint middle, corner;
   switch (sparrow->countdown){
   case 2:
@@ -182,13 +184,13 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   case 1:
     /* floodfill where the screen is, removing outlying bright spots*/
     middle = (CvPoint){sparrow->in.width / 2, sparrow->in.height / 2};
-    memset(working->imageData, 255, sparrow->in.size);
+    memset(working->imageData, 255, size);
     floodfill_mono_superfast(mask, working, middle);
     goto black;
   case 0:
     /* floodfill the border, removing onscreen dirt.*/
     corner = (CvPoint){0, 0};
-    memset(mask->imageData, 255, sparrow->in.size);
+    memset(mask->imageData, 255, size);
     floodfill_mono_superfast(working, mask, corner);
     sparrow->screenmask = (guint8*)mask->imageData;
     sparrow->screenmask_ipl = mask;
