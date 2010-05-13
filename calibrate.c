@@ -296,24 +296,6 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
 }
 
 
-
-
-static void
-see_grid(GstSparrow *sparrow, guint8 *in){
-}
-
-static void
-find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  see_grid(sparrow, in);
-  int on = cycle_pattern(sparrow);
-  memset(out, 0, sparrow->out.size);
-  if (on){
-    draw_shapes(sparrow, out);
-  }
-}
-
-
-
 /* wait for the other projector to stop changing, for as many frames as are
    set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
 
