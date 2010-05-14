@@ -139,6 +139,7 @@ cscope:
 	$(RM) cscope.out
 	cscope -b $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
 
+
 CPROTO_INCLUDES = $(shell echo "$(INCLUDES)" | sed s/-isystem/-I/)
 
 cproto:
@@ -183,5 +184,11 @@ unittest-edges:
 debug:
 	make -B CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
 
+#ccmalloc
+ccmalloc:
+	make -B CFLAGS='-lccmalloc -g' CC='ccmalloc --nowrapper gcc'
 
-.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges debug
+
+.PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges \
+	debug ccmalloc
+
