@@ -117,7 +117,7 @@ typedef enum {
 typedef enum {
   SPARROW_WHITE = 0,
   SPARROW_GREEN,
-  SPARROW_MAGENTA
+  SPARROW_MAGENTA,
 } sparrow_colour;
 
 #define MAX_CALIBRATION_LAG 12
@@ -186,6 +186,10 @@ typedef struct sparrow_find_lines_s {
   int current;
   int n_lines;
   sparrow_point_t *points;
+  gint n_points;
+  gint threshold;
+  gint shift1;
+  gint shift2;
 } sparrow_find_lines_t findlines;
 
 

@@ -49,7 +49,29 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   }
 }
 
-#define SPARROW_LINE_THRESHOLD 32
+
+/* With no line drawn (in our colour) look at the background noise.  Any real
+   signal has to be stringer than this.
+
+   XXX looking for simple maximum -- maybe heap or histogram might be better.
+*/
+static void
+look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  int i;
+  guint32 colour;
+  guint32 signal;
+  guint32 *in32 = (guint32 *)in;
+  gint highest = 0;
+  for (i = 0;  i < sparrow->in.size; i++){
+    colour = in32[i] & sparrow->colour;
+    signal = ((colour >> fl->shift1) +
+        (colour >> fl->shift1) & 0x1ff);
+    if (signal > highest){
+      highest = signal;
+    }
+  }
+  fl->threshold = highest + 10;
+}
 
 static void
 look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl, sparrow_line_t *line){
@@ -60,32 +82,11 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl, sparrow
   line->points = fl->points + fl->n_points;
   line->n_points = 0;
 
-  /*switch (sparrow->out.colour){
-  case SPARROW_WHITE:
-  case SPARROW_GREEN:
-
-    break;
-  case SPARROW_MAGENTA:
-
-  }*/
   for (i = 0;  i < sparrow->in.size; i++){
     colour = in32[i] & sparrow->colour;
-
-  /* could be cleverer here: in the case of green, there is only one byte,
-     set; with magenta, two. use switch outside loop?
-  */
-  /* also, no overflow is possible when adding the bytes
-     t = (colour & 0x00ff00ff) + ((colour & 0xff00ff00) >> 8)
-     t = (t + (t >> 16)) &0xffff
-
-     XXX and magenta will be twice as strong as green
- */
-    signal = (((colour & 0xff)) +
-        ((colour >> 8) & 0xff) +
-        ((colour >> 16)& 0xff) +
-        (colour >> 24));
-    /* threshold can be set dynamically --> look at colour before showing anything. */
-    if (signal > SPARROW_LINE_THRESHOLD){
+    signal = ((colour >> fl->shift1) +
+        (colour >> fl->shift1) & 0x1ff);
+    if (signal > fl->threshold){
       /*add to the points list */
       line->points[line->n_points].offset = i;
       line->points[line->n_points].signal = signal;
@@ -108,19 +109,30 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
-  if (sparrow->countdown){
-    /* show the line */
-    draw_line(sparrow, line, out);
+  if (sparrow->countdown > fl->cycle_len){
+
+
+  }
+  else if (sparrow->countdown){
+    if (fl->threshold){
+      /* show the line */
+      draw_line(sparrow, line, out);
+    }
   }
   else{
-    /*show nothing, look for result */
-    look_for_line(sparrow, in, fl, line);
-
-
-    fl->current++;
-    if (fl->current == fl->n_lines){
-      goto done;
+      /*show nothing, look for result */
+    if (fl->threshold){
+      look_for_line(sparrow, in, fl, line);
+      fl->current++;
+      if (fl->current == fl->n_lines){
+        goto done;
+      }
     }
+    else {
+      look_for_threshold(sparrow, in, fl);
+    }
+
+    sparrow->countdown = sparrow->lag + 2;
   }
   return SPARROW_STATUS_QUO;
  done:
@@ -129,6 +141,20 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
+static void
+setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  switch (sparrow->out.colour){
+  case SPARROW_WHITE:
+  case SPARROW_GREEN:
+    fl->shift1 = sparrow->in.gshift;
+    fl->shift2 = sparrow->in.gshift;
+    break;
+  case SPARROW_MAGENTA:
+    fl->shift1 = sparrow->in.rshift;
+    fl->shift2 = sparrow->in.bshift;
+    break;
+  }
+}
 
 INVISIBLE void
 init_find_edges(GstSparrow *sparrow){
@@ -178,4 +204,5 @@ init_find_edges(GstSparrow *sparrow){
   fl->current = 0;
   fl->n_lines = n_lines;
   sparrow->countdown = sparrow->lag + 2;
+  setup_colour_shifts(sparrow, fl);
 }
