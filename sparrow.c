@@ -185,6 +185,8 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   if (sparrow->debug){
     init_debug(sparrow);
   }
+  sparrow_format *out;
+  sparrow->colour = (sparrow->rng_seed & 2) ? out.colours[GREEN] | out.colours[SPARROW_MAGENTA];
 
   sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
 
