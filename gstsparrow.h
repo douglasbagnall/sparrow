@@ -163,12 +163,6 @@ typedef enum sparrow_axis_s {
   SPARROW_HORIZONTAL,
 } sparrow_axis_t;
 
-typedef struct sparrow_line_s {
-  gint offset;
-  sparrow_axis_t dir;
-  sparrow_point_t *points;
-  gint n_points;
-} sparrow_line_t;
 
 /*XXX maybe use guint16 x, y*/
 typedef struct sparrow_point_s {
@@ -177,6 +171,13 @@ typedef struct sparrow_point_s {
   gint offset;
   gint signal;
 } sparrow_point_t;
+
+typedef struct sparrow_line_s {
+  gint offset;
+  sparrow_axis_t dir;
+  sparrow_point_t *points;
+  gint n_points;
+} sparrow_line_t;
 
 typedef struct sparrow_find_lines_s {
   //sparrow_line_t *lines;
@@ -190,7 +191,7 @@ typedef struct sparrow_find_lines_s {
   gint threshold;
   gint shift1;
   gint shift2;
-} sparrow_find_lines_t findlines;
+} sparrow_find_lines_t;
 
 
 typedef struct sparrow_calibrate_s {

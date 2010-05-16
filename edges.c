@@ -32,7 +32,7 @@
 static inline void
 draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   guint32 *p = (guint32 *)out;
-  guint i;
+  int i;
   if (line->dir == SPARROW_HORIZONTAL){
     p += line->offset * sparrow->out.width;
     for (i = 0; i < sparrow->out.width; i++){
@@ -42,7 +42,7 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   else {
     guint32 *p = (guint32 *)out;
     p += line->offset;
-    for(i = 0; i < (guint)(sparrow->out.height); i++){
+    for(i = 0; i < sparrow->out.height; i++){
       *p = sparrow->colour;
       p += sparrow->out.width;
     }
@@ -61,11 +61,11 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   guint32 colour;
   guint32 signal;
   guint32 *in32 = (guint32 *)in;
-  gint highest = 0;
-  for (i = 0;  i < sparrow->in.size; i++){
+  guint32 highest = 0;
+  for (i = 0;  i < (int)sparrow->in.size; i++){
     colour = in32[i] & sparrow->colour;
     signal = ((colour >> fl->shift1) +
-        (colour >> fl->shift1) & 0x1ff);
+        (colour >> fl->shift2)) & 0x1ff;
     if (signal > highest){
       highest = signal;
     }
@@ -74,18 +74,19 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
 }
 
 static void
-look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl, sparrow_line_t *line){
-  int i;
+look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
+    sparrow_line_t *line){
+  guint i;
   guint32 colour;
-  guint32 signal;
+  int signal;
   guint32 *in32 = (guint32 *)in;
   line->points = fl->points + fl->n_points;
   line->n_points = 0;
 
-  for (i = 0;  i < sparrow->in.size; i++){
+  for (i = 0; i < sparrow->in.size; i++){
     colour = in32[i] & sparrow->colour;
     signal = ((colour >> fl->shift1) +
-        (colour >> fl->shift1) & 0x1ff);
+        (colour >> fl->shift2)) & 0x1ff;
     if (signal > fl->threshold){
       /*add to the points list */
       line->points[line->n_points].offset = i;
@@ -109,13 +110,9 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
-  if (sparrow->countdown > fl->cycle_len){
-
-
-  }
-  else if (sparrow->countdown){
+  if (sparrow->countdown){
+    /* show the line except on the first round, when we find a threshold*/
     if (fl->threshold){
-      /* show the line */
       draw_line(sparrow, line, out);
     }
   }
@@ -131,7 +128,6 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
     else {
       look_for_threshold(sparrow, in, fl);
     }
-
     sparrow->countdown = sparrow->lag + 2;
   }
   return SPARROW_STATUS_QUO;
@@ -143,7 +139,7 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  switch (sparrow->out.colour){
+  switch (sparrow->colour){
   case SPARROW_WHITE:
   case SPARROW_GREEN:
     fl->shift1 = sparrow->in.gshift;
@@ -167,7 +163,7 @@ init_find_edges(GstSparrow *sparrow){
   gint n_lines = (h_lines + v_lines);
 
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
-  fl->shuffled_lines = malloc_aligned_or_die(sizeof(*sparrow_line_t) * n_lines);
+  fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
@@ -196,13 +192,14 @@ init_find_edges(GstSparrow *sparrow){
 
   /*now shuffle (triangluar, to no particular advantage) */
   for (i = 0; i < n_lines - 1; i++){
-    int j = RAND_INT(i + 1, n_lines);
+    int j = RANDINT(sparrow, i + 1, n_lines);
     sparrow_line_t *tmp = fl->shuffled_lines[j];
     fl->shuffled_lines[j] = fl->shuffled_lines[i];
     fl->shuffled_lines[i] = tmp;
   }
   fl->current = 0;
   fl->n_lines = n_lines;
-  sparrow->countdown = sparrow->lag + 2;
+  fl->threshold = 0;
   setup_colour_shifts(sparrow, fl);
+  sparrow->countdown = sparrow->lag + 2;
 }
