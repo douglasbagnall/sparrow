@@ -16,17 +16,15 @@
  * Boston, MA 02111-1307, USA.
  */
 
+
 #include "sparrow.h"
 #include "gstsparrow.h"
+#include "edges.h"
 
 #include <string.h>
 #include <math.h>
 
 #include "cv.h"
-
-#define LINE_PERIOD 16
-
-
 
 /* draw the line (in sparrow->colour) */
 static inline void
@@ -49,12 +47,121 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   }
 }
 
+/*
+*/
+
+#define FIXED_POINT 8
+#define SIG_WEIGHT 5
+
+/*3 pixels manhatten distance makes you an outlier */
+#define OUTLIER_THRESHOLD 3 << (FIXED_POINT)
+#define OUTLIER_PENALTY 8
+
+#define SIGNAL(c)((c).signal[SPARROW_HORIZONTAL] + (c).signal[SPARROW_VERTICAL])
+
+static void
+find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  guint i;
+  int offset;
+  sparrow_cluster_t *clusters = malloc_or_die(fl->n_corners * sizeof(sparrow_cluster_t));
+  guint x, y;
+
+  for (y = 0; y < sparrow->in.height; y++){
+    for (x = 0; x < sparrow->in.width; x++){
+      sparrow_intersect_t *p = &fl->map[i];
+      /*remembering that 0 is valid as a line no, but not as a signal */
+      if (! p->signal[SPARROW_HORIZONTAL] ||
+          ! p->signal[SPARROW_VERTICAL]){
+        continue;
+      }
+      /*This one is lobbying for the position of the corner.*/
+
+      /*XXX what to do in the case that there is no intersection?  often cases
+        this will happen in the dark bits and be OK. But if it happens in the
+        light?*/
+      /*linearise the xy coordinates*/
+      int vline = p->lines[SPARROW_VERTICAL];
+      int hline = p->lines[SPARROW_HORIZONTAL];
+      sparrow_cluster_t *cluster = &clusters[vline * fl->n_hlines + hline];
+      int n = cluster->n;
+      if (n < 8){
+        cluster->voters[n].x = x << FIXED_POINT;
+        cluster->voters[n].y = y << FIXED_POINT;
+        cluster->voters[n].signal = (SIG_WEIGHT + p->signal[SPARROW_HORIZONTAL]) *
+          (SIG_WEIGHT + p->signal[SPARROW_VERTICAL]);
+        cluster->n++;
+      }
+      else {
+        GST_DEBUG("more than 8 pixels at cluster for corner %d, %d\n",
+            vline, hline);
+        /*if this message ever turns up, replace the weakest signals or add
+          more slots.*/
+      }
+    }
+  }
+
+  for (i = 0; i < fl->n_corners; i++){
+    /* how to do this?
+       1. centre of gravity (x,y, weighted average)
+       2. discard outliers? look for connectedness? but if 2 are outliers?
+     */
+    sparrow_cluster_t *cluster = clusters + i;
+    int x = 0;
+    int y = 0;
+    int xsum, ysum;
+    int xmean, ymean;
+    int untouched = cluster->n;
+    int votes = 1;
+    while(votes) { /* don't diminish signal altogether */
+      xsum = 0;
+      ysum = 0;
+      votes = 0;
+      for (j = 0; j < cluster->n; j++){
+        votes += cluster->voters[n].signal;
+        ysum += cluster->voters[n].y * cluster->voters[n].signal;
+        xsum += cluster->voters[n].x * cluster->voters[n].signal;
+      }
+      xmean = xsum / votes;
+      ymean = ysum / votes;
+      int worst = -1;
+      int worstn;
+      int devsum = 0;
+      for (j = 0; j < cluster->n; j++){
+        int xdiff = abs(cluster->voters[n].x - xmean);
+        int ydiff = abs(cluster->voters[n].y - ymean);
+        devsum += xdiff + ydiff;
+        if (xdiff + ydiff > worst){
+          worst = xdiff + ydiff;
+          worstn = j;
+        }
+      }
+      /*a bad outlier has significantly greater than average deviation
+        (but how much is bad? median deviation would be more useful)*/
+      if (worst > 3 * devsum / cluster->n){
+        /* reduce the worst ones weight. it is a silly aberration. */
+        cluster->voters[worstn].signal /= OUTLIER_PENALTY;
+        GST_DEBUG("dropping outlier at %s,%s (mean %s,%s)\n",
+            cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
+        continue;
+      }
+      break;
+    }
+    GST_DEBUG("found corner at (%3f, %3f)\n", xmean / 256.0, ymean / 256.0);
+
+    /*XXXX Now:
+      1. calculate deltas toward adjacent corners.
+      2. record the corners in sparrow object
+    */
+
+  }
+}
+
 
 /* With no line drawn (in our colour) look at the background noise.  Any real
    signal has to be stringer than this.
 
-   XXX looking for simple maximum -- maybe heap or histogram might be better.
-*/
+   XXX looking for simple maximum -- maybe heap or histogram might be better,
+   so as to be less susceptible to wierd outliers (e.g., bad pixels).  */
 static void
 look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   int i;
@@ -71,7 +178,9 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
     }
   }
   fl->threshold = highest + 10;
+  GST_DEBUG("found maximum noise of %s, using threshold %s\n", highest, fl->threshold);
 }
+
 
 static void
 look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
@@ -80,23 +189,20 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
   guint32 colour;
   int signal;
   guint32 *in32 = (guint32 *)in;
-  line->points = fl->points + fl->n_points;
-  line->n_points = 0;
-
   for (i = 0; i < sparrow->in.size; i++){
     colour = in32[i] & sparrow->colour;
     signal = ((colour >> fl->shift1) +
         (colour >> fl->shift2)) & 0x1ff;
     if (signal > fl->threshold){
-      /*add to the points list */
-      line->points[line->n_points].offset = i;
-      line->points[line->n_points].signal = signal;
-      line->n_points++;
+      if (fl->map[i].lines[line->dir]){
+        GST_DEBUG("HEY, expected point %d to be in line %d (dir %d)"
+            "and thus empty, but it is also in line %d\n",
+            i, line->index, line->dir, fl->map[i].lines[line->dir]);
+      }
+      fl->map[i].lines[line->dir] = line->index;
+      fl->map[i].signal[line->dir] = signal;
     }
   }
-
-  fl->n_points += line->n_points;
-  /*check for overflow? */
 }
 
 
@@ -106,7 +212,7 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
 
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  sparrow_find_lines_t *fl = &sparrow->findlines;
+  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
@@ -119,11 +225,11 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   else{
       /*show nothing, look for result */
     if (fl->threshold){
-      look_for_line(sparrow, in, fl, line);
-      fl->current++;
       if (fl->current == fl->n_lines){
         goto done;
       }
+      look_for_line(sparrow, in, fl, line);
+      fl->current++;
     }
     else {
       look_for_threshold(sparrow, in, fl);
@@ -132,7 +238,12 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
   return SPARROW_STATUS_QUO;
  done:
-  /*free stuff!*/
+  /*match up lines and find corners */
+  find_corners(sparrow, in, fl);
+
+
+  /*free stuff!, including fl, and reset pointer to NULL*/
+
   return SPARROW_NEXT_STATE;
 }
 
@@ -157,38 +268,47 @@ init_find_edges(GstSparrow *sparrow){
   gint32 w = sparrow->out.width;
   gint32 h = sparrow->out.height;
   gint i;
-  sparrow_find_lines_t *fl = &sparrow->findlines;
+  sparrow_find_lines_t *fl = zalloc_aligned_or_die(sizeof(sparrow_find_lines_t));
+  sparrow->helper_struct = (void *)fl;
+
   gint h_lines = (h + LINE_PERIOD - 1) / LINE_PERIOD;
   gint v_lines = (w + LINE_PERIOD - 1) / LINE_PERIOD;
   gint n_lines = (h_lines + v_lines);
+  fl->n_hlines = h_lines;
+  fl->n_vlines = v_lines;
+  fl->n_lines = n_lines;
 
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
+  fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
-  for (i = LINE_PERIOD / 2; i < h; i += LINE_PERIOD){
-    line->offset = i;
+  int offset = LINE_PERIOD / 2;
+
+  for (i = 0, offset = LINE_PERIOD / 2; offset < h;
+       i++, offset += LINE_PERIOD){
+    line->offset = offset;
     line->dir = SPARROW_HORIZONTAL;
-    line->n_points = 0;
-    line->points = NULL;
-    sline = &line;
+    line->index = i;
+    *sline = line;
     line++;
     sline++;
   }
+
   /*now add the vertical lines */
   fl->v_lines = line;
-  for (i = LINE_PERIOD / 2; i < w; i += LINE_PERIOD){
-    line->offset = i;
+  for (i = 0, offset = LINE_PERIOD / 2; offset < w;
+       i++, offset += LINE_PERIOD){
+    line->offset = offset;
     line->dir = SPARROW_VERTICAL;
-    line->n_points = 0;
-    line->points = NULL;
-    sline = &line;
+    line->index = i;
+    *sline = line;
     line++;
     sline++;
   }
-  n_lines = line - fl->h_lines;
-  GST_DEBUG("allocated %s lines, used %s\n", h_lines + v_lines, n_lines);
+
+  GST_DEBUG("allocated %s lines, used %s\n", n_lines, line - fl->h_lines);
 
   /*now shuffle (triangluar, to no particular advantage) */
   for (i = 0; i < n_lines - 1; i++){
@@ -197,9 +317,9 @@ init_find_edges(GstSparrow *sparrow){
     fl->shuffled_lines[j] = fl->shuffled_lines[i];
     fl->shuffled_lines[i] = tmp;
   }
-  fl->current = 0;
-  fl->n_lines = n_lines;
-  fl->threshold = 0;
+
   setup_colour_shifts(sparrow, fl);
   sparrow->countdown = sparrow->lag + 2;
+
+  sparrow->cornermap = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 }

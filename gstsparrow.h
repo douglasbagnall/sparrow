@@ -164,36 +164,6 @@ typedef enum sparrow_axis_s {
 } sparrow_axis_t;
 
 
-/*XXX maybe use guint16 x, y*/
-typedef struct sparrow_point_s {
-  //gint x;
-  //gint y;
-  gint offset;
-  gint signal;
-} sparrow_point_t;
-
-typedef struct sparrow_line_s {
-  gint offset;
-  sparrow_axis_t dir;
-  sparrow_point_t *points;
-  gint n_points;
-} sparrow_line_t;
-
-typedef struct sparrow_find_lines_s {
-  //sparrow_line_t *lines;
-  sparrow_line_t *h_lines;
-  sparrow_line_t *v_lines;
-  sparrow_line_t **shuffled_lines;
-  int current;
-  int n_lines;
-  sparrow_point_t *points;
-  gint n_points;
-  gint threshold;
-  gint shift1;
-  gint shift2;
-} sparrow_find_lines_t;
-
-
 typedef struct sparrow_calibrate_s {
   /*calibration state, and shape and pattern definition */
   gboolean on;         /*for calibration pattern */
@@ -228,6 +198,9 @@ struct _GstSparrow
   int n_shapes;
 
   sparrow_calibrate_t calibrate;
+
+  /*some calibration modes have big unwieldy structs that attach here */
+  void *helper_struct; 
 
   /* properties */
   gint calibrate_flag;  /*whether to calibrate */
@@ -264,7 +237,6 @@ struct _GstSparrow
   struct timeval timer_start;
   struct timeval timer_stop;
   sparrow_find_screen_t findscreen;
-  sparrow_find_lines_t findlines;
 
   guint8 *screenmask;
   IplImage *screenmask_ipl;
