@@ -50,25 +50,23 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
 /*
 */
 
-#define FIXED_POINT 8
 #define SIG_WEIGHT 5
 
 /*3 pixels manhatten distance makes you an outlier */
-#define OUTLIER_THRESHOLD 3 << (FIXED_POINT)
+#define OUTLIER_THRESHOLD 3 << (SPARROW_FIXED_POINT)
 #define OUTLIER_PENALTY 8
 
 #define SIGNAL(c)((c).signal[SPARROW_HORIZONTAL] + (c).signal[SPARROW_VERTICAL])
 
 static void
 find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
-  guint i;
-  int offset;
-  sparrow_cluster_t *clusters = malloc_or_die(fl->n_corners * sizeof(sparrow_cluster_t));
-  guint x, y;
+  int i;
+  sparrow_cluster_t *clusters = malloc_or_die(fl->n_hlines * fl->n_vlines * sizeof(sparrow_cluster_t));
+  gint x, y;
 
   for (y = 0; y < sparrow->in.height; y++){
     for (x = 0; x < sparrow->in.width; x++){
-      sparrow_intersect_t *p = &fl->map[i];
+      sparrow_intersect_t *p = &fl->map[y * sparrow->in.width + x];
       /*remembering that 0 is valid as a line no, but not as a signal */
       if (! p->signal[SPARROW_HORIZONTAL] ||
           ! p->signal[SPARROW_VERTICAL]){
@@ -85,8 +83,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       sparrow_cluster_t *cluster = &clusters[vline * fl->n_hlines + hline];
       int n = cluster->n;
       if (n < 8){
-        cluster->voters[n].x = x << FIXED_POINT;
-        cluster->voters[n].y = y << FIXED_POINT;
+        cluster->voters[n].x = x << SPARROW_FIXED_POINT;
+        cluster->voters[n].y = y << SPARROW_FIXED_POINT;
         cluster->voters[n].signal = (SIG_WEIGHT + p->signal[SPARROW_HORIZONTAL]) *
           (SIG_WEIGHT + p->signal[SPARROW_VERTICAL]);
         cluster->n++;
@@ -100,26 +98,24 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
     }
   }
 
-  for (i = 0; i < fl->n_corners; i++){
+  for (i = 0; i < fl->n_hlines * fl->n_vlines; i++){
     /* how to do this?
        1. centre of gravity (x,y, weighted average)
        2. discard outliers? look for connectedness? but if 2 are outliers?
      */
     sparrow_cluster_t *cluster = clusters + i;
-    int x = 0;
-    int y = 0;
     int xsum, ysum;
     int xmean, ymean;
-    int untouched = cluster->n;
     int votes = 1;
     while(votes) { /* don't diminish signal altogether */
+      int j;
       xsum = 0;
       ysum = 0;
       votes = 0;
       for (j = 0; j < cluster->n; j++){
-        votes += cluster->voters[n].signal;
-        ysum += cluster->voters[n].y * cluster->voters[n].signal;
-        xsum += cluster->voters[n].x * cluster->voters[n].signal;
+        votes += cluster->voters[j].signal;
+        ysum += cluster->voters[j].y * cluster->voters[j].signal;
+        xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
       xmean = xsum / votes;
       ymean = ysum / votes;
@@ -127,8 +123,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       int worstn;
       int devsum = 0;
       for (j = 0; j < cluster->n; j++){
-        int xdiff = abs(cluster->voters[n].x - xmean);
-        int ydiff = abs(cluster->voters[n].y - ymean);
+        int xdiff = abs(cluster->voters[j].x - xmean);
+        int ydiff = abs(cluster->voters[j].y - ymean);
         devsum += xdiff + ydiff;
         if (xdiff + ydiff > worst){
           worst = xdiff + ydiff;
@@ -321,5 +317,5 @@ init_find_edges(GstSparrow *sparrow){
   setup_colour_shifts(sparrow, fl);
   sparrow->countdown = sparrow->lag + 2;
 
-  sparrow->cornermap = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
+  sparrow->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 }

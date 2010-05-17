@@ -4,15 +4,6 @@
 #define LINE_PERIOD 16
 
 
-
-typedef struct sparrow_intersect_signal_s {
-  int x;
-  int y;
-  int xdelta;
-  int ydelta;
-  /* mark edge pieces? */
-} sparrow_corner_t;
-
 typedef struct sparrow_cluster_s {
   int n;
   struct {
@@ -29,14 +20,6 @@ typedef union sparrow_signal_s {
 } sparrow_signal_t;
 
 
-typedef struct sparrow_corner_s {
-  int x;
-  int y;
-  int xdelta;
-  int ydelta;
-  /* mark edge pieces? */
-} sparrow_corner_t;
-
 typedef struct sparrow_intersect_s {
   guint16 lines[2];
   guint16 signal[2];
@@ -46,8 +29,6 @@ typedef struct sparrow_line_s {
   gint offset;
   sparrow_axis_t dir;
   gint index;
-  sparrow_point_t *points;
-  gint n_points;
 } sparrow_line_t;
 
 typedef struct sparrow_find_lines_s {
@@ -59,8 +40,6 @@ typedef struct sparrow_find_lines_s {
   int n_lines;
   int n_vlines;
   int n_hlines;
-  //int n_corners;
-  
   gint threshold;
   gint shift1;
   gint shift2;

@@ -179,6 +179,19 @@ typedef struct sparrow_find_screen_s {
   IplImage *mask;
 } sparrow_find_screen_t;
 
+/* a mesh of these contains the mapping from input to output.
+   stored in a fixed point notation.
+*/
+#define SPARROW_FIXED_POINT 8
+
+typedef struct sparrow_corner_s {
+  int x;
+  int y;
+  int xdelta;
+  int ydelta;
+  /* mark edge pieces? */
+} sparrow_corner_t;
+
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -200,7 +213,7 @@ struct _GstSparrow
   sparrow_calibrate_t calibrate;
 
   /*some calibration modes have big unwieldy structs that attach here */
-  void *helper_struct; 
+  void *helper_struct;
 
   /* properties */
   gint calibrate_flag;  /*whether to calibrate */
@@ -243,6 +256,8 @@ struct _GstSparrow
 
   gboolean use_timer;
   FILE * timer_log;
+
+  sparrow_corner_t *mesh;
 };
 
 struct _GstSparrowClass
