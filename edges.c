@@ -36,12 +36,35 @@
 #define OUTLIER_THRESHOLD 3 << (SPARROW_FIXED_POINT)
 #define OUTLIER_PENALTY 8
 
-#define SIGNAL(c)((c).signal[SPARROW_HORIZONTAL] + (c).signal[SPARROW_VERTICAL])
+
+
+
+static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  sparrow_map_t *map = &sparrow->map;
+  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.width * sparrow->out.height /
+      LINE_PERIOD);
+  size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height;
+  map->point_mem = malloc_aligned_or_die(point_memsize);
+  map->rows = malloc_aligned_or_die(row_memsize);
+  int x, y;
+  for (y = 0; y < sparrow->out.height; y++){
+
+
+
+  }
+}
+
+
+/*create the mesh */
 
 static void
 find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   int i;
-  sparrow_cluster_t *clusters = malloc_or_die(fl->n_hlines * fl->n_vlines * sizeof(sparrow_cluster_t));
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+
+  sparrow_cluster_t *clusters = malloc_or_die(height * width * sizeof(sparrow_cluster_t));
+  sparrow_cluster_t *corners = zalloc_or_die(height * width * sizeof(sparrow_corner_t));
   gint x, y;
 
   for (y = 0; y < sparrow->in.height; y++){
@@ -52,7 +75,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           ! p->signal[SPARROW_VERTICAL]){
         continue;
       }
-      /*This one is lobbying for the position of the corner.*/
+      /*This one is lobbying for the position of a corner.*/
 
       /*XXX what to do in the case that there is no intersection?  often cases
         this will happen in the dark bits and be OK. But if it happens in the
@@ -60,7 +83,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       /*linearise the xy coordinates*/
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
-      sparrow_cluster_t *cluster = &clusters[vline * fl->n_hlines + hline];
+      sparrow_cluster_t *cluster = &clusters[vline * height + hline];
+
       int n = cluster->n;
       if (n < 8){
         cluster->voters[n].x = x << SPARROW_FIXED_POINT;
@@ -68,6 +92,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         cluster->voters[n].signal = (SIG_WEIGHT + p->signal[SPARROW_HORIZONTAL]) *
           (SIG_WEIGHT + p->signal[SPARROW_VERTICAL]);
         cluster->n++;
+        /*these next two could of course be computed from the offset */
       }
       else {
         GST_DEBUG("more than 8 pixels at cluster for corner %d, %d\n",
@@ -78,58 +103,112 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
     }
   }
 
-  for (i = 0; i < fl->n_hlines * fl->n_vlines; i++){
-    /* how to do this?
-       1. centre of gravity (x,y, weighted average)
-       2. discard outliers? look for connectedness? but if 2 are outliers?
-     */
-    sparrow_cluster_t *cluster = clusters + i;
-    int xsum, ysum;
-    int xmean, ymean;
-    int votes = 1;
-    while(votes) { /* don't diminish signal altogether */
-      int j;
-      xsum = 0;
-      ysum = 0;
-      votes = 0;
-      for (j = 0; j < cluster->n; j++){
-        votes += cluster->voters[j].signal;
-        ysum += cluster->voters[j].y * cluster->voters[j].signal;
-        xsum += cluster->voters[j].x * cluster->voters[j].signal;
-      }
-      xmean = xsum / votes;
-      ymean = ysum / votes;
-      int worst = -1;
-      int worstn;
-      int devsum = 0;
-      for (j = 0; j < cluster->n; j++){
-        int xdiff = abs(cluster->voters[j].x - xmean);
-        int ydiff = abs(cluster->voters[j].y - ymean);
-        devsum += xdiff + ydiff;
-        if (xdiff + ydiff > worst){
-          worst = xdiff + ydiff;
-          worstn = j;
-        }
-      }
-      /*a bad outlier has significantly greater than average deviation
-        (but how much is bad? median deviation would be more useful)*/
-      if (worst > 3 * devsum / cluster->n){
-        /* reduce the worst ones weight. it is a silly aberration. */
-        cluster->voters[worstn].signal /= OUTLIER_PENALTY;
-        GST_DEBUG("dropping outlier at %s,%s (mean %s,%s)\n",
-            cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
+  i = 0;
+  for (y = 0; y < height; y++){
+    for (x = 0; x < width; x++, i++){
+      /* how to do this?
+         1. centre of gravity (x,y, weighted average)
+         2. discard outliers? look for connectedness? but if 2 are outliers?
+      */
+      sparrow_cluster_t *cluster = clusters + i;
+      if (cluster->n == 0){
         continue;
       }
-      break;
+      int xsum, ysum;
+      int xmean, ymean;
+      int votes;
+      while(1) {
+        int j;
+        xsum = 0;
+        ysum = 0;
+        votes = 0;
+        for (j = 0; j < cluster->n; j++){
+          votes += cluster->voters[j].signal;
+          ysum += cluster->voters[j].y * cluster->voters[j].signal;
+          xsum += cluster->voters[j].x * cluster->voters[j].signal;
+        }
+        if (votes == 0){
+          /* don't diminish signal altogether. The previous iteration's means
+             will be used. */
+          break;
+        }
+        xmean = xsum / votes;
+        ymean = ysum / votes;
+        int worst = -1;
+        int worstn;
+        int devsum = 0;
+        for (j = 0; j < cluster->n; j++){
+          int xdiff = abs(cluster->voters[j].x - xmean);
+          int ydiff = abs(cluster->voters[j].y - ymean);
+          devsum += xdiff + ydiff;
+          if (xdiff + ydiff > worst){
+            worst = xdiff + ydiff;
+            worstn = j;
+          }
+        }
+        /*a bad outlier has significantly greater than average deviation
+          (but how much is bad? median deviation would be more useful)*/
+        if (worst > 3 * devsum / cluster->n){
+          /* reduce the worst ones weight. it is a silly aberration. */
+          cluster->voters[worstn].signal /= OUTLIER_PENALTY;
+          GST_DEBUG("dropping outlier at %s,%s (mean %s,%s)\n",
+              cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
+          continue;
+        }
+        break;
+      }
+      corners[i].out_x = x * LINE_PERIOD;
+      corners[i].out_y = y * LINE_PERIOD;
+      corners[i].in_x = xmean;
+      corners[i].in_y = ymean;
+      corners[i].used = TRUE;
+      double div = (double)(1 << SPARROW_FIXED_POINT); /*for printf only*/
+      GST_DEBUG("found corner %d (%d,%d) at (%3f, %3f)\n",
+          i, cluster->out_x, cluster->out_y,
+          xmean / div, ymean / div);
     }
-    GST_DEBUG("found corner at (%3f, %3f)\n", xmean / 256.0, ymean / 256.0);
-
-    /*XXXX Now:
-      1. calculate deltas toward adjacent corners.
-      2. record the corners in sparrow object
-    */
-
   }
+  free(clusters);
+
+  /* calculate deltas toward adjacent corners */
+  /* try to extrapolate left and up, if possible, so need to go backwards. */
+  for (y = height - 2; y >= 0; y--){
+    for (x = width - 2; x >= 0; x--){
+      i = y * width + x;
+      if (corners[i].used){
+        corners[i].dxh = (corners[i + 1].in_x - corners[i].in_x) / LINE_PERIOD;
+        corners[i].dyh = (corners[i + 1].in_y - corners[i].in_y) / LINE_PERIOD;
+        corners[i].dxv = (corners[i + width].in_x - corners[i].in_x) / LINE_PERIOD;
+        corners[i].dyv = (corners[i + width].in_y - corners[i].in_y) / LINE_PERIOD;
+      }
+      else if(corners[i + 1].used){
+        /*prefer copy from left, for no great reason
+          A mixed copy would be possible and better */
+        corners[i].dxh = corners[i + 1].dxh;
+        corners[i].dyh = corners[i + 1].dyh;
+        corners[i].dxv = corners[i + 1].dxv;
+        corners[i].dyv = corners[i + 1].dyv;
+        corners[i].in_x = corners[i + 1].in_x - corners[i + 1].dxh * LINE_PERIOD;
+        corners[i].in_y = corners[i + 1].in_y - corners[i + 1].dyh * LINE_PERIOD;
+        corners[i].out_x = corners[i + 1].out_x - 1;
+        corners[i].out_y = corners[i + 1].out_y;
+        corners[i].used = 2;
+      }
+      else if(corners[i + width].used){
+        corners[i].dxh = corners[i + width].dxh;
+        corners[i].dyh = corners[i + width].dyh;
+        corners[i].dxv = corners[i + width].dxv;
+        corners[i].dyv = corners[i + width].dyv;
+        corners[i].in_x = corners[i + width].in_x - corners[i + width].dxv * LINE_PERIOD;
+        corners[i].in_y = corners[i + width].in_y - corners[i + width].dyv * LINE_PERIOD;
+        corners[i].out_x = corners[i + width].out_x;
+        corners[i].out_y = corners[i + width].out_y - 1;
+        corners[i].used = 3;
+      }
+    }
+  }
+
+  fl->mesh = corners;
 }
 
 
@@ -318,5 +397,5 @@ init_find_edges(GstSparrow *sparrow){
   setup_colour_shifts(sparrow, fl);
   sparrow->countdown = sparrow->lag + 2;
 
-  sparrow->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
+  fl->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 }

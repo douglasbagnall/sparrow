@@ -192,6 +192,23 @@ typedef struct sparrow_corner_s {
   /* mark edge pieces? */
 } sparrow_corner_t;
 
+typedef struct sparrow_map_point_s {
+  int x;
+  int y;
+  int dx;
+  int dy;
+}sparrow_map_point_t;
+
+typedef struct sparrow_map_row_s {
+  int start;
+  int end;
+  sparrow_map_point_t *points;
+}sparrow_map_row_t;
+
+typedef struct sparrow_map_s {
+  sparrow_map_row_t *rows;
+  void *point_mem;
+}sparrow_map_t;
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -257,8 +274,9 @@ struct _GstSparrow
   gboolean use_timer;
   FILE * timer_log;
 
-  sparrow_corner_t *mesh;
+  sparrow_map_t map;
 };
+
 
 struct _GstSparrowClass
 {
