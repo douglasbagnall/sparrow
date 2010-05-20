@@ -43,39 +43,125 @@
 #define SPARROW_MAP_LUT_SHIFT 1
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
-typedef struct sparrow_map_lut_s{
-  guint16 x;
-  guint16 y;
-} sparrow_map_lut_t;
+#define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_map_t *map = &sparrow->map; /*rows in sparrow->out */
   guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
 
-  sparrow_map_lut_t *map_lut = malloc_aligned_or_die(sizeof(sparrow_map_lut_t) *
-      sparrow->out.pixcount);
-
-  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD);
-  size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height;
+  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
+  size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height + 1;
   map->point_mem = malloc_aligned_or_die(point_memsize);
   map->rows = zalloc_aligned_or_die(row_memsize);
 
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
+  int in_w = sparrow->in.width;
+  int in_h = sparrow->in.height;
   int ox, oy;
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
 
   oy = 0;
   int oi = 0;
+
+  sparrow_map_row_t *row = map->rows;
+  sparrow_map_point_t *p = map->point_mem;
   sparrow_corner_t *mesh_row = mesh;
   for(mcy = 0; mcy < mesh_h; mcy++){
     for (mmy = 0; mmy < LINE_PERIOD; mmy++, oy++){
       sparrow_corner_t *mesh_square = mesh_row;
+      row->points = p;
+      row->start = 0;
+      row->end = 0;
+      for(mcx = 0; mcx < mesh_w; mcx++){
+        if (mesh_square->used){
+          int iy = mesh_square->in_y + mmy * mesh_square->dyv;
+          int ix = mesh_square->in_x + mmy * mesh_square->dxv;
+          int ii = OFFSET(ix, iy, in_w);
+          int ii_end = OFFSET(ix + (LINE_PERIOD - 1) * mesh_square->dxh,
+              iy + (LINE_PERIOD - 1) * mesh_square->dyh, in_w);
+          int start_on = mask[ii];
+          int end_on = mask[ii_end];
+          if(start_on && end_on){
+            /*add the point, maybe switch on */
+            if (row->start == row->end){/* if both are 0 */
+              row->start = mcx * LINE_PERIOD;
+            }
+            p->x = ix;
+            p->y = iy;
+            p->dx = dxh;
+            p->dy = dyh;
+            p++;
+          }
+          else if (start_on){
+            /*add the point, switch off somewhere in the middle*/
+            for (x = 0; x < LINE_PERIOD - 1; x++){
+              iy += mesh_square->dyh;
+              ix += mesh_square->dxh;
+              ii = OFFSET(ix, iy, in_w);
+              if (mask[ii]){
+                /*point is not in the same column with the others,
+                  but sparrow knows this because the row->start says so */
+                row->start = mcx + x;
+                p->x = ix;
+                p->y = iy;
+                p->dx = dxh;
+                p->dy = dyh;
+                p++;
+                break;
+              }
+            }
+          }
+          else if (end_on){
+            /* add some, switch off */
+            for (x = 0; x < LINE_PERIOD - 1; x++){
+              iy += mesh_square->dyh;
+              ix += mesh_square->dxh;
+              ii = OFFSET(ix, iy, in_w);
+              if (! mask[ii]){
+                row->end = mcx + x;
+                break;
+              }
+            }
+
+          }
+          else {
+            if (row->start > row->end){
+              /*this is the first off pixel */
+              row->end = mcx * LINE_PERIOD;
+            }
+            /*other cases:
+              start == end: row hasn't started
+              start < end: both are set -- row is done
+            */
+          }
+        }
+        mesh_square++;
+      }
+      row++;
+    }
+    mesh_row += mesh_w;
+  }
+}
+
+static void corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
+  size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
+  sparrow_map_lut_t *map_lut = malloc_aligned_or_die(lutsize);
+
+  int mesh_w = fl->n_vlines;
+  int mesh_h = fl->n_hlines;
+  int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
+  int i = 0;
+  sparrow_corner_t *mesh_row = mesh;
+  for(mcy = 0; mcy < mesh_h; mcy++){
+    for (mmy = 0; mmy < LINE_PERIOD; mmy++){
+      sparrow_corner_t *mesh_square = mesh_row;
       for(mcx = 0; mcx < mesh_w; mcx++){
         int iy = mesh_square->in_y + mmy * mesh_square->dyv;
         int ix = mesh_square->in_x + mmy * mesh_square->dxv;
-        for (mmx = 0; mmx < LINE_PERIOD; mmx++, ox++, oi++){
+        for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
           map_lut[oi].x = ix >> SPARROW_FP_2_LUT;
           map_lut[oi].y = iy >> SPARROW_FP_2_LUT;
           ix += mesh_square->dxh;
@@ -86,6 +172,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     }
     mesh_row += mesh_w;
   }
+  sparrow->map_lut = map_lut;
 }
 
 

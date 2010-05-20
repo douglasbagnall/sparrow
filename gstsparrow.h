@@ -202,6 +202,12 @@ typedef struct sparrow_map_s {
   void *point_mem;
 }sparrow_map_t;
 
+typedef struct sparrow_map_lut_s{
+  guint16 x;
+  guint16 y;
+} sparrow_map_lut_t;
+
+
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
 
@@ -267,6 +273,8 @@ struct _GstSparrow
   FILE * timer_log;
 
   sparrow_map_t map;
+  /*full sized LUT */
+  sparrow_map_lut_t *map_lut;
 };
 
 
