@@ -176,7 +176,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->timer_stop.tv_sec = 0;
 
   /*initialise IPL structs for openCV */
-  for (int i = 0; i < 3; i++){
+  for (int i = 0; i < SPARROW_N_IPL_IN; i++){
     sparrow->in_ipl[i] = init_ipl_image(&(sparrow->in));
   }
 
