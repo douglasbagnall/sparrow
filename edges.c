@@ -41,16 +41,49 @@
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_map_t *map = &sparrow->map;
+  guint8 *mask = &sparrow->screenmask;
   size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.width * sparrow->out.height /
       LINE_PERIOD);
   size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height;
   map->point_mem = malloc_aligned_or_die(point_memsize);
-  map->rows = malloc_aligned_or_die(row_memsize);
-  int x, y;
-  for (y = 0; y < sparrow->out.height; y++){
+  map->rows = zalloc_aligned_or_die(row_memsize);
+  guint x, y, i;
+  guint cx, cy, mx, my;
+  guint out_w = sparrow->out.width;
+  guint out_h = sparrow->out.height;
+
+  int start = rawmemchr(mask, 255) - mask;
+  int end = memrchr(mask, 255, out_w * out_h) - mask;
+  guint sy = start / out_w;
+  guint ey = end / out_w;
+  //guint sx = start % out_w;
+  //guint ex = end % out_w;
+  /*outside rows are already zero from zalloc */
+
+  int mesh_w = fl->n_vlines;
+  int mesh_h = fl->n_hlines;
+
+  for (y = sy; y < ey; y++){
+    maskrow = mask + y * out_w;
+    row[y].start = memchr(maskrow, 255, out_w) - maskrow;
+    row[y].end = memrchr(maskrow, 255, out_w) - maskrow;
+    i = y * out_w + row[y].start;
+
+    cy = y / LINE_PERIOD;
+    my = y % LINE_PERIOD;
+
+    cx = x / LINE_PERIOD;
+    mx = x % LINE_PERIOD;
+
+    mesh_point = fl->mesh[cy * mesh_w + cx];
+    ref_x = mesh_point.x + mx * mesh_point.dxh;
+    ref_y = mesh_point.y + my * mesh_point.dyh;
 
 
+    for (x = row[y].start; x < row[y].end; x++, i++){
 
+
+    }
   }
 }
 
@@ -64,7 +97,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   int height = fl->n_hlines;
 
   sparrow_cluster_t *clusters = malloc_or_die(height * width * sizeof(sparrow_cluster_t));
-  sparrow_cluster_t *corners = zalloc_or_die(height * width * sizeof(sparrow_corner_t));
+  sparrow_corner_t *corners = zalloc_aligned_or_die(height * width * sizeof(sparrow_corner_t));
   gint x, y;
 
   for (y = 0; y < sparrow->in.height; y++){
@@ -164,7 +197,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       corners[i].used = TRUE;
       double div = (double)(1 << SPARROW_FIXED_POINT); /*for printf only*/
       GST_DEBUG("found corner %d (%d,%d) at (%3f, %3f)\n",
-          i, cluster->out_x, cluster->out_y,
+          i, corners[i].out_x, corners[i].out_y,
           xmean / div, ymean / div);
     }
   }
@@ -181,29 +214,33 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         corners[i].dxv = (corners[i + width].in_x - corners[i].in_x) / LINE_PERIOD;
         corners[i].dyv = (corners[i + width].in_y - corners[i].in_y) / LINE_PERIOD;
       }
-      else if(corners[i + 1].used){
-        /*prefer copy from left, for no great reason
-          A mixed copy would be possible and better */
-        corners[i].dxh = corners[i + 1].dxh;
-        corners[i].dyh = corners[i + 1].dyh;
-        corners[i].dxv = corners[i + 1].dxv;
-        corners[i].dyv = corners[i + 1].dyv;
-        corners[i].in_x = corners[i + 1].in_x - corners[i + 1].dxh * LINE_PERIOD;
-        corners[i].in_y = corners[i + 1].in_y - corners[i + 1].dyh * LINE_PERIOD;
-        corners[i].out_x = corners[i + 1].out_x - 1;
-        corners[i].out_y = corners[i + 1].out_y;
-        corners[i].used = 2;
-      }
-      else if(corners[i + width].used){
-        corners[i].dxh = corners[i + width].dxh;
-        corners[i].dyh = corners[i + width].dyh;
-        corners[i].dxv = corners[i + width].dxv;
-        corners[i].dyv = corners[i + width].dyv;
-        corners[i].in_x = corners[i + width].in_x - corners[i + width].dxv * LINE_PERIOD;
-        corners[i].in_y = corners[i + width].in_y - corners[i + width].dyv * LINE_PERIOD;
-        corners[i].out_x = corners[i + width].out_x;
-        corners[i].out_y = corners[i + width].out_y - 1;
-        corners[i].used = 3;
+      else {
+          /*prefer copy from left unless it is itself reconstructed,
+            (for no great reason)
+            A mixed copy would be possible and better */
+        if(corners[i + 1].used &&
+            (corners[i + 1].used < corners[i + width].used)){
+          corners[i].dxh = corners[i + 1].dxh;
+          corners[i].dyh = corners[i + 1].dyh;
+          corners[i].dxv = corners[i + 1].dxv;
+          corners[i].dyv = corners[i + 1].dyv;
+          corners[i].in_x = corners[i + 1].in_x - corners[i + 1].dxh * LINE_PERIOD;
+          corners[i].in_y = corners[i + 1].in_y - corners[i + 1].dyh * LINE_PERIOD;
+          corners[i].out_x = corners[i + 1].out_x - 1;
+          corners[i].out_y = corners[i + 1].out_y;
+          corners[i].used = corners[i + 1].used + 1;
+        }
+        else if(corners[i + width].used){
+          corners[i].dxh = corners[i + width].dxh;
+          corners[i].dyh = corners[i + width].dyh;
+          corners[i].dxv = corners[i + width].dxv;
+          corners[i].dyv = corners[i + width].dyv;
+          corners[i].in_x = corners[i + width].in_x - corners[i + width].dxv * LINE_PERIOD;
+          corners[i].in_y = corners[i + width].in_y - corners[i + width].dyv * LINE_PERIOD;
+          corners[i].out_x = corners[i + width].out_x;
+          corners[i].out_y = corners[i + width].out_y - 1;
+          corners[i].used = corners[i + width].used + 1;
+        }
       }
     }
   }

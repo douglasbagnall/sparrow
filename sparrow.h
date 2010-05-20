@@ -89,6 +89,16 @@ zalloc_aligned_or_die(size_t size){
   return mem;
 }
 
+static inline __attribute__((malloc)) UNUSED void *
+zalloc_or_die(size_t size){
+  void *mem = calloc(size, 1);
+  if (!mem){
+    GST_ERROR("calloc would not allocate %u bytes!\n", size);
+    exit(EXIT_FAILURE);
+  }
+  return mem;
+}
+
 /*RNG macros */
 
 static inline UNUSED guint32

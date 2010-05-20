@@ -184,14 +184,6 @@ typedef struct sparrow_find_screen_s {
 */
 #define SPARROW_FIXED_POINT 8
 
-typedef struct sparrow_corner_s {
-  int x;
-  int y;
-  int xdelta;
-  int ydelta;
-  /* mark edge pieces? */
-} sparrow_corner_t;
-
 typedef struct sparrow_map_point_s {
   int x;
   int y;
