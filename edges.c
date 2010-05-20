@@ -41,7 +41,7 @@
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_map_t *map = &sparrow->map;
-  guint8 *mask = &sparrow->screenmask;
+  guint8 *mask = sparrow->screenmask;
   size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.width * sparrow->out.height /
       LINE_PERIOD);
   size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height;
@@ -52,8 +52,8 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint out_w = sparrow->out.width;
   guint out_h = sparrow->out.height;
 
-  int start = rawmemchr(mask, 255) - mask;
-  int end = memrchr(mask, 255, out_w * out_h) - mask;
+  int start = (guint8*)rawmemchr(mask, 255) - mask;
+  int end = (guint8*)memrchr(mask, 255, out_w * out_h) - mask;
   guint sy = start / out_w;
   guint ey = end / out_w;
   //guint sx = start % out_w;
@@ -64,10 +64,11 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mesh_h = fl->n_hlines;
 
   for (y = sy; y < ey; y++){
-    maskrow = mask + y * out_w;
-    row[y].start = memchr(maskrow, 255, out_w) - maskrow;
-    row[y].end = memrchr(maskrow, 255, out_w) - maskrow;
-    i = y * out_w + row[y].start;
+    guint8* maskrow = mask + y * out_w;
+
+    map->rows[y].start = (guint8*)memchr(maskrow, 255, out_w) - maskrow;
+    map->rows[y].end = (guint8*)memrchr(maskrow, 255, out_w) - maskrow;
+    i = y * out_w + map->rows[y].start;
 
     cy = y / LINE_PERIOD;
     my = y % LINE_PERIOD;
@@ -75,12 +76,13 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     cx = x / LINE_PERIOD;
     mx = x % LINE_PERIOD;
 
-    mesh_point = fl->mesh[cy * mesh_w + cx];
-    ref_x = mesh_point.x + mx * mesh_point.dxh;
-    ref_y = mesh_point.y + my * mesh_point.dyh;
+    /*all wrong!*/
+    sparrow_corner_t *corner = &fl->mesh[cy * mesh_w + cx];
+    int ref_x = corner->x + mx * corner->dxh;
+    int ref_y = corner->y + my * corner->dyh;
 
 
-    for (x = row[y].start; x < row[y].end; x++, i++){
+    for (x = map->rows[y].start; x < map->rows[y].end; x++, i++){
 
 
     }
