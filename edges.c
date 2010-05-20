@@ -36,58 +36,58 @@
 #define OUTLIER_THRESHOLD 3 << (SPARROW_FIXED_POINT)
 #define OUTLIER_PENALTY 8
 
+/*
+*/
 
 
+#define SPARROW_MAP_LUT_SHIFT 1
+#define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
+
+typedef struct sparrow_map_lut_s{
+  guint16 x;
+  guint16 y;
+} sparrow_map_lut_t;
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  sparrow_map_t *map = &sparrow->map;
-  guint8 *mask = sparrow->screenmask;
-  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.width * sparrow->out.height /
-      LINE_PERIOD);
+  sparrow_map_t *map = &sparrow->map; /*rows in sparrow->out */
+  guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
+  sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
+
+  sparrow_map_lut_t *map_lut = malloc_aligned_or_die(sizeof(sparrow_map_lut_t) *
+      sparrow->out.pixcount);
+
+  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD);
   size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height;
   map->point_mem = malloc_aligned_or_die(point_memsize);
   map->rows = zalloc_aligned_or_die(row_memsize);
-  guint x, y, i;
-  guint cx, cy, mx, my;
-  guint out_w = sparrow->out.width;
-  guint out_h = sparrow->out.height;
-
-  int start = (guint8*)rawmemchr(mask, 255) - mask;
-  int end = (guint8*)memrchr(mask, 255, out_w * out_h) - mask;
-  guint sy = start / out_w;
-  guint ey = end / out_w;
-  //guint sx = start % out_w;
-  //guint ex = end % out_w;
-  /*outside rows are already zero from zalloc */
 
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
+  int ox, oy;
+  int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
 
-  for (y = sy; y < ey; y++){
-    guint8* maskrow = mask + y * out_w;
-
-    map->rows[y].start = (guint8*)memchr(maskrow, 255, out_w) - maskrow;
-    map->rows[y].end = (guint8*)memrchr(maskrow, 255, out_w) - maskrow;
-    i = y * out_w + map->rows[y].start;
-
-    cy = y / LINE_PERIOD;
-    my = y % LINE_PERIOD;
-
-    cx = x / LINE_PERIOD;
-    mx = x % LINE_PERIOD;
-
-    /*all wrong!*/
-    sparrow_corner_t *corner = &fl->mesh[cy * mesh_w + cx];
-    int ref_x = corner->x + mx * corner->dxh;
-    int ref_y = corner->y + my * corner->dyh;
-
-
-    for (x = map->rows[y].start; x < map->rows[y].end; x++, i++){
-
-
+  oy = 0;
+  int oi = 0;
+  sparrow_corner_t *mesh_row = mesh;
+  for(mcy = 0; mcy < mesh_h; mcy++){
+    for (mmy = 0; mmy < LINE_PERIOD; mmy++, oy++){
+      sparrow_corner_t *mesh_square = mesh_row;
+      for(mcx = 0; mcx < mesh_w; mcx++){
+        int iy = mesh_square->in_y + mmy * mesh_square->dyv;
+        int ix = mesh_square->in_x + mmy * mesh_square->dxv;
+        for (mmx = 0; mmx < LINE_PERIOD; mmx++, ox++, oi++){
+          map_lut[oi].x = ix >> SPARROW_FP_2_LUT;
+          map_lut[oi].y = iy >> SPARROW_FP_2_LUT;
+          ix += mesh_square->dxh;
+          iy += mesh_square->dyh;
+        }
+        mesh_square++;
+      }
     }
+    mesh_row += mesh_w;
   }
 }
+
 
 
 /*create the mesh */

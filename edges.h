@@ -4,11 +4,11 @@
 #define LINE_PERIOD 16
 
 typedef struct sparrow_corner_s {
-  int out_x;
+  int out_x; /*regular, unnecessary?*/
   int out_y;
   int in_x;
   int in_y;
-  /*dyh -> dy, to next point horizontally */
+  /*dyh -> dy to next point horizontally */
   int dxh;
   int dyh;
   int dxv;
