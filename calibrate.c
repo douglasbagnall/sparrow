@@ -18,6 +18,7 @@
 
 #include "sparrow.h"
 #include "gstsparrow.h"
+#include "calibrate.h"
 
 #include <string.h>
 #include <math.h>
@@ -25,12 +26,12 @@
 
 /*drawing*/
 static inline void
-rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
+rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape, guint32 colour){
   int y, x;
   guint stride = sparrow->out.width;
   guint32 *line = ((guint32 *)out) + shape->y * stride + shape->x;
   for (x = 0; x < shape->w; x++){
-    line[x] = sparrow->calibrate.outcolour;
+    line[x] = colour;
   }
   guint32 *line2 = line + stride;
   for(y = 1; y < shape->h; y++){
@@ -42,13 +43,14 @@ rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape){
 static void draw_shapes(GstSparrow *sparrow, guint8 *out){
   int i;
   sparrow_shape_t *shape;
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t*) sparrow->helper_struct;
   for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-    shape = sparrow->shapes + i;
+    shape = calibrate->shapes + i;
     switch (shape->shape){
     case NO_SHAPE:
       goto done; /* an empty one ends the list */
     case RECTANGLE:
-      rectangle(sparrow, out, shape);
+      rectangle(sparrow, out, shape, calibrate->outcolour);
       break;
     default:
       break;
@@ -73,6 +75,7 @@ init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
 /*fake other projection */
 static void add_random_signal(GstSparrow *sparrow, guint8 *out){
   int i;
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t*) sparrow->helper_struct;
   static sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
   static int been_here = 0;
   static int countdown = 0;
@@ -90,27 +93,28 @@ static void add_random_signal(GstSparrow *sparrow, guint8 *out){
   }
   if (on){
     for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-      rectangle(sparrow, out, &shapes[i]);
+      rectangle(sparrow, out, &shapes[i], calibrate->outcolour);
     }
   }
   countdown--;
 }
 
 static gboolean cycle_pattern(GstSparrow *sparrow){
-  gboolean on = sparrow->calibrate.on;
-  if (sparrow->calibrate.wait == 0){
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
+  gboolean on = calibrate->on;
+  if (calibrate->wait == 0){
     on = !on;
     if (on){
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
+      calibrate->wait = RANDINT(sparrow, CALIBRATE_ON_MIN_T, CALIBRATE_ON_MAX_T);
     }
     else{
-      sparrow->calibrate.wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
+      calibrate->wait = RANDINT(sparrow, CALIBRATE_OFF_MIN_T, CALIBRATE_OFF_MAX_T);
     }
-    sparrow->calibrate.on = on;
-    sparrow->calibrate.transitions++;
+    calibrate->on = on;
+    calibrate->transitions++;
   }
-  sparrow->calibrate.wait--;
-  sparrow->lag_record = (sparrow->lag_record << 1) | on;
+  calibrate->wait--;
+  calibrate->lag_record = (calibrate->lag_record << 1) | on;
   //GST_DEBUG("lag record %llx, on %i\n", sparrow->lag_record, on);
   return on;
 }
@@ -154,13 +158,14 @@ int64_to_binary_string(char *s, guint64 n){
 
 static inline int
 find_lag(GstSparrow *sparrow){
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
   int res = 0;
   guint i, j;
   guint32 *frame = (guint32 *)sparrow->debug_frame;
   if (sparrow->debug){
     memset(frame, 0, sparrow->in.size);
   }
-  guint64 target_pattern = sparrow->lag_record;
+  guint64 target_pattern = calibrate->lag_record;
   guint32 overall_best = (guint32)-1;
   guint32 overall_lag = 0;
   char pattern_debug[65];
@@ -170,7 +175,7 @@ find_lag(GstSparrow *sparrow){
       target_pattern);
 
   for (i = 0; i < sparrow->in.pixcount; i++){
-    guint64 record = sparrow->lag_table[i].record;
+    guint64 record = calibrate->lag_table[i].record;
     if (record == 0 || ~record == 0){
       /*ignore this one! it'll never usefully match. */
       //frame[i] = 0xffffffff;
@@ -208,7 +213,7 @@ find_lag(GstSparrow *sparrow){
       overall_best = best;
       overall_lag = lag;
       char pattern_debug2[65];
-      guint64 r = sparrow->lag_table[i].record;
+      guint64 r = calibrate->lag_table[i].record;
       GST_DEBUG("Best now: lag  %u! error %u pixel %u\n"
           "record:  %s %llx\n"
           "pattern: %s %llx\n",
@@ -247,8 +252,9 @@ find_lag(GstSparrow *sparrow){
 static inline void
 record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
   //signal = (signal != 0);
-  sparrow->lag_table[offset].record <<= 1;
-  sparrow->lag_table[offset].record |= signal;
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
+  calibrate->lag_table[offset].record <<= 1;
+  calibrate->lag_table[offset].record |= signal;
 }
 
 
@@ -328,9 +334,10 @@ wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
 static inline void
 new_calibration_colour(GstSparrow *sparrow){
   int c = RANDINT(sparrow, 1, 3);
-  sparrow->calibrate.incolour = sparrow->in.colours[c];
-  sparrow->calibrate.outcolour = sparrow->out.colours[c];
-  //sparrow->calibrate.wait == 0;
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
+  calibrate->incolour = sparrow->in.colours[c];
+  calibrate->outcolour = sparrow->out.colours[c];
+  //calibrate->wait == 0;
 }
 
 /* Choose between green or magenta, randomly and iteratively, until the
@@ -338,11 +345,12 @@ new_calibration_colour(GstSparrow *sparrow){
 
 INVISIBLE sparrow_state
 mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
   if(wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
     new_calibration_colour(sparrow);
-    sparrow->calibrate.wait = sparrow->lag + 2;
+    calibrate->wait = sparrow->lag + 2;
   }
-  sparrow->calibrate.wait--;
+  calibrate->wait--;
   return SPARROW_STATUS_QUO;
 }
 
@@ -365,14 +373,17 @@ init_find_grid(GstSparrow *sparrow){}
 
 INVISIBLE void
 init_find_self(GstSparrow *sparrow){
-  sparrow->calibrate.incolour = sparrow->in.colours[SPARROW_WHITE];
-  sparrow->calibrate.outcolour = sparrow->out.colours[SPARROW_WHITE];
-  if (! sparrow->n_shapes){
+  sparrow_calibrate_t *calibrate = zalloc_aligned_or_die(sizeof(sparrow_calibrate_t));
+  sparrow->helper_struct = (void *)calibrate;
+
+  calibrate->incolour = sparrow->in.colours[SPARROW_WHITE];
+  calibrate->outcolour = sparrow->out.colours[SPARROW_WHITE];
+  if (! calibrate->n_shapes){
     int i;
     for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-      init_one_square(sparrow, &(sparrow->shapes[i]));
+      init_one_square(sparrow, &(calibrate->shapes[i]));
     }
-    sparrow->n_shapes = MAX_CALIBRATE_SHAPES;
+    calibrate->n_shapes = MAX_CALIBRATE_SHAPES;
     sparrow->countdown = CALIBRATE_INITIAL_WAIT;
   }
   else {

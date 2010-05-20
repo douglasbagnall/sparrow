@@ -64,27 +64,9 @@ G_BEGIN_DECLS
 typedef guint32 pix_t;
 #define PIXSIZE (sizeof(pix_t))
 
-
-#define CALIBRATE_ON_MIN_T 2
-#define CALIBRATE_ON_MAX_T 7
-#define CALIBRATE_OFF_MIN_T 2
-#define CALIBRATE_OFF_MAX_T 9
-#define CALIBRATE_SELF_SIZE 24
-
-#define CALIBRATE_MAX_VOTE_ERROR 5
-#define CALIBRATE_MAX_BEST_ERROR 2
-#define CALIBRATE_INITIAL_WAIT 72
-#define CALIBRATE_RETRY_WAIT 16
-
-#define CALIBRATE_SIGNAL_THRESHOLD 200
-
 #define SPARROW_N_IPL_IN 3
 
-#define MAX_CALIBRATE_SHAPES 4
-
 #define FAKE_OTHER_PROJECTION 1
-
-#define WAIT_COUNTDOWN (MAX(CALIBRATE_OFF_MAX_T, CALIBRATE_ON_MAX_T) + 3)
 
 #define GST_TYPE_SPARROW \
   (gst_sparrow_get_type())
@@ -120,11 +102,6 @@ typedef enum {
   SPARROW_MAGENTA,
 } sparrow_colour;
 
-#define MAX_CALIBRATION_LAG 12
-typedef struct lag_times_s {
-  //guint32 hits;
-  guint64 record;
-} lag_times_t;
 
 typedef struct sparrow_format_s {
   gint32 width;
@@ -141,37 +118,12 @@ typedef struct sparrow_format_s {
   guint32 colours[3];
 } sparrow_format;
 
-enum calibration_shape {
-  NO_SHAPE = 0,
-  VERTICAL_LINE,
-  HORIZONTAL_LINE,
-  FULLSCREEN,
-  RECTANGLE,
-};
-
-typedef struct sparrow_shape_s {
-  /*Calibration shape definition -- a rectangle.*/
-  enum calibration_shape shape;
-  gint x;
-  gint y;
-  gint w;
-  gint h;
-} sparrow_shape_t;
 
 typedef enum sparrow_axis_s {
   SPARROW_VERTICAL,
   SPARROW_HORIZONTAL,
 } sparrow_axis_t;
 
-
-typedef struct sparrow_calibrate_s {
-  /*calibration state, and shape and pattern definition */
-  gboolean on;         /*for calibration pattern */
-  gint wait;
-  guint32 transitions;
-  guint32 incolour;
-  guint32 outcolour;
-} sparrow_calibrate_t;
 
 typedef struct sparrow_find_screen_s {
   IplImage *green;
@@ -222,10 +174,6 @@ struct _GstSparrow
 
   sparrow_format in;
   sparrow_format out;
-  sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
-  int n_shapes;
-
-  sparrow_calibrate_t calibrate;
 
   /*some calibration modes have big unwieldy structs that attach here */
   void *helper_struct;
@@ -239,8 +187,6 @@ struct _GstSparrow
   /*state */
   sparrow_state state;
 
-  lag_times_t *lag_table;
-  guint64 lag_record;
   guint32 lag;
 
   gint32 countdown; /*intra-state timing*/
