@@ -26,26 +26,6 @@
 
 #include "cv.h"
 
-/* draw the line (in sparrow->colour) */
-static inline void
-draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
-  guint32 *p = (guint32 *)out;
-  int i;
-  if (line->dir == SPARROW_HORIZONTAL){
-    p += line->offset * sparrow->out.width;
-    for (i = 0; i < sparrow->out.width; i++){
-      p[i] = sparrow->colour;
-    }
-  }
-  else {
-    guint32 *p = (guint32 *)out;
-    p += line->offset;
-    for(i = 0; i < sparrow->out.height; i++){
-      *p = sparrow->colour;
-      p += sparrow->out.width;
-    }
-  }
-}
 
 /*
 */
@@ -201,6 +181,27 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
   }
 }
 
+
+/* draw the line (in sparrow->colour) */
+static inline void
+draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
+  guint32 *p = (guint32 *)out;
+  int i;
+  if (line->dir == SPARROW_HORIZONTAL){
+    p += line->offset * sparrow->out.width;
+    for (i = 0; i < sparrow->out.width; i++){
+      p[i] = sparrow->colour;
+    }
+  }
+  else {
+    guint32 *p = (guint32 *)out;
+    p += line->offset;
+    for(i = 0; i < sparrow->out.height; i++){
+      *p = sparrow->colour;
+      p += sparrow->out.width;
+    }
+  }
+}
 
 /* show each line for 2 frames, then wait sparrow->lag frames, leaving line on
    until last one.
