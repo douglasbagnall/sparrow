@@ -122,7 +122,7 @@ find_edges_threshold(IplImage *im)
 
   int pixels = small->width * small->height;
   int min_black = pixels / 16;
-  int max_black = pixels / 2;
+  int max_black = pixels * 3 / 4;
   int totals[256] = {0};
 
   int best_d = pixels + 1;
