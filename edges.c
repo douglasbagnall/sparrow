@@ -376,6 +376,16 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
   }
 }
 
+static void
+debug_map_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  guint32 *data = (guint32*)fl->debug->imageData;
+  memset(data, 0, sparrow->in.size);
+  for (guint i = 0; i < sparrow->in.pixcount; i++){
+    data[i] |= fl->map[i].signal[SPARROW_HORIZONTAL] << sparrow->in.gshift;
+    data[i] |= fl->map[i].signal[SPARROW_VERTICAL] << sparrow->in.rshift;
+  }
+  MAYBE_DEBUG_IPL(fl->debug);
+}
 
 /* draw the line (in sparrow->colour) */
 static inline void
@@ -429,6 +439,9 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
     }
     sparrow->countdown = sparrow->lag + 2;
   }
+  if (sparrow->debug){
+    debug_map_image(sparrow, fl);
+  }
   return SPARROW_STATUS_QUO;
  done:
   /*match up lines and find corners */
@@ -442,6 +455,10 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
+  //debug_find_lines(fl);
+  if (sparrow->debug){
+    cvReleaseImage(&fl->debug);
+  }
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
   free(fl->h_lines);
   free(fl->shuffled_lines);
@@ -529,4 +546,9 @@ init_find_edges(GstSparrow *sparrow){
 
   setup_colour_shifts(sparrow, fl);
   sparrow->countdown = sparrow->lag + 2;
+  //debug_find_lines(fl);
+  if (sparrow->debug){
+    CvSize size = {sparrow->in.width, sparrow->in.height};
+    fl->debug = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
+  }
 }

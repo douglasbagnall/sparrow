@@ -150,7 +150,7 @@ find_edges_threshold(IplImage *im)
   }
   GST_DEBUG("found best threshold %d -- %d pixel change at %d/%d pixels\n",
       best_t, best_d, totals[best_t], pixels);
-
+  //MAYBE_DEBUG_IPL(small);
   cvReleaseImage(&small);
   cvReleaseHist(&hist);
 
@@ -186,6 +186,7 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     int best_t = find_edges_threshold(green);
     /*XXX if best_t is wrong, add to sparrow->countdown: probably the light is
       not really on.  But what counts as wrong? */
+    MAYBE_DEBUG_IPL(green);
     cvCmpS(green, best_t, mask, CV_CMP_GT);
     goto black;
   case 1:
@@ -193,12 +194,14 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     middle = (CvPoint){sparrow->in.width / 2, sparrow->in.height / 2};
     memset(working->imageData, 255, size);
     floodfill_mono_superfast(mask, working, middle);
+    MAYBE_DEBUG_IPL(working);
     goto black;
   case 0:
     /* floodfill the border, removing onscreen dirt.*/
     corner = (CvPoint){0, 0};
     memset(mask->imageData, 255, size);
     floodfill_mono_superfast(working, mask, corner);
+    MAYBE_DEBUG_IPL(mask);
     sparrow->screenmask = (guint8*)mask->imageData;
     cvReleaseImage(&(finder->green));
     cvReleaseImage(&(finder->working));
