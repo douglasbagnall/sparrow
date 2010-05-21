@@ -252,6 +252,7 @@ sparrow_finalise(GstSparrow *sparrow)
 static void
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
+  GST_DEBUG("state is %d, sparrow->state is %d\n", state, sparrow->state);
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     finalise_find_self(sparrow);
