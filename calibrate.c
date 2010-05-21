@@ -276,10 +276,9 @@ mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
       ret = SPARROW_NEXT_STATE;
     }
     else {
-      init_find_self(sparrow);
+      sparrow->countdown = CALIBRATE_RETRY_WAIT;
     }
   }
-
   memset(out, 0, sparrow->out.size);
   gboolean on = cycle_pattern(sparrow);
   if (on){
@@ -304,10 +303,8 @@ finalise_find_self(GstSparrow *sparrow)
 {
   sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
   free(calibrate->lag_table);
-
   free(calibrate);
 }
-
 
 
 INVISIBLE void
@@ -325,17 +322,11 @@ init_find_self(GstSparrow *sparrow){
     calibrate->in_ipl[i] = init_ipl_image(&(sparrow->in));
   }
 
-
-  if (! calibrate->n_shapes){
-    int i;
-    for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
-      init_one_square(sparrow, &(calibrate->shapes[i]));
-    }
-    calibrate->n_shapes = MAX_CALIBRATE_SHAPES;
-    sparrow->countdown = CALIBRATE_INITIAL_WAIT;
+  int i;
+  for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){
+    init_one_square(sparrow, &(calibrate->shapes[i]));
   }
-  else {
-    sparrow->countdown = CALIBRATE_RETRY_WAIT;
-  }
+  calibrate->n_shapes = MAX_CALIBRATE_SHAPES;
+  sparrow->countdown = CALIBRATE_INITIAL_WAIT;
 }
 
