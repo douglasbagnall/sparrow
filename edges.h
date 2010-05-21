@@ -63,7 +63,7 @@ typedef struct sparrow_find_lines_s {
 } sparrow_find_lines_t;
 
 
-#define debug_find_lines(fl)GST_DEBUG(          \
+#define DEBUG_FIND_LINES(fl)GST_DEBUG(          \
   "fl:\n"                                       \
   "  sparrow_line_t *h_lines: %p\n"             \
   "  sparrow_line_t *v_lines: %p\n"             \
