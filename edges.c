@@ -284,8 +284,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           xmean / div, ymean / div);
     }
   }
-  free(clusters);
-
+  DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
   for (y = height - 2; y >= 0; y--){
@@ -517,7 +516,7 @@ init_find_edges(GstSparrow *sparrow){
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
   GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
-  fl->clusters = malloc_or_die(n_corners * sizeof(sparrow_cluster_t));
+  fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
   fl->corners = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
   fl->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 
