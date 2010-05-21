@@ -202,9 +202,6 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     memset(mask->imageData, 255, size);
     floodfill_mono_superfast(working, mask, corner);
     MAYBE_DEBUG_IPL(mask);
-    sparrow->screenmask = (guint8*)mask->imageData;
-    cvReleaseImage(&(finder->green));
-    cvReleaseImage(&(finder->working));
     goto finish;
   default:
     /*send white and wait for the picture to arrive back. */
@@ -216,7 +213,6 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
  finish:
   memset(out, 0, sparrow->out.size);
-  finalise_find_screen(sparrow);
   return SPARROW_NEXT_STATE;
 }
 
