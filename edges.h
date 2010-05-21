@@ -63,7 +63,37 @@ typedef struct sparrow_find_lines_s {
 } sparrow_find_lines_t;
 
 
-
+#define debug_find_lines(fl)GST_DEBUG(          \
+  "fl:\n"                                       \
+  "  sparrow_line_t *h_lines: %p\n"             \
+  "  sparrow_line_t *v_lines: %p\n"             \
+  "  sparrow_line_t **shuffled_lines: %p\n"     \
+  "  int current: %d\n"                         \
+  "  int n_lines: %d\n"                         \
+  "  int n_vlines: %d\n"                        \
+  "  int n_hlines: %d\n"                        \
+  "  gint threshold: %d\n"                      \
+  "  gint shift1: %d\n"                         \
+  "  gint shift2: %d\n"                         \
+  "  sparrow_intersect_t *map: %p\n"            \
+  "  sparrow_corner_t *mesh: %p\n"              \
+  "  sparrow_cluster_t *clusters: %p\n"         \
+  "  sparrow_corner_t *corners: %p\n"           \
+  ,                                             \
+    (fl)->h_lines,                                \
+    (fl)->v_lines,                                \
+    (fl)->shuffled_lines,                         \
+    (fl)->current,                                \
+    (fl)->n_lines,                                \
+    (fl)->n_vlines,                               \
+    (fl)->n_hlines,                               \
+    (fl)->threshold,                              \
+    (fl)->shift1,                                 \
+    (fl)->shift2,                                 \
+    (fl)->map,                                    \
+    (fl)->mesh,                                   \
+  (fl)->clusters,                                 \
+  (fl)->corners)                                  \
 
 
 #endif /*have this .h*/
