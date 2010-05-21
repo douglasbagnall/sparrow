@@ -234,7 +234,7 @@ INVISIBLE void
 init_find_screen(GstSparrow *sparrow){
   sparrow_find_screen_t *finder = zalloc_aligned_or_die(sizeof(sparrow_find_screen_t));
   sparrow->helper_struct = (void *)finder;
-  sparrow->countdown = sparrow->lag + 4;
+  sparrow->countdown = sparrow->lag + 5;
   CvSize size = {sparrow->in.width, sparrow->in.height};
   finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
