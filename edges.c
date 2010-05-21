@@ -263,7 +263,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         if (worst > 3 * devsum / cluster->n){
           /* reduce the worst ones weight. it is a silly aberration. */
           cluster->voters[worstn].signal /= OUTLIER_PENALTY;
-          GST_DEBUG("dropping outlier at %s,%s (mean %s,%s)\n",
+          GST_DEBUG("dropping outlier at %d,%d (mean %d,%d)\n",
               cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
           continue;
         }
@@ -340,7 +340,7 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   guint32 signal;
   guint32 *in32 = (guint32 *)in;
   guint32 highest = 0;
-  for (i = 0;  i < (int)sparrow->in.size; i++){
+  for (i = 0;  i < (int)sparrow->in.pixcount; i++){
     colour = in32[i] & sparrow->colour;
     signal = ((colour >> fl->shift1) +
         (colour >> fl->shift2)) & 0x1ff;
@@ -349,7 +349,7 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
     }
   }
   fl->threshold = highest + 10;
-  GST_DEBUG("found maximum noise of %s, using threshold %s\n", highest, fl->threshold);
+  GST_DEBUG("found maximum noise of %d, using threshold %d\n", highest, fl->threshold);
 }
 
 
@@ -360,7 +360,7 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
   guint32 colour;
   int signal;
   guint32 *in32 = (guint32 *)in;
-  for (i = 0; i < sparrow->in.size; i++){
+  for (i = 0; i < sparrow->in.pixcount; i++){
     colour = in32[i] & sparrow->colour;
     signal = ((colour >> fl->shift1) +
         (colour >> fl->shift2)) & 0x1ff;
@@ -415,7 +415,7 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
 
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
+  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
@@ -455,11 +455,11 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
+  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   //debug_find_lines(fl);
   if (sparrow->debug){
     cvReleaseImage(&fl->debug);
   }
-  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
   free(fl->h_lines);
   free(fl->shuffled_lines);
   free(fl->map);
@@ -534,7 +534,7 @@ init_find_edges(GstSparrow *sparrow){
     sline++;
   }
 
-  GST_DEBUG("allocated %s lines, used %s\n", n_lines, line - fl->h_lines);
+  GST_DEBUG("allocated %d lines, used %d\n", n_lines, line - fl->h_lines);
 
   /*now shuffle (triangluar, to no particular advantage) */
   for (i = 0; i < n_lines - 1; i++){
