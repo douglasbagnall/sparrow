@@ -59,7 +59,7 @@ typedef struct sparrow_find_lines_s {
   sparrow_corner_t *mesh;
   sparrow_cluster_t *clusters;
   sparrow_corner_t *corners;
-
+  IplImage *debug;
 } sparrow_find_lines_t;
 
 
@@ -94,6 +94,9 @@ typedef struct sparrow_find_lines_s {
     (fl)->mesh,                                   \
   (fl)->clusters,                                 \
   (fl)->corners)                                  \
+
+//#undef debug_find_lines
+//#define debug_find_lines(x) /* */
 
 
 #endif /*have this .h*/

@@ -45,6 +45,7 @@
 #define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  //debug_find_lines(fl);
   sparrow_map_t *map = &sparrow->map; /*rows in sparrow->out */
   guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
@@ -139,6 +140,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 UNUSED static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  //debug_find_lines(fl);
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
   sparrow_map_lut_t *map_lut = sparrow->map_lut;
   int mesh_w = fl->n_vlines;
@@ -172,6 +174,7 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 static void
 find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  //debug_find_lines(fl);
   int i;
   int width = fl->n_vlines;
   int height = fl->n_hlines;
@@ -325,6 +328,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   }
 
   fl->mesh = corners;
+  //debug_find_lines(fl);
+
 }
 
 
@@ -335,6 +340,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
    so as to be less susceptible to wierd outliers (e.g., bad pixels).  */
 static void
 look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  //debug_find_lines(fl);
   int i;
   guint32 colour;
   guint32 signal;
@@ -416,12 +422,14 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
+  debug_find_lines(fl);
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
   if (sparrow->countdown){
     /* show the line except on the first round, when we find a threshold*/
     if (fl->threshold){
+      GST_DEBUG("current %d line %p\n", fl->current, line);
       draw_line(sparrow, line, out);
     }
   }
@@ -472,6 +480,8 @@ finalise_find_edges(GstSparrow *sparrow){
 
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  //debug_find_lines(fl);
+
   switch (sparrow->colour){
   case SPARROW_WHITE:
   case SPARROW_GREEN:
@@ -503,6 +513,7 @@ init_find_edges(GstSparrow *sparrow){
 
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
+  GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
   fl->clusters = malloc_or_die(n_corners * sizeof(sparrow_cluster_t));
   fl->corners = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
@@ -533,6 +544,7 @@ init_find_edges(GstSparrow *sparrow){
     line++;
     sline++;
   }
+  //debug_find_lines(fl);
 
   GST_DEBUG("allocated %d lines, used %d\n", n_lines, line - fl->h_lines);
 
