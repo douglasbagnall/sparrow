@@ -53,6 +53,7 @@ typedef struct sparrow_calibrate_s {
   sparrow_shape_t shapes[MAX_CALIBRATE_SHAPES];
   int n_shapes;
 
+  IplImage *in_ipl[SPARROW_N_IPL_IN];
   lag_times_t *lag_table;
   guint64 lag_record;
 

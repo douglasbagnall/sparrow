@@ -293,15 +293,6 @@ mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-static inline void
-abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
-  sparrow->in_ipl[0]->imageData = (char*) a;
-  sparrow->in_ipl[1]->imageData = (char*) b;
-  sparrow->in_ipl[2]->imageData = (char*) target;
-  cvAbsDiff(sparrow->in_ipl[0], sparrow->in_ipl[1], sparrow->in_ipl[2]);
-}
-
-
 /* wait for the other projector to stop changing, for as many frames as are
    set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
 
@@ -309,6 +300,16 @@ abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
 
    If something happens, reset sparrow->countdown to <blanktime>.
 */
+
+static inline void
+abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
+  calibrate->in_ipl[0]->imageData = (char*) a;
+  calibrate->in_ipl[1]->imageData = (char*) b;
+  calibrate->in_ipl[2]->imageData = (char*) target;
+  cvAbsDiff(calibrate->in_ipl[0], calibrate->in_ipl[1], calibrate->in_ipl[2]);
+}
+
 static int
 wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
   if (sparrow->countdown){
@@ -372,12 +373,32 @@ INVISIBLE void
 init_find_grid(GstSparrow *sparrow){}
 
 INVISIBLE void
+finalised_find_self(GstSparrow *sparrow)
+{
+  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
+  free(calibrate->lag_table);
+
+  free(calibrate);
+}
+
+
+
+INVISIBLE void
 init_find_self(GstSparrow *sparrow){
   sparrow_calibrate_t *calibrate = zalloc_aligned_or_die(sizeof(sparrow_calibrate_t));
   sparrow->helper_struct = (void *)calibrate;
+  GST_DEBUG("allocating %u * %u for lag_table\n", sparrow->in.pixcount, sizeof(lag_times_t));
+  calibrate->lag_table = zalloc_aligned_or_die(sparrow->in.pixcount * sizeof(lag_times_t));
 
   calibrate->incolour = sparrow->in.colours[SPARROW_WHITE];
   calibrate->outcolour = sparrow->out.colours[SPARROW_WHITE];
+
+  /*initialise IPL structs for openCV */
+  for (int i = 0; i < SPARROW_N_IPL_IN; i++){
+    calibrate->in_ipl[i] = init_ipl_image(&(sparrow->in));
+  }
+
+
   if (! calibrate->n_shapes){
     int i;
     for (i = 0; i < MAX_CALIBRATE_SHAPES; i++){

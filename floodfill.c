@@ -27,6 +27,7 @@ typedef struct sparrow_find_screen_s {
   IplImage *green;
   IplImage *working;
   IplImage *mask;
+  IplImage *im;
 } sparrow_find_screen_t;
 
 
@@ -164,7 +165,7 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow->countdown--;
   GST_DEBUG("in find_screen with countdown %d\n", sparrow->countdown);
   sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
-  IplImage *im = sparrow->in_ipl[0];
+  IplImage *im = finder->im;
   IplImage *green = finder->green;
   IplImage *working = finder->working;
   IplImage *mask = finder->mask;
@@ -222,6 +223,7 @@ finalise_find_screen(GstSparrow *sparrow){
   cvReleaseImage(finder->green);
   cvReleaseImage(finder->working);
   cvReleaseImageHeader(finder->mask);
+  cvReleaseImageHeader(finder->im);
   free(finder);
 }
 
@@ -233,7 +235,12 @@ init_find_screen(GstSparrow *sparrow){
   CvSize size = {sparrow->in.width, sparrow->in.height};
   finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
+
+  finder->im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
+  cvInitImageHeader(finder->im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+
   finder->mask = cvCreateImageHeader(size, IPL_DEPTH_8U, 1);
+  cvInitImageHeader(finder->mask, size, IPL_DEPTH_8U, 1, 0, 8);
   finder->mask->imageData = sparrow->screenmask;
 }
 

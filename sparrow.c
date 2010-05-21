@@ -163,11 +163,19 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->out), outcaps);
   sparrow_format *in = &(sparrow->in);
 
-  GST_DEBUG("allocating %u * %u for lag_table\n", in->pixcount, sizeof(lag_times_t));
-  sparrow->lag_table = zalloc_aligned_or_die(in->pixcount * sizeof(lag_times_t));
   sparrow->work_frame = zalloc_aligned_or_die(in->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
+
+#if USE_SPARSE_MAP
+  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
+  size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height + 1;
+  sparrow->map.point_mem = malloc_aligned_or_die(point_memsize);
+  sparrow->map.rows = zalloc_aligned_or_die(row_memsize);
+#else
+  size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
+  sparrow->map_lut = malloc_aligned_or_die(lutsize);
+#endif
 
   sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
   sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
@@ -176,10 +184,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->timer_start.tv_sec = 0;
   sparrow->timer_stop.tv_sec = 0;
 
-  /*initialise IPL structs for openCV */
-  for (int i = 0; i < SPARROW_N_IPL_IN; i++){
-    sparrow->in_ipl[i] = init_ipl_image(&(sparrow->in));
-  }
 
   rng_init(sparrow, sparrow->rng_seed);
 
@@ -195,7 +199,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   }
 
   sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
-
   change_state(sparrow, SPARROW_NEXT_STATE);
   return TRUE;
 }
@@ -203,6 +206,17 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 void INVISIBLE
 sparrow_finalise(GstSparrow *sparrow)
 {
+  free(sparrow->work_frame);
+  free(sparrow->dsfmt);
+  free(sparrow->screenmask);
+#if USE_SPARSE_MAP
+  free(sparrow->map.point_mem);
+  free(sparrow->map.rows);
+#else
+  free(sparrow->map_lut);
+#endif
+
+
   if (sparrow->timer_log){
     fclose(sparrow->timer_log);
   }

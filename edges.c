@@ -49,11 +49,6 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
 
-  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
-  size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height + 1;
-  map->point_mem = malloc_aligned_or_die(point_memsize);
-  map->rows = zalloc_aligned_or_die(row_memsize);
-
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
   int in_w = sparrow->in.width;
@@ -145,9 +140,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 UNUSED static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
-  size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
-  sparrow_map_lut_t *map_lut = malloc_aligned_or_die(lutsize);
-
+  sparrow_map_lut_t *map_lut = sparrow->map_lut;
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
@@ -182,9 +175,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   int i;
   int width = fl->n_vlines;
   int height = fl->n_hlines;
-
-  sparrow_cluster_t *clusters = malloc_or_die(height * width * sizeof(sparrow_cluster_t));
-  sparrow_corner_t *corners = zalloc_aligned_or_die(height * width * sizeof(sparrow_corner_t));
+  sparrow_cluster_t *clusters = fl->clusters;
+  sparrow_corner_t *corners = fl->corners;
   gint x, y;
 
   for (y = 0; y < sparrow->in.height; y++){
@@ -406,6 +398,7 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   }
 }
 
+
 /* show each line for 2 frames, then wait sparrow->lag frames, leaving line on
    until last one.
  */
@@ -447,6 +440,18 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_NEXT_STATE;
 }
 
+static void
+finalise_find_edges(GstSparrow *sparrow){
+  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
+  free(fl->h_lines);
+  free(fl->shuffled_lines);
+  free(fl->map);
+  free(fl->mesh);
+  free(fl->clusters);
+  free(fl->corners);
+  free(fl);
+}
+
 
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -474,6 +479,7 @@ init_find_edges(GstSparrow *sparrow){
   gint h_lines = (h + LINE_PERIOD - 1) / LINE_PERIOD;
   gint v_lines = (w + LINE_PERIOD - 1) / LINE_PERIOD;
   gint n_lines = (h_lines + v_lines);
+  gint n_corners = (h_lines * v_lines);
   fl->n_hlines = h_lines;
   fl->n_vlines = v_lines;
   fl->n_lines = n_lines;
@@ -481,6 +487,9 @@ init_find_edges(GstSparrow *sparrow){
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
+  fl->clusters = malloc_or_die(n_corners * sizeof(sparrow_cluster_t));
+  fl->corners = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
+  fl->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
@@ -520,6 +529,4 @@ init_find_edges(GstSparrow *sparrow){
 
   setup_colour_shifts(sparrow, fl);
   sparrow->countdown = sparrow->lag + 2;
-
-  fl->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
 }

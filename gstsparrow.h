@@ -29,8 +29,22 @@
 #include <sys/time.h>
 
 G_BEGIN_DECLS
+#define GST_TYPE_SPARROW \
+  (gst_sparrow_get_type())
+#define GST_SPARROW(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_SPARROW,GstSparrow))
+#define GST_SPARROW_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_SPARROW,GstSparrowClass))
+#define GST_IS_SPARROW(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_SPARROW))
+#define GST_IS_SPARROW_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
+
+
+
 
 #define SPARROW_PPM_DEBUG 1
+#define USE_SPARSE_MAP 1
 
 #define TIMER_LOG_FILE "/tmp/timer.log"
 
@@ -68,16 +82,9 @@ typedef guint32 pix_t;
 
 #define FAKE_OTHER_PROJECTION 1
 
-#define GST_TYPE_SPARROW \
-  (gst_sparrow_get_type())
-#define GST_SPARROW(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_SPARROW,GstSparrow))
-#define GST_SPARROW_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_SPARROW,GstSparrowClass))
-#define GST_IS_SPARROW(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_SPARROW))
-#define GST_IS_SPARROW_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
+
+#define LINE_PERIOD 16
+
 
 
 
@@ -197,8 +204,6 @@ struct _GstSparrow
   GstBuffer *in_buffer;
   GstBuffer *prev_buffer;
   /*don't need work_buffer */
-
-  IplImage *in_ipl[SPARROW_N_IPL_IN];
 
   guint32 colour;
   guint32 frame_count;

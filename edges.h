@@ -1,8 +1,6 @@
 #ifndef __SPARROW_EDGES_H__
 #define __SPARROW_EDGES_H__
 
-#define LINE_PERIOD 16
-
 typedef struct sparrow_corner_s {
   int out_x; /*regular, unnecessary?*/
   int out_y;
@@ -59,6 +57,9 @@ typedef struct sparrow_find_lines_s {
   gint shift2;
   sparrow_intersect_t *map;
   sparrow_corner_t *mesh;
+  sparrow_cluster_t *clusters;
+  sparrow_corner_t *corners;
+
 } sparrow_find_lines_t;
 
 
