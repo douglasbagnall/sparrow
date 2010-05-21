@@ -172,8 +172,11 @@ struct _GstSparrow
   /*some calibration modes have big unwieldy structs that attach here */
   void *helper_struct;
 
-  /* properties */
+  /* properties / command line options */
+  gboolean debug;
+  gboolean use_timer;
   gint calibrate_flag;  /*whether to calibrate */
+  guint32 rng_seed;
 
   /* misc */
   dsfmt_t *dsfmt;  /*rng*/
@@ -197,9 +200,6 @@ struct _GstSparrow
 
   IplImage *in_ipl[SPARROW_N_IPL_IN];
 
-  gboolean debug;
-
-  guint32 rng_seed;
   guint32 colour;
   guint32 frame_count;
   struct timeval timer_start;
@@ -207,7 +207,6 @@ struct _GstSparrow
 
   guint8 *screenmask;
 
-  gboolean use_timer;
   FILE * timer_log;
 
   sparrow_map_t map;

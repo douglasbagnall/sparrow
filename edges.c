@@ -26,7 +26,6 @@
 
 #include "cv.h"
 
-
 /*
 */
 
@@ -61,7 +60,6 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mcy, mmy, mcx; /*Mesh Corner|Modulus X|Y*/
 
   int x;
-
   sparrow_map_row_t *row = map->rows;
   sparrow_map_point_t *p = map->point_mem;
   sparrow_corner_t *mesh_row = mesh;
