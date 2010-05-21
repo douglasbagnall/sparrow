@@ -44,7 +44,7 @@ INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guin
 INVISIBLE void finalise_process_frame(GstSparrow *sparrow);
 
 /* sparrow.c */
-INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
+INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height, int pixsize);
 INVISIBLE void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
 INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
@@ -54,12 +54,17 @@ INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 
 #define SPARROW_CALIBRATE_ON  1
 
+#define MAYBE_DEBUG_IPL(ipl)((sparrow->debug) ?                         \
+      debug_frame(sparrow, (guint8*)(ipl)->imageData, (ipl)->width,     \
+          (ipl)->height, (ipl)->nChannels):0)
+
 
 #define CALIBRATE_WAIT_SIGNAL_THRESHOLD 32
-#define ALIGNMENT 16
+
 
 
 /*memory allocation */
+#define ALIGNMENT 16
 
 static inline __attribute__((malloc)) UNUSED void *
 malloc_or_die(size_t size){

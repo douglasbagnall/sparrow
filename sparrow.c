@@ -76,19 +76,41 @@ ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
   fclose(fh);
 }
 
+/*pgm for greyscale */
+static void
+pgm_dump(guint8 *data, guint32 width, guint32 height, char *name)
+{
+  FILE *fh = fopen(name, "w");
+  size_t size = width * height;
+  fprintf(fh, "P5\n%u %u\n255\n", width, height);
+  size_t wrote = fwrite(data, 1, size, fh);
+  if (wrote != size){
+    GST_DEBUG("wanted to write %u bytes; fwrite said %u\n", size, wrote);
+  }
+  fflush(fh);
+  fclose(fh);
+}
 
-#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.ppm"
-#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 10)
+
+#define PPM_FILENAME_TEMPLATE "/tmp/sparrow_%05d.%s"
+#define PPM_FILENAME_LENGTH (sizeof(PPM_FILENAME_TEMPLATE) + 15)
 
 void INVISIBLE
-debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height){
-#if SPARROW_PPM_DEBUG
+debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height, int pixsize){
   char name[PPM_FILENAME_LENGTH];
-  int res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count);
-  if (res > 0){
-    ppm_dump(&(sparrow->in), data, width, height, name);
+  int res;
+  if (pixsize == 4){ /*rgb*/
+    res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count, "ppm");
+    if (res > 0){
+      ppm_dump(&(sparrow->in), data, width, height, name);
+    }
   }
-#endif
+  else {/*greyscale*/
+    res = snprintf(name, PPM_FILENAME_LENGTH, PPM_FILENAME_TEMPLATE, sparrow->frame_count, "pgm");
+    if (res > 0){
+      pgm_dump(data, width, height, name);
+    }
+  }
 }
 
 /** interpret gst attributes **/

@@ -225,7 +225,7 @@ find_lag(GstSparrow *sparrow){
   }
 
   if (sparrow->debug){
-    debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height);
+    debug_frame(sparrow, sparrow->debug_frame, sparrow->in.width, sparrow->in.height, PIXSIZE);
   }
 
   /*calculate votes winner, as a check for winner-takes-all */
