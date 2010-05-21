@@ -23,6 +23,12 @@
 #include <math.h>
 
 
+typedef struct sparrow_find_screen_s {
+  IplImage *green;
+  IplImage *working;
+  IplImage *mask;
+} sparrow_find_screen_t;
+
 
 /* Floodfill for find screen */
 static inline void
@@ -157,7 +163,7 @@ INVISIBLE sparrow_state
 mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow->countdown--;
   GST_DEBUG("in find_screen with countdown %d\n", sparrow->countdown);
-  sparrow_find_screen_t *finder = &(sparrow->findscreen);
+  sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
   IplImage *im = sparrow->in_ipl[0];
   IplImage *green = finder->green;
   IplImage *working = finder->working;
@@ -193,7 +199,6 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     memset(mask->imageData, 255, size);
     floodfill_mono_superfast(working, mask, corner);
     sparrow->screenmask = (guint8*)mask->imageData;
-    sparrow->screenmask_ipl = mask;
     cvReleaseImage(&(finder->green));
     cvReleaseImage(&(finder->working));
     goto finish;
@@ -207,16 +212,28 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
  finish:
   memset(out, 0, sparrow->out.size);
+  finalise_find_screen(sparrow);
   return SPARROW_NEXT_STATE;
 }
 
+INVISIBLE void
+finalise_find_screen(GstSparrow *sparrow){
+  sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
+  cvReleaseImage(finder->green);
+  cvReleaseImage(finder->working);
+  cvReleaseImageHeader(finder->mask);
+  free(finder);
+}
 
 INVISIBLE void
 init_find_screen(GstSparrow *sparrow){
+  sparrow_find_screen_t *finder = zalloc_aligned_or_die(sizeof(sparrow_find_screen_t));
+  sparrow->helper_struct = (void *)finder;
   sparrow->countdown = sparrow->lag + 4;
-  sparrow_find_screen_t *finder = &(sparrow->findscreen);
   CvSize size = {sparrow->in.width, sparrow->in.height};
   finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
-  finder->mask = cvCreateImage(size, IPL_DEPTH_8U, 1);
+  finder->mask = cvCreateImageHeader(size, IPL_DEPTH_8U, 1);
+  finder->mask->imageData = sparrow->screenmask;
 }
+

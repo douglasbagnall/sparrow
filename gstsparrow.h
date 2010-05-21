@@ -125,12 +125,6 @@ typedef enum sparrow_axis_s {
 } sparrow_axis_t;
 
 
-typedef struct sparrow_find_screen_s {
-  IplImage *green;
-  IplImage *working;
-  IplImage *mask;
-} sparrow_find_screen_t;
-
 /* a mesh of these contains the mapping from input to output.
    stored in a fixed point notation.
 */
@@ -210,10 +204,8 @@ struct _GstSparrow
   guint32 frame_count;
   struct timeval timer_start;
   struct timeval timer_stop;
-  sparrow_find_screen_t findscreen;
 
   guint8 *screenmask;
-  IplImage *screenmask_ipl;
 
   gboolean use_timer;
   FILE * timer_log;

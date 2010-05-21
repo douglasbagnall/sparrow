@@ -167,6 +167,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->lag_table = zalloc_aligned_or_die(in->pixcount * sizeof(lag_times_t));
   sparrow->work_frame = zalloc_aligned_or_die(in->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
+  sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 
   sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
   sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
