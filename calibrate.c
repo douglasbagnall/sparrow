@@ -24,7 +24,7 @@
 #include <math.h>
 
 
-/*drawing*/
+/*drawing -- bizarrely roundabout, but it works for now*/
 static inline void
 rectangle(GstSparrow *sparrow, guint8 *out, sparrow_shape_t *shape, guint32 colour){
   int y, x;
@@ -293,87 +293,14 @@ mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-/* wait for the other projector to stop changing, for as many frames as are
-   set in sparrow->countdown.  When sparrow->countdown reaches 0, return 1.
-
-   If sparrow->countdown is already 0, do nothing.
-
-   If something happens, reset sparrow->countdown to <blanktime>.
-*/
-
-static inline void
-abs_diff(GstSparrow *sparrow, guint8 *a, guint8 *b, guint8 *target){
-  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
-  calibrate->in_ipl[0]->imageData = (char*) a;
-  calibrate->in_ipl[1]->imageData = (char*) b;
-  calibrate->in_ipl[2]->imageData = (char*) target;
-  cvAbsDiff(calibrate->in_ipl[0], calibrate->in_ipl[1], calibrate->in_ipl[2]);
-}
-
-static int
-wait_for_blank(GstSparrow *sparrow, guint8 *in, guint8 *out, int blanktime){
-  if (sparrow->countdown){
-    guint32 i;
-    abs_diff(sparrow, in, sparrow->prev_frame, sparrow->work_frame);
-    //Use the green channel
-    for (i = (sparrow->in.gshift >> 8);
-         i < sparrow->in.pixcount * PIXSIZE;
-         i += 4){
-      guint8 signal = sparrow->work_frame[i];
-      if (signal > CALIBRATE_WAIT_SIGNAL_THRESHOLD){
-        sparrow->countdown = blanktime;
-        break;
-      }
-    }
-    memset(out, 0, sparrow->out.size);
-    sparrow->countdown--;
-  }
-  return (sparrow->countdown == 0);
-}
 
 
-static inline void
-new_calibration_colour(GstSparrow *sparrow){
-  int c = RANDINT(sparrow, 1, 3);
-  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
-  calibrate->incolour = sparrow->in.colours[c];
-  calibrate->outcolour = sparrow->out.colours[c];
-  //calibrate->wait == 0;
-}
-
-/* Choose between green or magenta, randomly and iteratively, until the
-   other one chooses something else.  But first wait for blank? */
-
-INVISIBLE sparrow_state
-mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
-  if(wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
-    new_calibration_colour(sparrow);
-    calibrate->wait = sparrow->lag + 2;
-  }
-  calibrate->wait--;
-  return SPARROW_STATUS_QUO;
-}
-
-
-INVISIBLE sparrow_state
-mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  if (wait_for_blank(sparrow, in, out, WAIT_COUNTDOWN)){
-    return SPARROW_NEXT_STATE;
-  }
-  return SPARROW_STATUS_QUO;
-}
 
 /*init functions */
 
-INVISIBLE void
-init_wait_for_grid(GstSparrow *sparrow){}
 
 INVISIBLE void
-init_find_grid(GstSparrow *sparrow){}
-
-INVISIBLE void
-finalised_find_self(GstSparrow *sparrow)
+finalise_find_self(GstSparrow *sparrow)
 {
   sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
   free(calibrate->lag_table);
@@ -410,11 +337,5 @@ init_find_self(GstSparrow *sparrow){
   else {
     sparrow->countdown = CALIBRATE_RETRY_WAIT;
   }
-}
-
-INVISIBLE void
-init_pick_colour(GstSparrow *sparrow)
-{
-  sparrow->countdown = WAIT_COUNTDOWN;
 }
 

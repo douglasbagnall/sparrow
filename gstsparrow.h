@@ -190,9 +190,6 @@ struct _GstSparrow
 
   /*state */
   sparrow_state state;
-
-  guint32 lag;
-
   gint32 countdown; /*intra-state timing*/
 
   /*buffer pointers for previous frames */
@@ -207,13 +204,15 @@ struct _GstSparrow
 
   guint32 colour;
   guint32 frame_count;
+
+  /*debug timer */
   struct timeval timer_start;
   struct timeval timer_stop;
-
-  guint8 *screenmask;
-
   FILE * timer_log;
 
+  /*calibration results */
+  guint32 lag;
+  guint8 *screenmask;
   sparrow_map_t map;
   /*full sized LUT */
   sparrow_map_lut_t *map_lut;

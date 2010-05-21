@@ -220,10 +220,10 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
 INVISIBLE void
 finalise_find_screen(GstSparrow *sparrow){
   sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
-  cvReleaseImage(finder->green);
-  cvReleaseImage(finder->working);
-  cvReleaseImageHeader(finder->mask);
-  cvReleaseImageHeader(finder->im);
+  cvReleaseImage(&finder->green);
+  cvReleaseImage(&finder->working);
+  cvReleaseImageHeader(&finder->mask);
+  cvReleaseImageHeader(&finder->im);
   free(finder);
 }
 
@@ -241,6 +241,6 @@ init_find_screen(GstSparrow *sparrow){
 
   finder->mask = cvCreateImageHeader(size, IPL_DEPTH_8U, 1);
   cvInitImageHeader(finder->mask, size, IPL_DEPTH_8U, 1, 0, 8);
-  finder->mask->imageData = sparrow->screenmask;
+  finder->mask->imageData = (char *)sparrow->screenmask;
 }
 

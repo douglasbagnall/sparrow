@@ -27,9 +27,6 @@ typedef struct lag_times_s {
 
 enum calibration_shape {
   NO_SHAPE = 0,
-  VERTICAL_LINE,
-  HORIZONTAL_LINE,
-  FULLSCREEN,
   RECTANGLE,
 };
 

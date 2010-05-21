@@ -440,7 +440,7 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_NEXT_STATE;
 }
 
-static void
+INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)&sparrow->helper_struct;
   free(fl->h_lines);

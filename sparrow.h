@@ -25,15 +25,23 @@
 
 /* calibrate.c */
 INVISIBLE void init_find_self(GstSparrow *sparrow);
-INVISIBLE void init_pick_colour(GstSparrow *sparrow);
-INVISIBLE void init_wait_for_grid(GstSparrow *sparrow);
-INVISIBLE void init_find_grid(GstSparrow *sparrow);
-INVISIBLE void init_find_edges(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE sparrow_state mode_pick_colour(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE sparrow_state mode_wait_for_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE sparrow_state mode_find_grid(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void finalise_find_self(GstSparrow *sparrow);
+
+/* edges.c */
+INVISIBLE void init_find_edges(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void finalise_find_edges(GstSparrow *sparrow);
+
+/* floodfill.c */
+INVISIBLE void init_find_screen(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void finalise_find_screen(GstSparrow *sparrow);
+
+/* itworks.c */
+INVISIBLE void init_process_frame(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void finalise_process_frame(GstSparrow *sparrow);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height);
@@ -42,13 +50,6 @@ INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
 INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
-
-/*itworks.c*/
-INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
-
-/*floodfill.c */
-INVISIBLE void init_find_screen(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 
 
 #define SPARROW_CALIBRATE_ON  1

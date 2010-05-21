@@ -49,3 +49,6 @@ mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
   return SPARROW_STATUS_QUO;
 }
+
+INVISIBLE void init_process_frame(GstSparrow *sparrow){}
+INVISIBLE void finalise_process_frame(GstSparrow *sparrow){}

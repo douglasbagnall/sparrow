@@ -230,6 +230,24 @@ sparrow_finalise(GstSparrow *sparrow)
 static void
 change_state(GstSparrow *sparrow, sparrow_state state)
 {
+  switch(sparrow->state){
+  case SPARROW_FIND_SELF:
+    finalise_find_self(sparrow);
+    break;
+  case SPARROW_FIND_SCREEN:
+    finalise_find_screen(sparrow);
+    break;
+  case SPARROW_FIND_EDGES:
+    finalise_find_edges(sparrow);
+    break;
+  case SPARROW_PLAY:
+    finalise_process_frame(sparrow);
+    break;
+  case SPARROW_INIT:
+    break;
+  default:
+    GST_DEBUG("change_state got unknown state: %d\n", state);
+  }
   if (state == SPARROW_NEXT_STATE){
     state = sparrow->state + 1;
   }
@@ -242,15 +260,6 @@ change_state(GstSparrow *sparrow, sparrow_state state)
     break;
   case SPARROW_FIND_EDGES:
     init_find_edges(sparrow);
-    break;
-  case SPARROW_PICK_COLOUR:
-    init_pick_colour(sparrow);
-    break;
-  case SPARROW_WAIT_FOR_GRID:
-    init_wait_for_grid(sparrow);
-    break;
-  case SPARROW_FIND_GRID:
-    init_find_grid(sparrow);
     break;
   case SPARROW_INIT:
   case SPARROW_PLAY:
@@ -285,12 +294,6 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
     break;
   case SPARROW_FIND_EDGES:
     new_state = mode_find_edges(sparrow, in, out);
-    break;
-  case SPARROW_PICK_COLOUR:
-    new_state = mode_pick_colour(sparrow, in, out);
-    break;
-  case SPARROW_WAIT_FOR_GRID:
-    new_state = mode_wait_for_grid(sparrow, in, out);
     break;
   default:
     new_state = mode_process_frame(sparrow, in, out);
