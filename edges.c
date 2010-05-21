@@ -181,7 +181,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   sparrow_cluster_t *clusters = fl->clusters;
   sparrow_corner_t *corners = fl->corners;
   gint x, y;
-
+  /*each point in fl->map is in a vertical line, a horizontal line, both, or
+    neither.  Only the "both" case matters. */
   for (y = 0; y < sparrow->in.height; y++){
     for (x = 0; x < sparrow->in.width; x++){
       sparrow_intersect_t *p = &fl->map[y * sparrow->in.width + x];
