@@ -423,7 +423,11 @@ INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   debug_find_lines(fl);
+  if (fl->current == fl->n_lines){
+    goto done;
+  }
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
+
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
   if (sparrow->countdown){
@@ -436,9 +440,6 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   else{
       /*show nothing, look for result */
     if (fl->threshold){
-      if (fl->current == fl->n_lines){
-        goto done;
-      }
       look_for_line(sparrow, in, fl, line);
       fl->current++;
     }
