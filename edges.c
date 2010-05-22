@@ -168,32 +168,46 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow->map_lut = map_lut;
 }
 
-#define INTXY(x)((x)>> SPARROW_FIXED_POINT)
+#define DIV ((double)(1 << SPARROW_FIXED_POINT))
+#define INTXY(x)((x) / (1 << SPARROW_FIXED_POINT))
 #define FLOATXY(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
 static void
 debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  sparrow_corner_t *mesh = fl->mesh;
   guint32 *data = (guint32*)fl->debug->imageData;
   guint w = fl->debug->width;
   memset(data, 0, sparrow->in.size);
-  guint32 colours[4] = {0xaaaaaaaa, 0x0000ff00, 0x00ff0000, 0xff0000ff};
+  guint32 colours[4] = {0xff0000ff, 0x0000ff00, 0x00ff0000, 0xcccccccc};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
-    sparrow_corner_t *c = &fl->mesh[i];
+    sparrow_corner_t *c = &mesh[i];
     int x = c->in_x;
     int y = c->in_y;
-    GST_DEBUG("i %d used %d x: %f, y: %f  dxh %f dyh %f dxv %f dyv %f\n",
+    GST_DEBUG("i %d used %d x: %f, y: %f  dxh %f dyh %f dxv %f dyv %f\n"
+        "int x, y %d,%d (raw %d,%d) data %p\n",
         i, c->used, FLOATXY(x), FLOATXY(y),
-        FLOATXY(c->dxh), FLOATXY(c->dyh), FLOATXY(c->dxv), FLOATXY(c->dxh));
-    data[INTXY(y + c->dyh) * w + INTXY(x + c->dxh)] = 0x0000aaaa;
-    data[INTXY(y + c->dyh + c->dyh) * w + INTXY(x + c->dxh + c->dxh)] = 0x0000aaaa;
-    data[INTXY(y + c->dyv) * w + INTXY(x + c->dxv)] = 0x00aaaa00;
-    data[INTXY(y + c->dyv + c->dyv) * w + INTXY(x + c->dxv + c->dxv)] = 0x00aaaa00;
-    data[INTXY(y) * w + INTXY(x)] = colours[c->used];
+        FLOATXY(c->dxh), FLOATXY(c->dyh), FLOATXY(c->dxv), FLOATXY(c->dxh),
+        INTXY(x), INTXY(y), x, y, data);
+
+#define LP4 (LINE_PERIOD / 4)
+#define LP2 (LINE_PERIOD / 2)
+
+    data[INTXY(y + c->dyh * LP4) * w + INTXY(x + c->dxh * LP4)] = 0xaaaaaaaa;
+    data[INTXY(y + c->dyh * LP2) * w + INTXY(x + c->dxh * LP2)] = 0xaaaaaaaa;
+    data[INTXY(y + c->dyv * LP4) * w + INTXY(x + c->dxv * LP4)] = 0xaa7777aa;
+    data[INTXY(y + c->dyv * LP2) * w + INTXY(x + c->dxv * LP2)] = 0xaa7777aa;
+    data[INTXY(y) * w + INTXY(x)] = colours[MIN(c->used, 2)];
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
 
-/*create the mesh */
 
+static void
+debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  //sparrow_cluster_t *clusters = fl->clusters;
+
+}
+
+/*create the mesh */
 static void
 find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
@@ -244,6 +258,9 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           more slots.*/
       }
     }
+  }
+  if (sparrow->debug){
+    debug_clusters(sparrow, fl);
   }
   //DEBUG_FIND_LINES(fl);
   i = 0;
@@ -310,10 +327,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       mesh[i].in_x = xmean;
       mesh[i].in_y = ymean;
       mesh[i].used = TRUE;
-      double div = (double)(1 << SPARROW_FIXED_POINT); /*for printf only*/
-      GST_DEBUG("found corner %d (%d,%d) at (%3f, %3f)\n",
-          i, mesh[i].out_x, mesh[i].out_y,
-          xmean / div, ymean / div);
+      GST_DEBUG("found corner %d at (%3f, %3f)\n",
+          i, FLOATXY(xmean), FLOATXY(ymean));
     }
   }
   //DEBUG_FIND_LINES(fl);
