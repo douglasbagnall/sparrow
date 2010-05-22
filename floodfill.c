@@ -111,7 +111,7 @@ find_edges_threshold(IplImage *im)
 {
   int w = im->width;
   int h = im->height;
-  CvSize small_size = {w / 8, h / 8};
+  CvSize small_size = {w / 4, h / 4};
   IplImage *small = cvCreateImage(small_size, IPL_DEPTH_8U, 1); /*for quicker histogram (stupid, perhaps?)*/
   cvResize(im, small, CV_INTER_NN);
   int hist_size[] = {255};

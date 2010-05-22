@@ -322,8 +322,6 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         }
         break;
       }
-      mesh[i].out_x = x * LINE_PERIOD;
-      mesh[i].out_y = y * LINE_PERIOD;
       mesh[i].in_x = xmean;
       mesh[i].in_y = ymean;
       mesh[i].used = TRUE;
@@ -355,8 +353,6 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           mesh[i].dyv = mesh[i + 1].dyv;
           mesh[i].in_x = mesh[i + 1].in_x - mesh[i + 1].dxh * LINE_PERIOD;
           mesh[i].in_y = mesh[i + 1].in_y - mesh[i + 1].dyh * LINE_PERIOD;
-          mesh[i].out_x = mesh[i + 1].out_x - 1;
-          mesh[i].out_y = mesh[i + 1].out_y;
           mesh[i].used = mesh[i + 1].used + 1;
         }
         else if(mesh[i + width].used){

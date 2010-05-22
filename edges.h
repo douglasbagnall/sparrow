@@ -2,8 +2,6 @@
 #define __SPARROW_EDGES_H__
 
 typedef struct sparrow_corner_s {
-  int out_x; /*regular, unnecessary?*/
-  int out_y;
   int in_x;
   int in_y;
   /*dyh -> dy to next point horizontally */
