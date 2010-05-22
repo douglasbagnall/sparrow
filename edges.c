@@ -382,7 +382,7 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       highest = signal;
     }
   }
-  fl->threshold = highest + 10;
+  fl->threshold = highest + 1;
   GST_DEBUG("found maximum noise of %d, using threshold %d\n", highest, fl->threshold);
 }
 
