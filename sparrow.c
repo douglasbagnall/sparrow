@@ -40,7 +40,7 @@ static void rng_init(GstSparrow *sparrow, guint32 seed){
   GST_DEBUG("in RNG init\n");
   if (seed == (guint32)-1){
     /* XXX should really use /dev/urandom */
-    seed = rand() ^ (int)&(sparrow);
+    seed = rand() ^ (size_t)&(sparrow);
     GST_DEBUG("Real seed %u\n", seed);
   }
   if (seed == 0)
