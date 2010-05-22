@@ -37,8 +37,10 @@ INSTALL = install
 export GST_DEBUG = sparrow:4
 #export GST_PLUGIN_PATH = .
 
+OPENCV_PREFIX = $(shell test -d /usr/local/include/opencv && echo /usr/local || echo /usr )
+
 #OPENCV_INCLUDE = -I/usr/include/opencv/
-OPENCV_INCLUDE = -isystem /usr/local/include/opencv/
+OPENCV_INCLUDE = -isystem $(OPENCV_PREFIX)/include/opencv/
 
 #GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
