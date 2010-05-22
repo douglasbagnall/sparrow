@@ -29,7 +29,7 @@
 /*
 */
 
-#define SIG_WEIGHT 5
+#define SIG_WEIGHT 2
 
 /*3 pixels manhatten distance makes you an outlier */
 #define OUTLIER_THRESHOLD 3 << (SPARROW_FIXED_POINT)
@@ -232,8 +232,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       if (n < 8){
         cluster->voters[n].x = x << SPARROW_FIXED_POINT;
         cluster->voters[n].y = y << SPARROW_FIXED_POINT;
-        cluster->voters[n].signal = (SIG_WEIGHT + p->signal[SPARROW_HORIZONTAL]) *
-          (SIG_WEIGHT + p->signal[SPARROW_VERTICAL]);
+        cluster->voters[n].signal = (((p->signal[SPARROW_HORIZONTAL]) *
+                (SIG_WEIGHT + p->signal[SPARROW_VERTICAL])) >> 14) + SIG_WEIGHT;
         cluster->n++;
         /*these next two could of course be computed from the offset */
       }
@@ -277,6 +277,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         }
         xmean = xsum / votes;
         ymean = ysum / votes;
+        GST_DEBUG("corner %d: %d voters, %d votes, xsum %d, ysum %d\n",
+            i, cluster->n, votes, xsum, ysum);
         int worst = -1;
         int worstn;
         int devsum = 0;
@@ -289,9 +291,12 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
             worstn = j;
           }
         }
+        GST_DEBUG("devsum %d, n %d, worst %d\n",
+            devsum, cluster->n, worst);
+
         /*a bad outlier has significantly greater than average deviation
           (but how much is bad? median deviation would be more useful)*/
-        if (worst > 3 * devsum / cluster->n){
+        if (worst > 2 * devsum / cluster->n){
           /* reduce the worst ones weight. it is a silly aberration. */
           cluster->voters[worstn].signal /= OUTLIER_PENALTY;
           GST_DEBUG("dropping outlier at %d,%d (mean %d,%d)\n",
@@ -346,14 +351,13 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           mesh[i].dyv = mesh[i + width].dyv;
           mesh[i].in_x = mesh[i + width].in_x - mesh[i + width].dxv * LINE_PERIOD;
           mesh[i].in_y = mesh[i + width].in_y - mesh[i + width].dyv * LINE_PERIOD;
-          mesh[i].out_x = mesh[i + width].out_x;
-          mesh[i].out_y = mesh[i + width].out_y - 1;
           mesh[i].used = mesh[i + width].used + 1;
         }
       }
     }
   }
   if (sparrow->debug){
+    //debug_mesh(sparrow, fl);
     DEBUG_FIND_LINES(fl);
     debug_corners_image(sparrow, fl);
   }
