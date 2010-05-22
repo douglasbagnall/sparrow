@@ -84,6 +84,7 @@ gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparro
 
 sparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 
+GST_LAUNCH = gst-launch-0.10
 DEBUG_LEVEL = 5
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:$(DEBUG_LEVEL)
 TEST_INPUT_SIZE = width=320,height=240
@@ -96,35 +97,35 @@ TEST_PIPE_TAIL =   ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_S
 TEST_V4L2_PIPE_TAIL = $(TEST_V4L2_SHAPE) ! $(TEST_PIPE_TAIL)
 
 test: all
-	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
+	$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-valgrind: debug
 	valgrind --log-file=valgrind.log --trace-children=yes --suppressions=valgrind-python.supp \
-	 gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL) 2> gst.log
+	 $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL) 2> gst.log
 
 test-gdb: debug
 	echo "set args $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)" > /tmp/gdb-args.txt
-	gdb -x /tmp/gdb-args.txt gst-launch
+	gdb -x /tmp/gdb-args.txt $(GST_LAUNCH)
 
 test-nemiver: debug
-	nemiver "gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)"
+	nemiver "$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)"
 
 
 test-times: all
-	timeout -3 20 time -v gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
+	timeout -3 20 time -v $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-cam:
-	gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
+	$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-pattern: all
 	GST_DEBUG=sparrow:5 \
-	gst-launch $(TEST_GST_ARGS) videotestsrc ! $(TEST_V4L2_PIPE_TAIL)
+	$(GST_LAUNCH) $(TEST_GST_ARGS) videotestsrc ! $(TEST_V4L2_PIPE_TAIL)
 
 TEST_VIDEO_FILE=/home/douglas/media/video/rochester-pal.avi
 #TEST_VIDEO_FILE=/home/douglas/tv/newartland_2008_ep2_ps6313_part3.flv
 
 test-file: all
-	gst-launch $(TEST_GST_ARGS) \
+	$(GST_LAUNCH) $(TEST_GST_ARGS) \
 	filesrc location=$(TEST_VIDEO_FILE) ! decodebin2 ! $(TEST_PIPE_TAIL)
 
 inspect: all
@@ -133,15 +134,15 @@ inspect: all
 
 #show filtered and unfiltered video side by side
 test-tee: all
-	gst-launch  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
+	$(GST_LAUNCH)  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
 	! queue ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
 	vid2. ! queue ! ffmpegcolorspace ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 
 test-tee2: all
-	gst-launch  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
+	$(GST_LAUNCH)  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
 	! queue  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
 	vid2. ! queue ! fdsink  | \
-	gst-launch fdsrc ! queue !  $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
+	$(GST_LAUNCH) fdsrc ! queue !  $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 
 
 TAGS:
@@ -166,7 +167,7 @@ cproto-nonstatic:
 
 #oprofile: all
 #	sudo opcontrol --no-vmlinux $(OP_OPTS) && sudo opcontrol $(OP_OPTS) --start --verbose
-#	timeout -3 10 gst-launch $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace \
+#	timeout -3 10 $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! ffmpegcolorspace \
 #	! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 #	opreport $(OP_OPTS)
 
