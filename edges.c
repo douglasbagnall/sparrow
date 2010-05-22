@@ -221,9 +221,14 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       /*linearise the xy coordinates*/
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
-      sparrow_cluster_t *cluster = &clusters[vline * height + hline];
 
+      GST_DEBUG("signal at %p (%d, %d): %dv %dh, lines: %dh %dv\n", p, x, y,
+          p->signal[SPARROW_HORIZONTAL], p->signal[SPARROW_VERTICAL],
+          vline, hline);
+
+      sparrow_cluster_t *cluster = &clusters[vline * height + hline];
       int n = cluster->n;
+      GST_DEBUG("cluster is %p, n is %d\n", cluster, n);
       if (n < 8){
         cluster->voters[n].x = x << SPARROW_FIXED_POINT;
         cluster->voters[n].y = y << SPARROW_FIXED_POINT;
@@ -240,7 +245,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       }
     }
   }
-
+  //DEBUG_FIND_LINES(fl);
   i = 0;
   for (y = 0; y < height; y++){
     for (x = 0; x < width; x++, i++){
@@ -445,7 +450,7 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
-  DEBUG_FIND_LINES(fl);
+  //DEBUG_FIND_LINES(fl);
   if (fl->current == fl->n_lines){
     goto done;
   }
@@ -491,12 +496,15 @@ finalise_find_edges(GstSparrow *sparrow){
     cvReleaseImage(&fl->debug);
   }
   free(fl->h_lines);
+  //DEBUG_FIND_LINES(fl);
   free(fl->shuffled_lines);
   free(fl->map);
+  //DEBUG_FIND_LINES(fl);
   free(fl->mesh);
   free(fl->clusters);
   //DEBUG_FIND_LINES(fl);
   free(fl);
+  sparrow->helper_struct = NULL;
 }
 
 
