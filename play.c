@@ -45,10 +45,10 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 INVISIBLE sparrow_state
-mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out){
+mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void init_process_frame(GstSparrow *sparrow){}
-INVISIBLE void finalise_process_frame(GstSparrow *sparrow){}
+INVISIBLE void init_play(GstSparrow *sparrow){}
+INVISIBLE void finalise_play(GstSparrow *sparrow){}

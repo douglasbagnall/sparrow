@@ -38,10 +38,10 @@ INVISIBLE void init_find_screen(GstSparrow *sparrow);
 INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE void finalise_find_screen(GstSparrow *sparrow);
 
-/* itworks.c */
-INVISIBLE void init_process_frame(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_process_frame(GstSparrow *sparrow, guint8 *in, guint8 *out);
-INVISIBLE void finalise_process_frame(GstSparrow *sparrow);
+/* play.c */
+INVISIBLE void init_play(GstSparrow *sparrow);
+INVISIBLE sparrow_state mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void finalise_play(GstSparrow *sparrow);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height, int pixsize);

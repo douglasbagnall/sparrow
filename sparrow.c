@@ -264,7 +264,7 @@ change_state(GstSparrow *sparrow, sparrow_state state)
     finalise_find_edges(sparrow);
     break;
   case SPARROW_PLAY:
-    finalise_process_frame(sparrow);
+    finalise_play(sparrow);
     break;
   case SPARROW_INIT:
     break;
@@ -319,7 +319,7 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
     new_state = mode_find_edges(sparrow, in, out);
     break;
   default:
-    new_state = mode_process_frame(sparrow, in, out);
+    new_state = mode_play(sparrow, in, out);
   }
   sparrow->frame_count++;
   if (new_state != SPARROW_STATUS_QUO){
