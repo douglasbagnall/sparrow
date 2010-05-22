@@ -201,7 +201,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   int width = fl->n_vlines;
   int height = fl->n_hlines;
   sparrow_cluster_t *clusters = fl->clusters;
-  sparrow_corner_t *corners = fl->corners;
+  sparrow_corner_t *mesh = fl->mesh;
   gint x, y;
   /*each point in fl->map is in a vertical line, a horizontal line, both, or
     neither.  Only the "both" case matters. */
@@ -295,55 +295,55 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         }
         break;
       }
-      corners[i].out_x = x * LINE_PERIOD;
-      corners[i].out_y = y * LINE_PERIOD;
-      corners[i].in_x = xmean;
-      corners[i].in_y = ymean;
-      corners[i].used = TRUE;
+      mesh[i].out_x = x * LINE_PERIOD;
+      mesh[i].out_y = y * LINE_PERIOD;
+      mesh[i].in_x = xmean;
+      mesh[i].in_y = ymean;
+      mesh[i].used = TRUE;
       double div = (double)(1 << SPARROW_FIXED_POINT); /*for printf only*/
       GST_DEBUG("found corner %d (%d,%d) at (%3f, %3f)\n",
-          i, corners[i].out_x, corners[i].out_y,
+          i, mesh[i].out_x, mesh[i].out_y,
           xmean / div, ymean / div);
     }
   }
-  DEBUG_FIND_LINES(fl);
+  //DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
   for (y = height - 2; y >= 0; y--){
     for (x = width - 2; x >= 0; x--){
       i = y * width + x;
-      if (corners[i].used){
-        corners[i].dxh = (corners[i + 1].in_x - corners[i].in_x) / LINE_PERIOD;
-        corners[i].dyh = (corners[i + 1].in_y - corners[i].in_y) / LINE_PERIOD;
-        corners[i].dxv = (corners[i + width].in_x - corners[i].in_x) / LINE_PERIOD;
-        corners[i].dyv = (corners[i + width].in_y - corners[i].in_y) / LINE_PERIOD;
+      if (mesh[i].used){
+        mesh[i].dxh = (mesh[i + 1].in_x - mesh[i].in_x) / LINE_PERIOD;
+        mesh[i].dyh = (mesh[i + 1].in_y - mesh[i].in_y) / LINE_PERIOD;
+        mesh[i].dxv = (mesh[i + width].in_x - mesh[i].in_x) / LINE_PERIOD;
+        mesh[i].dyv = (mesh[i + width].in_y - mesh[i].in_y) / LINE_PERIOD;
       }
       else {
           /*prefer copy from left unless it is itself reconstructed,
             (for no great reason)
             A mixed copy would be possible and better */
-        if(corners[i + 1].used &&
-            (corners[i + 1].used < corners[i + width].used)){
-          corners[i].dxh = corners[i + 1].dxh;
-          corners[i].dyh = corners[i + 1].dyh;
-          corners[i].dxv = corners[i + 1].dxv;
-          corners[i].dyv = corners[i + 1].dyv;
-          corners[i].in_x = corners[i + 1].in_x - corners[i + 1].dxh * LINE_PERIOD;
-          corners[i].in_y = corners[i + 1].in_y - corners[i + 1].dyh * LINE_PERIOD;
-          corners[i].out_x = corners[i + 1].out_x - 1;
-          corners[i].out_y = corners[i + 1].out_y;
-          corners[i].used = corners[i + 1].used + 1;
+        if(mesh[i + 1].used &&
+            (mesh[i + 1].used < mesh[i + width].used)){
+          mesh[i].dxh = mesh[i + 1].dxh;
+          mesh[i].dyh = mesh[i + 1].dyh;
+          mesh[i].dxv = mesh[i + 1].dxv;
+          mesh[i].dyv = mesh[i + 1].dyv;
+          mesh[i].in_x = mesh[i + 1].in_x - mesh[i + 1].dxh * LINE_PERIOD;
+          mesh[i].in_y = mesh[i + 1].in_y - mesh[i + 1].dyh * LINE_PERIOD;
+          mesh[i].out_x = mesh[i + 1].out_x - 1;
+          mesh[i].out_y = mesh[i + 1].out_y;
+          mesh[i].used = mesh[i + 1].used + 1;
         }
-        else if(corners[i + width].used){
-          corners[i].dxh = corners[i + width].dxh;
-          corners[i].dyh = corners[i + width].dyh;
-          corners[i].dxv = corners[i + width].dxv;
-          corners[i].dyv = corners[i + width].dyv;
-          corners[i].in_x = corners[i + width].in_x - corners[i + width].dxv * LINE_PERIOD;
-          corners[i].in_y = corners[i + width].in_y - corners[i + width].dyv * LINE_PERIOD;
-          corners[i].out_x = corners[i + width].out_x;
-          corners[i].out_y = corners[i + width].out_y - 1;
-          corners[i].used = corners[i + width].used + 1;
+        else if(mesh[i + width].used){
+          mesh[i].dxh = mesh[i + width].dxh;
+          mesh[i].dyh = mesh[i + width].dyh;
+          mesh[i].dxv = mesh[i + width].dxv;
+          mesh[i].dyv = mesh[i + width].dyv;
+          mesh[i].in_x = mesh[i + width].in_x - mesh[i + width].dxv * LINE_PERIOD;
+          mesh[i].in_y = mesh[i + width].in_y - mesh[i + width].dyv * LINE_PERIOD;
+          mesh[i].out_x = mesh[i + width].out_x;
+          mesh[i].out_y = mesh[i + width].out_y - 1;
+          mesh[i].used = mesh[i + width].used + 1;
         }
       }
     }
@@ -495,7 +495,7 @@ finalise_find_edges(GstSparrow *sparrow){
   free(fl->map);
   free(fl->mesh);
   free(fl->clusters);
-  free(fl->corners);
+  //DEBUG_FIND_LINES(fl);
   free(fl);
 }
 
@@ -538,8 +538,7 @@ init_find_edges(GstSparrow *sparrow){
   GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
   fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
-  fl->corners = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
-  fl->mesh = malloc_aligned_or_die(sizeof(sparrow_corner_t) * h_lines * v_lines);
+  fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;

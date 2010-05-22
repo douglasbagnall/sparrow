@@ -58,7 +58,6 @@ typedef struct sparrow_find_lines_s {
   sparrow_intersect_t *map;
   sparrow_corner_t *mesh;
   sparrow_cluster_t *clusters;
-  sparrow_corner_t *corners;
   IplImage *debug;
 } sparrow_find_lines_t;
 
@@ -78,7 +77,6 @@ typedef struct sparrow_find_lines_s {
   "  sparrow_intersect_t *map: %p\n"            \
   "  sparrow_corner_t *mesh: %p\n"              \
   "  sparrow_cluster_t *clusters: %p\n"         \
-  "  sparrow_corner_t *corners: %p\n"           \
   ,                                             \
     (fl)->h_lines,                                \
     (fl)->v_lines,                                \
@@ -92,8 +90,7 @@ typedef struct sparrow_find_lines_s {
     (fl)->shift2,                                 \
     (fl)->map,                                    \
     (fl)->mesh,                                   \
-  (fl)->clusters,                                 \
-  (fl)->corners)                                  \
+  (fl)->clusters)                                 \
 
 //#undef debug_find_lines
 //#define debug_find_lines(x) /* */
