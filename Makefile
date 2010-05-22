@@ -4,7 +4,15 @@ all::
 #LDFLAGS =
 DEFINES = -DDSFMT_MEXP=19937
 WARNINGS = -Wall -Wextra -Wno-unused-parameter
-ALL_CFLAGS =  $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(CFLAGS)
+
+ARCH = $(shell arch)
+ifeq "$(ARCH)" "x86_64"
+ARCH_CFLAGS = -fPIC -DPIC -m64
+else
+ARCH_CFLAGS = -m32 -msse2
+endif
+
+ALL_CFLAGS = -march=native -pthread $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(ARCH_CFLAGS) $(CFLAGS) 
 ALL_LDFLAGS = $(LDFLAGS)
 
 
