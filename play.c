@@ -47,6 +47,9 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
+  memcpy(out, in, sparrow->out.size);
+  simple_negation(out, sparrow->out.size);
+
   return SPARROW_STATUS_QUO;
 }
 
