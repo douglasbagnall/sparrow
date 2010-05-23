@@ -352,39 +352,54 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
-  for (y = height - 2; y >= 0; y--){
-    for (x = width - 2; x >= 0; x--){
-      i = y * width + x;
-      if (mesh[i].used){
-        mesh[i].dxh = (mesh[i + 1].in_x - mesh[i].in_x) / LINE_PERIOD;
-        mesh[i].dyh = (mesh[i + 1].in_y - mesh[i].in_y) / LINE_PERIOD;
-        mesh[i].dxv = (mesh[i + width].in_x - mesh[i].in_x) / LINE_PERIOD;
-        mesh[i].dyv = (mesh[i + width].in_y - mesh[i].in_y) / LINE_PERIOD;
+  i = width * height - 1;
+  for (y = height - 1; y >= 0; y--){
+    for (x = width - 1; x >= 0; x--, i--){
+      sparrow_corner_t *corner = &mesh[i];
+      /* edge deltas will always come out as zero */
+      sparrow_corner_t *right = (x >= width - 1) ? corner : corner + 1;
+      sparrow_corner_t *down =  (y >= height - 1) ? corner : corner + width;
+      GST_DEBUG("i %d xy %d,%d width %d. in_xy %d,%d; down in_xy %d,%d; right in_xy %d,%d\n",
+          i, x, y, width, corner->in_x, corner->in_y, down->in_x,
+          down->in_y, right->in_x,  right->in_y);
+      if (corner->used){
+        corner->dxr = (right->in_x - corner->in_x) / LINE_PERIOD;
+        corner->dyr = (right->in_y - corner->in_y) / LINE_PERIOD;
+        corner->dxd = (down->in_x -  corner->in_x) / LINE_PERIOD;
+        corner->dyd = (down->in_y -  corner->in_y) / LINE_PERIOD;
       }
       else {
           /*prefer copy from left unless it is itself reconstructed (for no
             great reason), or it has no dx/dy because it is an edge piece.
             A mixed copy would be possible and better */
-        if(mesh[i + 1].used &&
-            (mesh[i + 1].used < mesh[i + width].used) &&
-            mesh[i + 1].dxh && mesh[i + 1].dyv){
-          mesh[i].dxh = mesh[i + 1].dxh;
-          mesh[i].dyh = mesh[i + 1].dyh;
-          mesh[i].dxv = mesh[i + 1].dxv;
-          mesh[i].dyv = mesh[i + 1].dyv;
-          mesh[i].in_x = mesh[i + 1].in_x - mesh[i].dxh * LINE_PERIOD;
-          mesh[i].in_y = mesh[i + 1].in_y - mesh[i].dyh * LINE_PERIOD;
-          mesh[i].used = mesh[i + 1].used + 1;
-        }
-        else if(mesh[i + width].used){
-          mesh[i].dxh = mesh[i + width].dxh;
-          mesh[i].dyh = mesh[i + width].dyh;
-          mesh[i].dxv = mesh[i + width].dxv;
-          mesh[i].dyv = mesh[i + width].dyv;
-          mesh[i].in_x = mesh[i + width].in_x - mesh[i + width].dxv * LINE_PERIOD;
-          mesh[i].in_y = mesh[i + width].in_y - mesh[i + width].dyv * LINE_PERIOD;
-          mesh[i].used = mesh[i + width].used + 1;
-        }
+        sparrow_corner_t *rsrc = (right->used &&
+                (right->used <= down->used) &&
+                (right != corner)) ? right : down;
+        sparrow_corner_t *dsrc = (down->used &&
+                (right->used >= down->used) &&
+                (down != corner)) ? down : right;
+          corner->dxr = rsrc->dxr;
+          corner->dyr = rsrc->dyr;
+          corner->dxd = dsrc->dxd;
+          corner->dyd = dsrc->dyd;
+          /*now extrapolate position, preferably from both left and right */
+          int cx = 0, cy = 0, cc = 0;
+          if (right != corner){
+            cc = 1;
+            cx = right->in_x - corner->dxr * LINE_PERIOD;
+            cy = right->in_y - corner->dyr * LINE_PERIOD;
+          }
+          if (down != corner){
+            cx += down->in_x - corner->dxd * LINE_PERIOD;
+            cy += down->in_y - corner->dyd * LINE_PERIOD;
+            cx >>= cc;
+            cy >>= cc;
+          }
+          /* if neither right nor down are there, this
+             corner can't be placed */
+          corner->in_x = cx;
+          corner->in_y = cy;
+          corner->used = MAX(right->used, down->used) + 1;
       }
     }
   }
