@@ -124,8 +124,8 @@ typedef struct sparrow_format_s {
 
 
 typedef enum sparrow_axis_s {
-  SPARROW_VERTICAL,
   SPARROW_HORIZONTAL,
+  SPARROW_VERTICAL,
 } sparrow_axis_t;
 
 

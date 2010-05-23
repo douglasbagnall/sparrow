@@ -255,7 +255,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           p->signal[SPARROW_VERTICAL], p->signal[SPARROW_HORIZONTAL],
           vline, hline);
 
-      sparrow_cluster_t *cluster = &clusters[vline * height + hline];
+      sparrow_cluster_t *cluster = &clusters[hline * height + vline];
       int n = cluster->n;
       GST_DEBUG("cluster is %p, n is %d\n", cluster, n);
       if (n < 8){
