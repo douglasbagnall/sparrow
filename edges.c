@@ -204,8 +204,8 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 static void
 debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //sparrow_cluster_t *clusters = fl->clusters;
-
 }
+
 
 /*create the mesh */
 static void
@@ -246,10 +246,10 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       if (n < 8){
         cluster->voters[n].x = x << SPARROW_FIXED_POINT;
         cluster->voters[n].y = y << SPARROW_FIXED_POINT;
+        /*use MIN() instead? */
         cluster->voters[n].signal = (((p->signal[SPARROW_HORIZONTAL]) *
                 (SIG_WEIGHT + p->signal[SPARROW_VERTICAL])) >> 14) + SIG_WEIGHT;
         cluster->n++;
-        /*these next two could of course be computed from the offset */
       }
       else {
         GST_DEBUG("more than 8 pixels at cluster for corner %d, %d\n",
@@ -274,6 +274,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       if (cluster->n == 0){
         continue;
       }
+
       int xsum, ysum;
       int xmean, ymean;
       int votes;
@@ -294,8 +295,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         }
         xmean = xsum / votes;
         ymean = ysum / votes;
-        GST_DEBUG("corner %d: %d voters, %d votes, xsum %d, ysum %d\n",
-            i, cluster->n, votes, xsum, ysum);
+        GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
+            i, cluster->n, votes, xsum, ysum, xmean, ymean);
         int worst = -1;
         int worstn;
         int devsum = 0;
@@ -342,8 +343,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         mesh[i].dyv = (mesh[i + width].in_y - mesh[i].in_y) / LINE_PERIOD;
       }
       else {
-          /*prefer copy from left unless it is itself reconstructed,
-            (for no great reason)
+          /*prefer copy from left unless it is itself reconstructed (for no
+            great reason), or it has no dx/dy because it is an edge piece.
             A mixed copy would be possible and better */
         if(mesh[i + 1].used &&
             (mesh[i + 1].used < mesh[i + width].used)){
@@ -511,13 +512,10 @@ finalise_find_edges(GstSparrow *sparrow){
     cvReleaseImage(&fl->debug);
   }
   free(fl->h_lines);
-  //DEBUG_FIND_LINES(fl);
   free(fl->shuffled_lines);
   free(fl->map);
-  //DEBUG_FIND_LINES(fl);
   free(fl->mesh);
   free(fl->clusters);
-  //DEBUG_FIND_LINES(fl);
   free(fl);
   sparrow->helper_struct = NULL;
 }
@@ -525,8 +523,6 @@ finalise_find_edges(GstSparrow *sparrow){
 
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  //DEBUG_FIND_LINES(fl);
-
   switch (sparrow->colour){
   case SPARROW_WHITE:
   case SPARROW_GREEN:
