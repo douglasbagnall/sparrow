@@ -182,19 +182,34 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     sparrow_corner_t *c = &mesh[i];
     int x = c->in_x;
     int y = c->in_y;
-    GST_DEBUG("i %d used %d x: %f, y: %f  dxh %f dyh %f dxv %f dyv %f\n"
+    GST_DEBUG("i %d used %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
         "int x, y %d,%d (raw %d,%d) data %p\n",
         i, c->used, FLOATXY(x), FLOATXY(y),
-        FLOATXY(c->dxh), FLOATXY(c->dyh), FLOATXY(c->dxv), FLOATXY(c->dxh),
+        FLOATXY(c->dxr), FLOATXY(c->dyr), FLOATXY(c->dxd), FLOATXY(c->dyd),
         INTXY(x), INTXY(y), x, y, data);
-
+    int txr = x;
+    int txd = x;
+    int tyr = y;
+    int tyd = y;
+    for (int j = 1; j < LINE_PERIOD; j++){
+      txr += c->dxr;
+      txd += c->dxd;
+      tyr += c->dyr;
+      tyd += c->dyd;
+      data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
+      data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
+    }
+#if 0
+#define LP8 (LINE_PERIOD / 8)
 #define LP4 (LINE_PERIOD / 4)
 #define LP2 (LINE_PERIOD / 2)
-
-    data[INTXY(y + c->dyh * LP4) * w + INTXY(x + c->dxh * LP4)] = 0xaaaaaaaa;
-    data[INTXY(y + c->dyh * LP2) * w + INTXY(x + c->dxh * LP2)] = 0xaaaaaaaa;
-    data[INTXY(y + c->dyv * LP4) * w + INTXY(x + c->dxv * LP4)] = 0xaa7777aa;
-    data[INTXY(y + c->dyv * LP2) * w + INTXY(x + c->dxv * LP2)] = 0xaa7777aa;
+    data[INTXY(y + c->dyr * LP8) * w + INTXY(x + c->dxr * LP8)] = 0xbbbbbbbb;
+    data[INTXY(y + c->dyr * LP4) * w + INTXY(x + c->dxr * LP4)] = 0xaaaaaaaa;
+    data[INTXY(y + c->dyr * LP2) * w + INTXY(x + c->dxr * LP2)] = 0x99999999;
+    data[INTXY(y + c->dyd * LP8) * w + INTXY(x + c->dxd * LP8)] = 0xbb6666bb;
+    data[INTXY(y + c->dyd * LP4) * w + INTXY(x + c->dxd * LP4)] = 0xaa5555aa;
+    data[INTXY(y + c->dyd * LP2) * w + INTXY(x + c->dxd * LP2)] = 0x99444499;
+#endif
     data[INTXY(y) * w + INTXY(x)] = colours[MIN(c->used, 2)];
   }
   MAYBE_DEBUG_IPL(fl->debug);
@@ -236,8 +251,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
 
-      GST_DEBUG("signal at %p (%d, %d): %dv %dh, lines: %dh %dv\n", p, x, y,
-          p->signal[SPARROW_HORIZONTAL], p->signal[SPARROW_VERTICAL],
+      GST_DEBUG("signal at %p (%d, %d): %dv %dh, lines: %dv %dh\n", p, x, y,
+          p->signal[SPARROW_VERTICAL], p->signal[SPARROW_HORIZONTAL],
           vline, hline);
 
       sparrow_cluster_t *cluster = &clusters[vline * height + hline];

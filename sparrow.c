@@ -308,7 +308,7 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
 #if TIME_TRANSFORM
   TIMER_START(sparrow);
 #endif
-  GST_DEBUG("in %p, out %p\n", in, out);
+  //GST_DEBUG("in %p, out %p\n", in, out);
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
     new_state = mode_find_self(sparrow, in, out);
