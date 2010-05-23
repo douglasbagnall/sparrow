@@ -4,11 +4,12 @@
 typedef struct sparrow_corner_s {
   int in_x;
   int in_y;
-  /*dyh -> dy to next point horizontally */
-  int dxh;
-  int dyh;
-  int dxv;
-  int dyv;
+  /*dyr -> dy to next point right
+   dxd ->dx to next point down */
+  int dxr;
+  int dyr;
+  int dxd;
+  int dyd;
   int used;
 } sparrow_corner_t;
 
