@@ -172,7 +172,8 @@ cproto-nonstatic:
 #	opreport $(OP_OPTS)
 
 sysprof: debug
-	lsmod | grep -q 'sysprof_module' || sudo modprobe sysprof-module
+	lsmod | grep -q 'sysprof_module' || sudo modprobe sysprof-module || \
+	echo "try again after 'sudo m-a a-i sysprof-module-source'"
 	sysprof &
 	@echo "click the start button!"
 
