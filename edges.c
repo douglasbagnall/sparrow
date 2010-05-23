@@ -348,13 +348,14 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
             great reason), or it has no dx/dy because it is an edge piece.
             A mixed copy would be possible and better */
         if(mesh[i + 1].used &&
-            (mesh[i + 1].used < mesh[i + width].used)){
+            (mesh[i + 1].used < mesh[i + width].used) &&
+            mesh[i + 1].dxh && mesh[i + 1].dyv){
           mesh[i].dxh = mesh[i + 1].dxh;
           mesh[i].dyh = mesh[i + 1].dyh;
           mesh[i].dxv = mesh[i + 1].dxv;
           mesh[i].dyv = mesh[i + 1].dyv;
-          mesh[i].in_x = mesh[i + 1].in_x - mesh[i + 1].dxh * LINE_PERIOD;
-          mesh[i].in_y = mesh[i + 1].in_y - mesh[i + 1].dyh * LINE_PERIOD;
+          mesh[i].in_x = mesh[i + 1].in_x - mesh[i].dxh * LINE_PERIOD;
+          mesh[i].in_y = mesh[i + 1].in_y - mesh[i].dyh * LINE_PERIOD;
           mesh[i].used = mesh[i + 1].used + 1;
         }
         else if(mesh[i + width].used){
