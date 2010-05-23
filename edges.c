@@ -263,7 +263,7 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         cluster->voters[n].y = y << SPARROW_FIXED_POINT;
         /*use MIN() instead? */
         cluster->voters[n].signal = (((p->signal[SPARROW_HORIZONTAL]) *
-                (SIG_WEIGHT + p->signal[SPARROW_VERTICAL])) >> 14) + SIG_WEIGHT;
+                (SIG_WEIGHT + p->signal[SPARROW_VERTICAL])) >> 15) + SIG_WEIGHT;
         cluster->n++;
       }
       else {
@@ -316,8 +316,8 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
         int worstn;
         int devsum = 0;
         for (j = 0; j < cluster->n; j++){
-          int xdiff = cluster->voters[j].x - xmean;
-          int ydiff = cluster->voters[j].y - ymean;
+          int xdiff = cluster->voters[j].x * cluster->voters[j].signal - xmean;
+          int ydiff = cluster->voters[j].y * cluster->voters[j].signal - ymean;
           int diff2 = xdiff * xdiff + ydiff * ydiff;
           devsum += diff2;
           if (diff2 > worst){
@@ -330,9 +330,12 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
 
         /*a bad outlier has significantly greater than average deviation
           (but how much is bad? median deviation would be more useful)*/
-        if (worst > 3 * devsum / cluster->n){
+        if (0 && (worst > 6 * devsum / cluster->n) && cluster->n > 2){
           /* reduce the worst ones weight. it is a silly aberration. */
-          cluster->voters[worstn].signal /= OUTLIER_PENALTY;
+          for (int k = worstn + 1; k < cluster->n ; k++){
+            cluster->voters[k - 1] = cluster->voters[k];
+          }
+          cluster->n--;
           GST_DEBUG("dropping outlier at %d,%d (mean %d,%d)\n",
               cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
           continue;
