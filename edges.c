@@ -489,23 +489,12 @@ find_corners_make_map(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl)
 
 static void
 find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
-  //DEBUG_FIND_LINES(fl);
-  int i;
-  int width = fl->n_vlines;
-  int height = fl->n_hlines;
-  sparrow_corner_t *mesh = fl->mesh;
-  gint x, y;
-
   find_corners_make_clusters(sparrow, in, fl);
-
   if (sparrow->debug){
     debug_clusters(sparrow, fl);
   }
-
   find_corners_make_corners(sparrow, in, fl);
-
   find_corners_make_map(sparrow, in, fl);
-
   if (sparrow->debug){
     DEBUG_FIND_LINES(fl);
     debug_corners_image(sparrow, fl);
