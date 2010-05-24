@@ -38,11 +38,38 @@
 /*
 */
 
-
 #define SPARROW_MAP_LUT_SHIFT 1
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
 #define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
+
+
+int sort_median(int *a, guint n)
+{
+  guint i, j;
+  /*stupid sort, but n is very small*/
+  for (i = 0; i <  n; i++){
+    for (j = i + 1; j < n; j++){
+      if (a[i] > a[j]){
+        int tmp = a[j];
+        a[j] = a[i];
+        a[i] = tmp;
+      }
+    }
+  }
+  guint middle = n / 2;
+  int answer = a[middle];
+
+  if ((n & 1) == 0){
+    answer += a[middle - 1];
+    answer /= 2;
+  }
+  return answer;
+}
+
+
+
+
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
