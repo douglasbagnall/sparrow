@@ -318,6 +318,11 @@ find_corners_make_clusters(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t
 
 static inline void
 discard_cluster_outliers(sparrow_cluster_t *cluster)
+{}
+
+
+static inline void
+x_discard_cluster_outliers(sparrow_cluster_t *cluster)
 {
   sparrow_voter_t *v = cluster->voters;
   int i, j;
