@@ -107,10 +107,6 @@ test-gdb: debug
 	echo "set args $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)" > /tmp/gdb-args.txt
 	gdb -x /tmp/gdb-args.txt $(GST_LAUNCH)
 
-test-nemiver: debug
-	nemiver "$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)"
-
-
 test-times: all
 	timeout -3 20 time -v $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
@@ -194,6 +190,10 @@ CV_LINKS = -lcv -lcvaux -lhighgui
 
 unittest-edges:
 	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) -o test test-find-edge.c
+	./test
+
+unittest-median:
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) -o test test-median.c
 	./test
 
 
