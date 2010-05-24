@@ -395,60 +395,25 @@ find_corners_make_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t 
         continue;
       }
 
-      discard_cluster_outliers(sparrow_cluster_t *cluster);
+      discard_cluster_outliers(cluster);
 
       int xsum, ysum;
       int xmean, ymean;
       int votes;
-      while(1) {
-        int j;
-        xsum = 0;
-        ysum = 0;
-        votes = 0;
-        for (j = 0; j < cluster->n; j++){
-          votes += cluster->voters[j].signal;
-          ysum += cluster->voters[j].y * cluster->voters[j].signal;
-          xsum += cluster->voters[j].x * cluster->voters[j].signal;
-        }
-        if (votes == 0){
-          /* don't diminish signal altogether. The previous iteration's means
-             will be used. */
-          break;
-        }
-        xmean = xsum / votes;
-        ymean = ysum / votes;
-        GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
-            i, cluster->n, votes, xsum, ysum, xmean, ymean);
-        int worst = -1;
-        int worstn;
-        int devsum = 0;
-        for (j = 0; j < cluster->n; j++){
-          int xdiff = cluster->voters[j].x * cluster->voters[j].signal - xmean;
-          int ydiff = cluster->voters[j].y * cluster->voters[j].signal - ymean;
-          int diff2 = xdiff * xdiff + ydiff * ydiff;
-          devsum += diff2;
-          if (diff2 > worst){
-            worst = diff2;
-            worstn = j;
-          }
-        }
-        GST_DEBUG("devsum %d, n %d, worst %d\n",
-            devsum, cluster->n, worst);
-
-        /*a bad outlier has significantly greater than average deviation
-          (but how much is bad? median deviation would be more useful)*/
-        if (0 && (worst > 6 * devsum / cluster->n) && cluster->n > 2){
-          /* reduce the worst ones weight. it is a silly aberration. */
-          for (int k = worstn + 1; k < cluster->n ; k++){
-            cluster->voters[k - 1] = cluster->voters[k];
-          }
-          cluster->n--;
-          GST_DEBUG("dropping outlier at %d,%d (mean %d,%d)\n",
-              cluster->voters[worstn].x, cluster->voters[worstn].y, xmean, ymean);
-          continue;
-        }
-        break;
+      int j;
+      xsum = 0;
+      ysum = 0;
+      votes = 0;
+      for (j = 0; j < cluster->n; j++){
+        votes += cluster->voters[j].signal;
+        ysum += cluster->voters[j].y * cluster->voters[j].signal;
+        xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
+      xmean = xsum / votes;
+      ymean = ysum / votes;
+      GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
+          i, cluster->n, votes, xsum, ysum, xmean, ymean);
+
       mesh[i].in_x = xmean;
       mesh[i].in_y = ymean;
       mesh[i].used = TRUE;
