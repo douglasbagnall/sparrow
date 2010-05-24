@@ -248,63 +248,84 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //sparrow_cluster_t *clusters = fl->clusters;
 }
 
+/*signal product is close to 18 bits. reduce to 4 */
+#define SIGNAL_QUANT (1 << 14)
+
+/*maximum number of pixels in a cluster */
+#define CLUSTER_SIZE 8
+
 
 /*create the mesh */
 static void
-find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
-  //DEBUG_FIND_LINES(fl);
-  int i;
-  int width = fl->n_vlines;
-  int height = fl->n_hlines;
+find_corners_make_clusters(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   sparrow_cluster_t *clusters = fl->clusters;
-  sparrow_corner_t *mesh = fl->mesh;
-  gint x, y;
+  int x, y;
   /*each point in fl->map is in a vertical line, a horizontal line, both, or
     neither.  Only the "both" case matters. */
   for (y = 0; y < sparrow->in.height; y++){
     for (x = 0; x < sparrow->in.width; x++){
       sparrow_intersect_t *p = &fl->map[y * sparrow->in.width + x];
-      /*remembering that 0 is valid as a line no, but not as a signal */
-      if (! p->signal[SPARROW_HORIZONTAL] ||
-          ! p->signal[SPARROW_VERTICAL]){
+      guint vsig = p->signal[SPARROW_VERTICAL];
+      guint hsig = p->signal[SPARROW_HORIZONTAL];
+      /*remembering that 0 is valid as a line number, but not as a signal */
+      if (! (vsig && hsig)){
         continue;
       }
       /*This one is lobbying for the position of a corner.*/
-
-      /*XXX what to do in the case that there is no intersection?  often cases
-        this will happen in the dark bits and be OK. But if it happens in the
-        light?*/
-      /*linearise the xy coordinates*/
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
 
-      GST_DEBUG("signal at %p (%d, %d): %dv %dh, lines: %dv %dh\n", p, x, y,
-          p->signal[SPARROW_VERTICAL], p->signal[SPARROW_HORIZONTAL],
-          vline, hline);
-
-      sparrow_cluster_t *cluster = &clusters[hline * height + vline];
+      sparrow_cluster_t *cluster = &clusters[hline * fl->n_vlines + vline];
+      sparrow_voter_t *voters = cluster->voters;
       int n = cluster->n;
-      GST_DEBUG("cluster is %p, n is %d\n", cluster, n);
-      if (n < 8){
-        cluster->voters[n].x = x << SPARROW_FIXED_POINT;
-        cluster->voters[n].y = y << SPARROW_FIXED_POINT;
-        /*use MIN() instead? */
-        cluster->voters[n].signal = (((p->signal[SPARROW_HORIZONTAL]) *
-                (SIG_WEIGHT + p->signal[SPARROW_VERTICAL])) >> 15) + SIG_WEIGHT;
+      guint signal = (vsig * hsig) / SIGNAL_QUANT;
+      int xfp = x << SPARROW_FIXED_POINT;
+      int yfp = y << SPARROW_FIXED_POINT;
+
+      GST_DEBUG("signal at %p (%d, %d): %dv %dh, product %u, lines: %dv %dh\n"
+          "cluster is %p, n is %d\n", p, x, y,
+          vsig, hsig, signal, vline, hline, cluster, n);
+
+      if (n < CLUSTER_SIZE){
+        voters[n].x = xfp;
+        voters[n].y = yfp;
+        voters[n].signal = signal;
         cluster->n++;
       }
       else {
-        GST_DEBUG("more than 8 pixels at cluster for corner %d, %d\n",
-            vline, hline);
-        /*if this message ever turns up, replace the weakest signals or add
-          more slots.*/
+        for (int j = 0; j < CLUSTER_SIZE; j++){
+          if (voters[j].signal < signal){
+            guint tmp_s = voters[j].signal;
+            int tmp_x = voters[j].x;
+            int tmp_y = voters[j].y;
+            voters[j].signal = signal;
+            voters[j].x = xfp;
+            voters[j].y = yfp;
+            signal = tmp_s;
+            xfp = tmp_x;
+            yfp = tmp_y;
+            GST_DEBUG("more than %d pixels at cluster for corner %d, %d.\n",
+                CLUSTER_SIZE, vline, hline);
+          }
+        }
       }
     }
   }
-  if (sparrow->debug){
-    debug_clusters(sparrow, fl);
+}
   }
+
+
+
+/*create the mesh */
+static inline void
+find_corners_make_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+  sparrow_cluster_t *clusters = fl->clusters;
+  sparrow_corner_t *mesh = fl->mesh;
+  int x, y, i;
+
   i = 0;
   for (y = 0; y < height; y++){
     for (x = 0; x < width; x++, i++){
@@ -376,6 +397,16 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
           i, FLOATXY(xmean), FLOATXY(ymean));
     }
   }
+}
+
+static inline void
+find_corners_make_map(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  int i;
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+  sparrow_corner_t *mesh = fl->mesh;
+  gint x, y;
+
   //DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
@@ -430,12 +461,31 @@ find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
       }
     }
   }
+}
+
+static void
+find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+  //DEBUG_FIND_LINES(fl);
+  int i;
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+  sparrow_corner_t *mesh = fl->mesh;
+  gint x, y;
+
+  find_corners_make_clusters(sparrow, in, fl);
+
   if (sparrow->debug){
-    //debug_mesh(sparrow, fl);
+    debug_clusters(sparrow, fl);
+  }
+
+  find_corners_make_corners(sparrow, in, fl);
+
+  find_corners_make_map(sparrow, in, fl);
+
+  if (sparrow->debug){
     DEBUG_FIND_LINES(fl);
     debug_corners_image(sparrow, fl);
   }
-  //DEBUG_FIND_LINES(fl);
 }
 
 
