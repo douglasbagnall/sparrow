@@ -312,7 +312,64 @@ find_corners_make_clusters(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t
     }
   }
 }
+
+/* look for connected group. if there is more than one connected group,
+ despair.*/
+
+static inline void
+discard_cluster_outliers(sparrow_cluster_t *cluster)
+{
+  sparrow_voter_t *v = cluster->voters;
+  int i, j;
+
+  guint32 touch[CLUSTER_SIZE];
+
+  while (cluster->n){
+    guint32 all = (1 << cluster->n) - 1;
+    for (i = 0; i < cluster->n; i++){
+      touch[i] = 1 << i;
+    }
+
+    for (i = 0; i <  cluster->n - 1; i++){
+      for (j = i + 1; j < cluster->n; j++){
+        if (((abs(v[i].x - v[j].x) <= 2) && (abs(v[i].y - v[j].y) <= 2)) ||
+            (touch[i] & touch[j])){
+          touch[i] |= touch[j];
+          touch[j] = touch[i];
+        }
+      }
+    }
+    if (touch[cluster->n - 1] == all){
+      break;
+    }
+    /* something is wrong! somebody is disconnected!  expel them!?
+       backpropagate connectedness, find the maximum popcount, discard the
+       others. */
+    int bcount = 0;
+    guint bmask = 0;
+
+    for (i = cluster->n - 1; i >= 0; i++){
+      if (bmask != touch[i] &&
+          bcount < (int)popcount32(touch[i])){
+        bmask = touch[i];
+        bcount = popcount32(touch[i]);
+      }
+      for (j = 0; j < i; j++){
+        touch[j] = (touch[j] & touch[i]) ? touch[i] : touch[j];
+      }
+    }
+    if (bcount > cluster->n / 2){
+      j = 0;
+      for (i = 0; i < cluster->n; i++){
+        if (touch[i] == bmask){
+          v[j] = v[i];
+          j++;
+        }
+      }
+      cluster->n = j;
+    }
   }
+}
 
 
 
@@ -337,6 +394,8 @@ find_corners_make_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t 
       if (cluster->n == 0){
         continue;
       }
+
+      discard_cluster_outliers(sparrow_cluster_t *cluster);
 
       int xsum, ysum;
       int xmean, ymean;

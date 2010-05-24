@@ -127,8 +127,19 @@ rng_uniform_double(GstSparrow *sparrow, double limit){
 
 #define DISASTEROUS_CRASH(msg) GST_ERROR("DISASTER: %s\n%-25s  line %4d \n", (msg), __func__, __LINE__);
 
+static inline guint32
+popcount32(guint32 x)
+{
+  x = x - ((x >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  x = (x + (x >> 4)) & 0x0F0F0F0F;
+  x = x + (x >> 8);
+  x = x + (x >> 16);
+  return x & 0x000000FF;
+}
 
 
+/*XXX optimised for 32 bit!*/
 static inline guint32
 popcount64(guint64 x64)
 {
