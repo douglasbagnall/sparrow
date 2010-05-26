@@ -47,12 +47,17 @@
 #define FL_DUMPFILE "/tmp/edges.dump"
 
 static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
+  GST_DEBUG("about to save to %s\n", filename);
   FILE *f = fopen(filename, "w");
   /* simply write fl, map, clusters and mesh in sequence */
+  GST_DEBUG("fl is %p, file is %p\n", fl, f);
+  GST_DEBUG("fl: %d x %d\n", sizeof(sparrow_find_lines_t), 1);
   fwrite(fl, sizeof(sparrow_find_lines_t), 1, f);
-
+  GST_DEBUG("fl->map %d x %d\n", sizeof(sparrow_intersect_t), sparrow->in.pixcount);
   fwrite(fl->map, sizeof(sparrow_intersect_t), sparrow->in.pixcount, f);
+  GST_DEBUG("fl->clusters  %d x %d\n", sizeof(sparrow_cluster_t), fl->n_hlines * fl->n_vlines);
   fwrite(fl->clusters, sizeof(sparrow_cluster_t), fl->n_hlines * fl->n_vlines, f);
+  GST_DEBUG("fl->mesh  %d x %d\n", sizeof(sparrow_corner_t), fl->n_hlines * fl->n_vlines);
   fwrite(fl->mesh, sizeof(sparrow_corner_t), fl->n_hlines * fl->n_vlines, f);
   fclose(f);
 }
@@ -669,7 +674,8 @@ INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   //DEBUG_FIND_LINES(fl);
-  if (sparrow->save){
+  if (sparrow->save && *(sparrow->save)){
+    GST_DEBUG("about to save to %s\n", sparrow->save);
     dump_edges_info(sparrow, fl, sparrow->save);
   }
   if (sparrow->debug){
@@ -720,14 +726,10 @@ init_find_edges(GstSparrow *sparrow){
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
   GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
 
-  if (sparrow->reload){
-    read_edges_info(sparrow, fl, sparrow->reload);
-  }
-  else {
-    fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
-    fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
-    fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
-  }
+  fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
+  fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
+  fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
+
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
   int offset = LINE_PERIOD / 2;
@@ -767,7 +769,8 @@ init_find_edges(GstSparrow *sparrow){
 
   setup_colour_shifts(sparrow, fl);
 
-  if (sparrow->reload){
+  if (sparrow->reload && *(sparrow->reload)){
+    read_edges_info(sparrow, fl, sparrow->reload);
     sparrow->countdown = 2;
   }
   else {

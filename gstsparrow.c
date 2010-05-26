@@ -174,7 +174,7 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
 
 static inline void
 set_string_prop(const GValue *value, const char **target){
-  const char *s = g_value_get_string(value);
+  const char *s = g_value_dup_string(value);
   size_t len = strlen(s);
   if(len){
     *target = s;
