@@ -123,29 +123,26 @@ find_edges_threshold(IplImage *im)
   int pixels = small->width * small->height;
   int min_black = pixels / 16;
   int max_black = pixels * 3 / 4;
-  int min_white = pixels / 8;
-  int max_white = pixels * 15 / 16;
   int totals[256] = {0};
 
   int best_d = pixels + 1;
-  int best_t = 255;
+  int best_t = 0;
 
   /* look for a low region in the histogram between the two peaks.
      (big assumption: two peaks, with most in whiter peak) */
   int total = 0;
-  for (int i = 254; i >= 0; i--){
+  for (int i = 0; i < 255; i++){
     int v = (int)cvQueryHistValue_1D(hist, i);
     total += v;
     totals[i] = total;
-    if (total >= min_white){
-      if (i < 250){
-        int diff = totals[i + 5] - total;
-        GST_DEBUG("i %d total %d diff %d best_d %d best_t %d\n", i, total, diff, best_d, best_t);
+    if (total >= min_black){
+      if (i >= 5){
+        int diff = total - totals[i - 5];
         if (diff < best_d){
           best_d = diff;
-          best_t = i + 2;
+          best_t = i - 2;
         }
-        if (total >= max_white){
+        if (total >= max_black){
           break;
         }
       }
@@ -186,11 +183,13 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
         (gshift == 16) ? green : NULL,
         (gshift ==  8) ? green : NULL,
         (gshift ==  0) ? green : NULL);
-    int best_t = find_edges_threshold(green);
+    //int best_t = find_edges_threshold(green);
     /*XXX if best_t is wrong, add to sparrow->countdown: probably the light is
       not really on.  But what counts as wrong? */
-    MAYBE_DEBUG_IPL(green);
-    cvCmpS(green, best_t, mask, CV_CMP_GT);
+    //
+    //cvCmpS(green, best_t, mask, CV_CMP_GT);
+    cvCanny(green, mask, 100, 170, 3);
+    MAYBE_DEBUG_IPL(mask);
     goto black;
   case 1:
     /* floodfill where the screen is, removing outlying bright spots*/
