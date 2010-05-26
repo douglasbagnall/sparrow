@@ -123,26 +123,29 @@ find_edges_threshold(IplImage *im)
   int pixels = small->width * small->height;
   int min_black = pixels / 16;
   int max_black = pixels * 3 / 4;
+  int min_white = pixels / 8;
+  int max_white = pixels * 15 / 16;
   int totals[256] = {0};
 
   int best_d = pixels + 1;
-  int best_t = 0;
+  int best_t = 255;
 
   /* look for a low region in the histogram between the two peaks.
      (big assumption: two peaks, with most in whiter peak) */
   int total = 0;
-  for (int i = 0; i < 255; i++){
+  for (int i = 254; i >= 0; i--){
     int v = (int)cvQueryHistValue_1D(hist, i);
     total += v;
     totals[i] = total;
-    if (total >= min_black){
-      if (i >= 5){
-        int diff = total - totals[i - 5];
+    if (total >= min_white){
+      if (i < 250){
+        int diff = totals[i + 5] - total;
+        GST_DEBUG("i %d total %d diff %d best_d %d best_t %d\n", i, total, diff, best_d, best_t);
         if (diff < best_d){
           best_d = diff;
-          best_t = i - 2;
+          best_t = i + 2;
         }
-        if (total >= max_black){
+        if (total >= max_white){
           break;
         }
       }
