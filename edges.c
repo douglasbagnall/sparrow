@@ -593,8 +593,8 @@ debug_map_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint32 *data = (guint32*)fl->debug->imageData;
   memset(data, 0, sparrow->in.size);
   for (guint i = 0; i < sparrow->in.pixcount; i++){
-    data[i] |= fl->map[i].signal[SPARROW_HORIZONTAL] << sparrow->in.gshift;
-    data[i] |= fl->map[i].signal[SPARROW_VERTICAL] << sparrow->in.rshift;
+    data[i] |= (fl->map[i].signal[SPARROW_HORIZONTAL] >> 1) << sparrow->in.gshift;
+    data[i] |= (fl->map[i].signal[SPARROW_VERTICAL] >> 1) << sparrow->in.rshift;
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
