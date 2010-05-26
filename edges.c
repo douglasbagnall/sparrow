@@ -547,11 +547,12 @@ look_for_threshold(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
   int i;
   guint32 colour;
+  guint32 cmask = sparrow->out.colours[sparrow->colour];
   guint32 signal;
   guint32 *in32 = (guint32 *)in;
   guint32 highest = 0;
   for (i = 0;  i < (int)sparrow->in.pixcount; i++){
-    colour = in32[i] & sparrow->colour;
+    colour = in32[i] & cmask;
     signal = ((colour >> fl->shift1) +
         (colour >> fl->shift2)) & 0x1ff;
     if (signal > highest){
@@ -568,10 +569,11 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
     sparrow_line_t *line){
   guint i;
   guint32 colour;
+  guint32 cmask = sparrow->out.colours[sparrow->colour];
   int signal;
   guint32 *in32 = (guint32 *)in;
   for (i = 0; i < sparrow->in.pixcount; i++){
-    colour = in32[i] & sparrow->colour;
+    colour = in32[i] & cmask;
     signal = ((colour >> fl->shift1) +
         (colour >> fl->shift2)) & 0x1ff;
     if (signal > fl->threshold){
@@ -601,18 +603,19 @@ debug_map_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 static inline void
 draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   guint32 *p = (guint32 *)out;
+  guint32 colour = sparrow->out.colours[sparrow->colour];
   int i;
   if (line->dir == SPARROW_HORIZONTAL){
     p += line->offset * sparrow->out.width;
     for (i = 0; i < sparrow->out.width; i++){
-      p[i] = sparrow->colour;
+      p[i] = colour;
     }
   }
   else {
     guint32 *p = (guint32 *)out;
     p += line->offset;
     for(i = 0; i < sparrow->out.height; i++){
-      *p = sparrow->colour;
+      *p = colour;
       p += sparrow->out.width;
     }
   }

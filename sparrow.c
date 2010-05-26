@@ -214,10 +214,10 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   }
 
   if (sparrow->rng_seed & 2){/*XXX need better test */
-    sparrow->colour = sparrow->out.colours[SPARROW_GREEN];
+    sparrow->colour = SPARROW_GREEN;
   }
   else {
-    sparrow->colour = sparrow->out.colours[SPARROW_MAGENTA];
+    sparrow->colour = SPARROW_MAGENTA;
   }
 
   sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
