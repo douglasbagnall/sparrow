@@ -322,9 +322,10 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         cluster->n++;
       }
       else {
+        guint tmp_s;
         for (int j = 0; j < CLUSTER_SIZE; j++){
           if (voters[j].signal < signal){
-            guint tmp_s = voters[j].signal;
+            tmp_s = voters[j].signal;
             int tmp_x = voters[j].x;
             int tmp_y = voters[j].y;
             voters[j].signal = signal;
@@ -333,12 +334,16 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             signal = tmp_s;
             xfp = tmp_x;
             yfp = tmp_y;
-            GST_DEBUG("more than %d pixels at cluster for corner %d, %d.\n",
-                CLUSTER_SIZE, vline, hline);
           }
         }
+        GST_DEBUG("more than %d pixels at cluster for corner %d, %d."
+            "Dropped %u for %u\n",
+            CLUSTER_SIZE, vline, hline, signal, tmp_s, signal);                  
       }
     }
+  }
+  if (sparrow->debug){
+    debug_clusters(sparrow, fl);
   }
 }
 
