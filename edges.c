@@ -628,16 +628,10 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
 /* show each line for 2 frames, then wait sparrow->lag frames, leaving line on
    until last one.
  */
-
-INVISIBLE sparrow_state
-mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
-  //DEBUG_FIND_LINES(fl);
-  if (fl->current == fl->n_lines){
-    goto done;
-  }
+static inline void
+draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *out)
+{
   sparrow_line_t *line = fl->shuffled_lines[fl->current];
-
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
   if (sparrow->countdown){
@@ -661,12 +655,34 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   if (sparrow->debug){
     debug_map_image(sparrow, fl);
   }
-  return SPARROW_STATUS_QUO;
- done:
+}
+
+INVISIBLE sparrow_state
+mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
+  //DEBUG_FIND_LINES(fl);
+  if (fl->current < fl->n_lines){
+    draw_lines(sparrow, fl, in, out);
+    return SPARROW_STATUS_QUO;
+  }
+
   /*match up lines and find corners */
-  find_corners(sparrow, in, fl);
-  corners_to_lut(sparrow, fl);
-  return SPARROW_NEXT_STATE;
+  switch(fl->counter){
+  case 0:
+    make_clusters(sparrow, fl);
+    break;
+  case 1:
+    make_corners(sparrow, fl);
+    break;
+  case 2:
+    make_map(sparrow, fl);
+    break;
+  case 3:
+    corners_to_lut(sparrow, fl);
+    return SPARROW_NEXT_STATE;
+  }
+  fl->counter++;
+  return SPARROW_STATUS_QUO;
 }
 
 
@@ -770,8 +786,10 @@ init_find_edges(GstSparrow *sparrow){
   setup_colour_shifts(sparrow, fl);
 
   if (sparrow->reload && *(sparrow->reload)){
+    GST_DEBUG("sparrow>reload is %s\n", sparrow->reload);
     read_edges_info(sparrow, fl, sparrow->reload);
-    sparrow->countdown = 2;
+    fl->current = fl->n_lines;
+    fl->counter = 0;
   }
   else {
     sparrow->countdown = sparrow->lag + 2;

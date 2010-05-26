@@ -58,6 +58,7 @@ typedef struct sparrow_find_lines_s {
   sparrow_corner_t *mesh;
   sparrow_cluster_t *clusters;
   IplImage *debug;
+  int counter;
 } sparrow_find_lines_t;
 
 
