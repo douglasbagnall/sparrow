@@ -31,10 +31,6 @@
 
 #define SIG_WEIGHT 2
 
-/*3 pixels manhatten distance makes you an outlier */
-#define OUTLIER_THRESHOLD 3 << (SPARROW_FIXED_POINT)
-#define OUTLIER_PENALTY 8
-
 /*
 */
 
@@ -350,12 +346,52 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
  despair.*/
 
 static inline void
+drop_cluster_voter(sparrow_cluster_t *cluster, int n)
+{
+  if (n < cluster->n){
+    for (int i = n; i < cluster->n - 1; i++){
+      cluster->voters[i] = cluster->voters[i + 1];
+    }
+    cluster->n--;
+  }
+}
+
+static inline void
 discard_cluster_outliers(sparrow_cluster_t *cluster)
 {}
 
+#define OUTLIER_FIXED_POINT 4
+#define OUTLIER_RADIUS 10
+#define OUTLIER_THRESHOLD ((OUTLIER_RADIUS * OUTLIER_RADIUS) << (OUTLIER_FIXED_POINT * 2))
 
 static inline void
-x_discard_cluster_outliers(sparrow_cluster_t *cluster)
+median_discard_cluster_outliers(sparrow_cluster_t *cluster)
+{
+  int xvals[CLUSTER_SIZE];
+  int yvals[CLUSTER_SIZE];
+  int i;
+  for (i = 0; i < cluster->n; i++){
+    /*XXX could sort here*/
+    xvals[i] = cluster->voters[i].x;
+    yvals[i] = cluster->voters[i].y;
+  }
+  const int xmed = sort_median(xvals, cluster->n);
+  const int ymed = sort_median(yvals, cluster->n);
+
+  for (i = 0; i < cluster->n; i++){
+    /*dx, dy can be as  much as 1024 << 8 ==  1 << 18. squared = 1 << 36.
+     shift it back to  1<< 14*/
+    int dx = abs(cluster->voters[i].x - xmed) >> (SPARROW_FIXED_POINT - OUTLIER_FIXED_POINT);
+    int dy = abs(cluster->voters[i].y - ymed) >> (SPARROW_FIXED_POINT - OUTLIER_FIXED_POINT);
+    if (dx *dx + dy * dy > OUTLIER_THRESHOLD){
+      drop_cluster_voter(cluster, i);
+    }
+  }
+}
+
+
+static inline void
+connectedness_discard_cluster_outliers(sparrow_cluster_t *cluster)
 {
   sparrow_voter_t *v = cluster->voters;
   int i, j;
