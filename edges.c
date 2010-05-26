@@ -447,8 +447,15 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         ysum += cluster->voters[j].y * cluster->voters[j].signal;
         xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
-      xmean = xsum / votes;
-      ymean = ysum / votes;
+      if (votes){
+        xmean = xsum / votes;
+        ymean = ysum / votes;
+      }
+      else {
+        GST_DEBUG("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
+            i, cluster->n, xsum, ysum);        
+      }
+          
       GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
           i, cluster->n, votes, xsum, ysum, xmean, ymean);
 
