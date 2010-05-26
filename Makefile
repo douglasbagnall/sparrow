@@ -205,9 +205,9 @@ ccmalloc:
 	make -B CFLAGS='-lccmalloc -g' CC='ccmalloc --nowrapper gcc'
 
 rsync:
-	rsync  $(shell git ls-tree -r --name-only HEAD) 10.42.43.10:sparrow
+	rsync -t $(shell git ls-tree -r --name-only HEAD) 10.42.43.10:sparrow
 
 
 .PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges \
-	debug ccmalloc
+	debug ccmalloc rsync
 
