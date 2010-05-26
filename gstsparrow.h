@@ -104,6 +104,8 @@ typedef enum {
   SPARROW_WHITE = 0,
   SPARROW_GREEN,
   SPARROW_MAGENTA,
+
+  SPARROW_LAST_COLOUR
 } sparrow_colour;
 
 
@@ -202,6 +204,9 @@ struct _GstSparrow
   guint32 colour;
   guint32 frame_count;
 
+  const char *reload;
+  const char *save;
+
   /*debug timer */
   struct timeval timer_start;
   struct timeval timer_stop;
@@ -242,6 +247,8 @@ enum
   PROP_TIMER,
   PROP_RNG_SEED,
   PROP_COLOUR, 
+  PROP_RELOAD,
+  PROP_SAVE
 };
 
 #define DEFAULT_PROP_CALIBRATE TRUE
@@ -249,6 +256,11 @@ enum
 #define DEFAULT_PROP_TIMER FALSE
 #define DEFAULT_PROP_RNG_SEED -1
 #define DEFAULT_PROP_COLOUR SPARROW_GREEN
+#define DEFAULT_PROP_RELOAD ""
+#define DEFAULT_PROP_SAVE ""
+
+#define QUOTE_(x) #x
+#define QUOTE(x) QUOTE_(x)
 
 /*timing utility code */
 #define TIME_TRANSFORM 1

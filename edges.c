@@ -46,7 +46,7 @@
 
 #define FL_DUMPFILE "/tmp/edges.dump"
 
-static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, char *filename){
+static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
   FILE *f = fopen(filename, "w");
   /* simply write fl, map, clusters and mesh in sequence */
   fwrite(fl, sizeof(sparrow_find_lines_t), 1, f);
@@ -57,20 +57,18 @@ static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, char 
   fclose(f);
 }
 
-static void read_edges_info(GstSparrow *sparrow, char *filename){
-  FILE *f = fopen(FL_DUMPFILE, "r");
-  sparrow_find_lines_t *fl = malloc_or_die(sizeof(sparrow_find_lines_t));
-  size_t read = fread(fl, sizeof(sparrow_find_lines_t), 1, f);
+static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
+  FILE *f = fopen(filename, "r");
+  sparrow_find_lines_t fl2;
+  size_t read = fread(&fl2, sizeof(sparrow_find_lines_t), 1, f);
+  assert(fl2.n_hlines == fl->n_hlines);
+  assert(fl2.n_vlines == fl->n_vlines);
+
   guint n_corners = fl->n_hlines * fl->n_vlines;
-
-  fl->map = malloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
-  fl->clusters = malloc_or_die(n_corners * sizeof(sparrow_cluster_t));
-  fl->mesh = malloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
-
   read += fread(fl->map, sizeof(sparrow_intersect_t), sparrow->in.pixcount, f);
   read += fread(fl->clusters, sizeof(sparrow_cluster_t), n_corners, f);
   read += fread(fl->mesh, sizeof(sparrow_corner_t), n_corners, f);
-  fclose(f);  
+  fclose(f);
 }
 
 
@@ -663,7 +661,6 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   /*match up lines and find corners */
   find_corners(sparrow, in, fl);
   corners_to_lut(sparrow, fl);
-  dump_edges_info(sparrow, fl, FL_DUMPFILE);
   return SPARROW_NEXT_STATE;
 }
 
@@ -672,6 +669,9 @@ INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   //DEBUG_FIND_LINES(fl);
+  if (sparrow->save){
+    dump_edges_info(sparrow, fl, sparrow->save);
+  }
   if (sparrow->debug){
     cvReleaseImage(&fl->debug);
   }
@@ -719,10 +719,15 @@ init_find_edges(GstSparrow *sparrow){
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
   GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
-  fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
-  fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
-  fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
 
+  if (sparrow->reload){
+    read_edges_info(sparrow, fl, sparrow->reload);
+  }
+  else {
+    fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
+    fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
+    fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
+  }
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
   int offset = LINE_PERIOD / 2;
@@ -761,10 +766,18 @@ init_find_edges(GstSparrow *sparrow){
   }
 
   setup_colour_shifts(sparrow, fl);
-  sparrow->countdown = sparrow->lag + 2;
+
+  if (sparrow->reload){
+    sparrow->countdown = 2;
+  }
+  else {
+    sparrow->countdown = sparrow->lag + 2;
+  }
+
   //DEBUG_FIND_LINES(fl);
   if (sparrow->debug){
     CvSize size = {sparrow->in.width, sparrow->in.height};
     fl->debug = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
   }
 }
+

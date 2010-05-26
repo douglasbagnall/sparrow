@@ -221,7 +221,13 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   }
 
   sparrow->timer_log = (sparrow->use_timer) ? fopen(TIMER_LOG_FILE, "w") : NULL;
-  change_state(sparrow, SPARROW_NEXT_STATE);
+
+  if(sparrow->reload){
+    change_state(sparrow, SPARROW_FIND_EDGES);
+  }
+  else {
+    change_state(sparrow, SPARROW_NEXT_STATE);
+  }
   return TRUE;
 }
 

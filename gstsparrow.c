@@ -145,6 +145,20 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
           0, (guint32)-1, (guint32)DEFAULT_PROP_RNG_SEED,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class, PROP_COLOUR,
+      g_param_spec_uint ("colour", "Colour", "Colour for calibration (" QUOTE(SPARROW_GREEN)
+          " for green, " QUOTE(SPARROW_MAGENTA) "for magenta) [" QUOTE(DEFAULT_PROP_COLOUR) "]",
+          0, SPARROW_LAST_COLOUR - 1, (guint32)DEFAULT_PROP_COLOUR,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_RELOAD,
+      g_param_spec_string ("reload", "Reload", "reload calibration from this file, don't calibrate [None]",
+          DEFAULT_PROP_RELOAD, G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_SAVE,
+      g_param_spec_string ("save", "Save", "save calibration details to this file [None]",
+          DEFAULT_PROP_SAVE, G_PARAM_READWRITE));
+
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
   trans_class->transform = GST_DEBUG_FUNCPTR (gst_sparrow_transform);
   GST_INFO("gst class init\n");
@@ -156,6 +170,15 @@ gst_sparrow_init (GstSparrow * sparrow, GstSparrowClass * g_class)
   GST_INFO("gst sparrow init\n");
   /*disallow resizing */
   gst_pad_use_fixed_caps(GST_BASE_TRANSFORM_SRC_PAD(sparrow));
+}
+
+static inline void
+set_string_prop(const GValue *value, const char **target){
+  const char *s = g_value_get_string(value);
+  size_t len = strlen(s);
+  if(len){
+    *target = s;
+  }
 }
 
 static void
@@ -186,6 +209,18 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       sparrow->rng_seed = g_value_get_uint(value);
       GST_DEBUG("rng seed is %d\n", sparrow->rng_seed);
       break;
+    case PROP_COLOUR:
+      sparrow->colour = g_value_get_uint(value);
+      GST_DEBUG("colour is %d\n", sparrow->rng_seed);
+      break;
+    case PROP_RELOAD:
+      set_string_prop(value, &sparrow->reload);
+      GST_DEBUG("reload is %s\n", sparrow->reload);
+      break;
+    case PROP_SAVE:
+      set_string_prop(value, &sparrow->save);
+      GST_DEBUG("save is %s\n", sparrow->save);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -215,8 +250,14 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
     case PROP_RNG_SEED:
       g_value_set_uint(value, sparrow->rng_seed);
       break;
-    case PROP_COLOUR:      
+    case PROP_COLOUR:
       g_value_set_uint(value, sparrow->colour);
+      break;
+    case PROP_RELOAD:
+      g_value_set_string(value, sparrow->reload);
+      break;
+    case PROP_SAVE:
+      g_value_set_string(value, sparrow->save);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
