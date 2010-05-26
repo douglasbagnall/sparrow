@@ -290,7 +290,7 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 /*create the mesh */
 static void
-find_corners_make_clusters(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_cluster_t *clusters = fl->clusters;
   int x, y;
   /*each point in fl->map is in a vertical line, a horizontal line, both, or
@@ -413,7 +413,7 @@ x_discard_cluster_outliers(sparrow_cluster_t *cluster)
 
 /*create the mesh */
 static inline void
-find_corners_make_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
   int width = fl->n_vlines;
   int height = fl->n_hlines;
@@ -462,7 +462,7 @@ find_corners_make_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t 
 }
 
 static inline void
-find_corners_make_map(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
+make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int i;
   int width = fl->n_vlines;
   int height = fl->n_hlines;
@@ -523,16 +523,6 @@ find_corners_make_map(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl)
       }
     }
   }
-}
-
-static void
-find_corners(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl){
-  find_corners_make_clusters(sparrow, in, fl);
-  if (sparrow->debug){
-    debug_clusters(sparrow, fl);
-  }
-  find_corners_make_corners(sparrow, in, fl);
-  find_corners_make_map(sparrow, in, fl);
   if (sparrow->debug){
     DEBUG_FIND_LINES(fl);
     debug_corners_image(sparrow, fl);
