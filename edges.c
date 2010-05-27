@@ -31,8 +31,10 @@
 
 #define SIG_WEIGHT 2
 
-/*
-*/
+/* for discarding outliers */
+#define OUTLIER_FIXED_POINT 4
+#define OUTLIER_RADIUS 7
+#define OUTLIER_THRESHOLD ((OUTLIER_RADIUS * OUTLIER_RADIUS) << (OUTLIER_FIXED_POINT * 2))
 
 #define SPARROW_MAP_LUT_SHIFT 1
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
@@ -362,14 +364,6 @@ drop_cluster_voter(sparrow_cluster_t *cluster, int n)
 }
 
 static inline void
-discard_cluster_outliers(sparrow_cluster_t *cluster)
-{}
-
-#define OUTLIER_FIXED_POINT 4
-#define OUTLIER_RADIUS 10
-#define OUTLIER_THRESHOLD ((OUTLIER_RADIUS * OUTLIER_RADIUS) << (OUTLIER_FIXED_POINT * 2))
-
-static inline void
 median_discard_cluster_outliers(sparrow_cluster_t *cluster)
 {
   int xvals[CLUSTER_SIZE];
@@ -394,64 +388,6 @@ median_discard_cluster_outliers(sparrow_cluster_t *cluster)
   }
 }
 
-
-static inline void
-connectedness_discard_cluster_outliers(sparrow_cluster_t *cluster)
-{
-  sparrow_voter_t *v = cluster->voters;
-  int i, j;
-
-  guint32 touch[CLUSTER_SIZE];
-
-  while (cluster->n){
-    guint32 all = (1 << cluster->n) - 1;
-    for (i = 0; i < cluster->n; i++){
-      touch[i] = 1 << i;
-    }
-
-    for (i = 0; i <  cluster->n - 1; i++){
-      for (j = i + 1; j < cluster->n; j++){
-        if (((abs(v[i].x - v[j].x) <= 2) && (abs(v[i].y - v[j].y) <= 2)) ||
-            (touch[i] & touch[j])){
-          touch[i] |= touch[j];
-          touch[j] = touch[i];
-        }
-      }
-    }
-    if (touch[cluster->n - 1] == all){
-      break;
-    }
-    /* something is wrong! somebody is disconnected!  expel them!?
-       backpropagate connectedness, find the maximum popcount, discard the
-       others. */
-    int bcount = 0;
-    guint bmask = 0;
-
-    for (i = cluster->n - 1; i >= 0; i++){
-      if (bmask != touch[i] &&
-          bcount < (int)popcount32(touch[i])){
-        bmask = touch[i];
-        bcount = popcount32(touch[i]);
-      }
-      for (j = 0; j < i; j++){
-        touch[j] = (touch[j] & touch[i]) ? touch[i] : touch[j];
-      }
-    }
-    if (bcount > cluster->n / 2){
-      j = 0;
-      for (i = 0; i < cluster->n; i++){
-        if (touch[i] == bmask){
-          v[j] = v[i];
-          j++;
-        }
-      }
-      cluster->n = j;
-    }
-  }
-}
-
-
-
 /*create the mesh */
 static inline void
 make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -474,7 +410,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         continue;
       }
 
-      discard_cluster_outliers(cluster);
+      median_discard_cluster_outliers(cluster);
 
       int xsum, ysum;
       int xmean, ymean;
