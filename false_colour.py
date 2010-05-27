@@ -2,7 +2,7 @@
 
 from math import sin, cos, pi
 
-POINTS = 20
+POINTS = 16
 
 
 def colour_cycle(points, fn=cos):
