@@ -98,9 +98,8 @@ int sort_median(int *a, guint n)
   return answer;
 }
 
-
-
-
+debug_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+}
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
@@ -194,6 +193,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     }
     mesh_row += mesh_w;
   }
+  debug_lut(sparrow, fl);
 }
 
 UNUSED static void
