@@ -431,6 +431,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         are discarded. */
       median_discard_cluster_outliers(cluster);
 
+      /* now find a weighted average position */
       int xsum, ysum;
       int xmean, ymean;
       int votes;
@@ -540,7 +541,11 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             corner->in_x = down->in_x - corner->dxd * LINE_PERIOD;
             corner->in_y = down->in_y - corner->dyd * LINE_PERIOD;
           }
-          else {/*oh no*/}
+          else {/*oh no*/
+            GST_DEBUG("can't reconstruct corner %d, %d: no useable neighbours\n", x, y);
+            /*it would be easy enough to look further, but hopefully of no
+              practical use */
+          }
         }
         else if (down == corner){ /*use right only */
           corner->in_x = right->in_x - corner->dxr * LINE_PERIOD;
