@@ -1,6 +1,12 @@
 #ifndef __SPARROW_EDGES_H__
 #define __SPARROW_EDGES_H__
 
+typedef enum corner_status {
+  CORNER_UNUSED,
+  CORNER_PROJECTED,
+  CORNER_EXACT,
+} corner_status_t;
+
 typedef struct sparrow_corner_s {
   int in_x;
   int in_y;
@@ -10,7 +16,7 @@ typedef struct sparrow_corner_s {
   int dyr;
   int dxd;
   int dyd;
-  int used;
+  corner_status_t status;
 } sparrow_corner_t;
 
 typedef struct sparrow_voter_s {

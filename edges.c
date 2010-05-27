@@ -124,7 +124,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       row->start = 0;
       row->end = 0;
       for(mcx = 0; mcx < mesh_w; mcx++){
-        if (mesh_square->used){
+        if (mesh_square->status != CORNER_UNUSED){
           int iy = mesh_square->in_y + mmy * mesh_square->dyd;
           int ix = mesh_square->in_x + mmy * mesh_square->dxd;
           int ii = OFFSET(ix, iy, in_w);
@@ -235,14 +235,14 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint32 *data = (guint32*)fl->debug->imageData;
   guint w = fl->debug->width;
   memset(data, 0, sparrow->in.size);
-  guint32 colours[4] = {0xff0000ff, 0x0000ff00, 0x00ff0000, 0xcccccccc};
+  guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xcccccccc};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
     sparrow_corner_t *c = &mesh[i];
     int x = c->in_x;
     int y = c->in_y;
-    GST_DEBUG("i %d used %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
+    GST_DEBUG("i %d status %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
         "int x, y %d,%d (raw %d,%d) data %p\n",
-        i, c->used, FLOATXY(x), FLOATXY(y),
+        i, c->status, FLOATXY(x), FLOATXY(y),
         FLOATXY(c->dxr), FLOATXY(c->dyr), FLOATXY(c->dxd), FLOATXY(c->dyd),
         INTXY(x), INTXY(y), x, y, data);
     int txr = x;
@@ -268,7 +268,7 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     data[INTXY(y + c->dyd * LP4) * w + INTXY(x + c->dxd * LP4)] = 0xaa5555aa;
     data[INTXY(y + c->dyd * LP2) * w + INTXY(x + c->dxd * LP2)] = 0x99444499;
 #endif
-    data[INTXY(y) * w + INTXY(x)] = colours[MIN(c->used, 2)];
+    data[INTXY(y) * w + INTXY(x)] = colours[c->status];
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
@@ -276,7 +276,24 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 static void
 debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  //sparrow_cluster_t *clusters = fl->clusters;
+  guint32 *data = (guint32*)fl->debug->imageData;
+  memset(data, 0, sparrow->in.size);
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+  sparrow_cluster_t *clusters = fl->clusters;
+  int i, j;
+  guint32 colour;
+  guint32 colours[4] = {0xff0000ff, 0x0000ff00, 0x00ff0000,
+                       0x00ff00ff};
+  for (i = 0; i < width * height; i++){
+    colour = colours[i % 5];
+    sparrow_voter_t *v = clusters[i].voters;
+    for (j = 0; j < clusters[i].n; j++){
+      data[(v[j].y >> SPARROW_FIXED_POINT) * sparrow->in.width +
+          (v[j].x >> SPARROW_FIXED_POINT)] = (colour * (v[j].signal / 2)) / 256;
+    }
+  }
+  MAYBE_DEBUG_IPL(fl->debug);
 }
 
 /*signal product is close to 18 bits. reduce to 4 */
@@ -316,6 +333,10 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       GST_DEBUG("signal at %p (%d, %d): %dv %dh, product %u, lines: %dv %dh\n"
           "cluster is %p, n is %d\n", p, x, y,
           vsig, hsig, signal, vline, hline, cluster, n);
+      if (signal == 0){
+        GST_WARNING("signal at %p (%d, %d) is %d following quantisation!\n",
+            p, x, y, signal);
+      }
 
       if (n < CLUSTER_SIZE){
         voters[n].x = xfp;
@@ -340,7 +361,7 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         }
         GST_DEBUG("more than %d pixels at cluster for corner %d, %d."
             "Dropped %u for %u\n",
-            CLUSTER_SIZE, vline, hline, signal, tmp_s, signal);                  
+            CLUSTER_SIZE, vline, hline, signal, tmp_s, signal);
       }
     }
   }
@@ -401,15 +422,13 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   i = 0;
   for (y = 0; y < height; y++){
     for (x = 0; x < width; x++, i++){
-      /* how to do this?
-         1. centre of gravity (x,y, weighted average)
-         2. discard outliers? look for connectedness? but if 2 are outliers?
-      */
       sparrow_cluster_t *cluster = clusters + i;
       if (cluster->n == 0){
         continue;
       }
 
+      /*the good points should all be adjacent; distant ones are spurious, so
+        are discarded. */
       median_discard_cluster_outliers(cluster);
 
       int xsum, ysum;
@@ -429,16 +448,16 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         ymean = ysum / votes;
       }
       else {
-        GST_DEBUG("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
-            i, cluster->n, xsum, ysum);        
+        GST_WARNING("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
+            i, cluster->n, xsum, ysum);
       }
-          
+
       GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
           i, cluster->n, votes, xsum, ysum, xmean, ymean);
 
       mesh[i].in_x = xmean;
       mesh[i].in_y = ymean;
-      mesh[i].used = TRUE;
+      mesh[i].status = CORNER_EXACT;
       GST_DEBUG("found corner %d at (%3f, %3f)\n",
           i, FLOATXY(xmean), FLOATXY(ymean));
     }
@@ -460,50 +479,82 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   for (y = height - 1; y >= 0; y--){
     for (x = width - 1; x >= 0; x--, i--){
       sparrow_corner_t *corner = &mesh[i];
-      /* edge deltas will always come out as zero */
+      /* calculate the delta to next corner. If this corner is on edge, delta is
+       0 and next is this.*/
       sparrow_corner_t *right = (x >= width - 1) ? corner : corner + 1;
       sparrow_corner_t *down =  (y >= height - 1) ? corner : corner + width;
       GST_DEBUG("i %d xy %d,%d width %d. in_xy %d,%d; down in_xy %d,%d; right in_xy %d,%d\n",
           i, x, y, width, corner->in_x, corner->in_y, down->in_x,
           down->in_y, right->in_x,  right->in_y);
-      if (corner->used){
+      if (corner->status != CORNER_UNUSED){
         corner->dxr = (right->in_x - corner->in_x) / LINE_PERIOD;
         corner->dyr = (right->in_y - corner->in_y) / LINE_PERIOD;
         corner->dxd = (down->in_x -  corner->in_x) / LINE_PERIOD;
         corner->dyd = (down->in_y -  corner->in_y) / LINE_PERIOD;
       }
       else {
-          /*prefer copy from left unless it is itself reconstructed (for no
-            great reason), or it has no dx/dy because it is an edge piece.
-            A mixed copy would be possible and better */
-        sparrow_corner_t *rsrc = (right->used &&
-                (right->used <= down->used) &&
-                (right != corner)) ? right : down;
-        sparrow_corner_t *dsrc = (down->used &&
-                (right->used >= down->used) &&
-                (down != corner)) ? down : right;
-          corner->dxr = rsrc->dxr;
-          corner->dyr = rsrc->dyr;
-          corner->dxd = dsrc->dxd;
-          corner->dyd = dsrc->dyd;
-          /*now extrapolate position, preferably from both left and right */
-          int cx = 0, cy = 0, cc = 0;
-          if (right != corner){
-            cc = 1;
-            cx = right->in_x - corner->dxr * LINE_PERIOD;
-            cy = right->in_y - corner->dyr * LINE_PERIOD;
+          /*copy from both right and down, if they both exist. */
+        struct {
+          int dxr;
+          int dyr;
+          int dxd;
+          int dyd;
+        } dividends = {0, 0, 0, 0};
+        struct {
+          int r;
+          int d;
+        } divisors = {0, 0};
+
+        if (right != corner){
+          if (right->dxr || right->dyr){
+            dividends.dxr += right->dxr;
+            dividends.dyr += right->dyr;
+            divisors.r++;
           }
-          if (down != corner){
-            cx += down->in_x - corner->dxd * LINE_PERIOD;
-            cy += down->in_y - corner->dyd * LINE_PERIOD;
-            cx >>= cc;
-            cy >>= cc;
+          if (right->dxd || right->dyd){
+            dividends.dxd += right->dxd;
+            dividends.dyd += right->dyd;
+            divisors.d++;
           }
-          /* if neither right nor down are there, this
-             corner can't be placed */
-          corner->in_x = cx;
-          corner->in_y = cy;
-          corner->used = MAX(right->used, down->used) + 1;
+        }
+        if (down != corner){
+          if (down->dxr || down->dyr){
+            dividends.dxr += down->dxr;
+            dividends.dyr += down->dyr;
+            divisors.r++;
+          }
+          if (down->dxd || down->dyd){
+            dividends.dxd += down->dxd;
+            dividends.dyd += down->dyd;
+            divisors.d++;
+          }
+        }
+        corner->dxr = divisors.r ? dividends.dxr / divisors.r : 0;
+        corner->dyr = divisors.r ? dividends.dyr / divisors.r : 0;
+        corner->dxd = divisors.d ? dividends.dxd / divisors.d : 0;
+        corner->dyd = divisors.d ? dividends.dyd / divisors.d : 0;
+
+        /*now extrapolate position, preferably from both left and right */
+        if (right == corner){
+          if (down != corner){ /*use down only */
+            corner->in_x = down->in_x - corner->dxd * LINE_PERIOD;
+            corner->in_y = down->in_y - corner->dyd * LINE_PERIOD;
+          }
+          else {/*oh no*/}
+        }
+        else if (down == corner){ /*use right only */
+          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD;
+          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD;
+        }
+        else { /* use both */
+          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD;
+          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD;
+          corner->in_x += down->in_x - corner->dxd * LINE_PERIOD;
+          corner->in_y += down->in_y - corner->dyd * LINE_PERIOD;
+          corner->in_x >>= 1;
+          corner->in_y >>= 1;
+        }
+        corner->status = CORNER_PROJECTED;
       }
     }
   }
@@ -747,7 +798,7 @@ init_find_edges(GstSparrow *sparrow){
   }
   //DEBUG_FIND_LINES(fl);
 
-  GST_DEBUG("allocated %d lines, used %d\n", n_lines, line - fl->h_lines);
+  GST_DEBUG("allocated %d lines, status %d\n", n_lines, line - fl->h_lines);
 
   /*now shuffle */
   for (i = 0; i < n_lines - 1; i++){
@@ -762,6 +813,10 @@ init_find_edges(GstSparrow *sparrow){
   if (sparrow->reload && *(sparrow->reload)){
     GST_DEBUG("sparrow>reload is %s\n", sparrow->reload);
     read_edges_info(sparrow, fl, sparrow->reload);
+    memset(fl->map, 0, sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
+    //memset(fl->clusters, 0, n_corners * sizeof(sparrow_cluster_t));
+    memset(fl->mesh, 0, n_corners * sizeof(sparrow_corner_t));
+
     fl->current = fl->n_lines;
     fl->counter = 0;
   }
