@@ -75,7 +75,7 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 }
 
 
-int sort_median(int *a, guint n)
+static inline int sort_median(int *a, guint n)
 {
   guint i, j;
   /*stupid sort, but n is very small*/
