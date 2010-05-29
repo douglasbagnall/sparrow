@@ -184,10 +184,10 @@ mask_to_shift(guint32 mask){
 }
 
 static inline IplImage *
-init_ipl_image(sparrow_format *dim){
+init_ipl_image(sparrow_format *dim, int channels){
   CvSize size = {dim->width, dim->height};
-  IplImage* im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-  return cvInitImageHeader(im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+  IplImage* im = cvCreateImageHeader(size, IPL_DEPTH_8U, channels);
+  return cvInitImageHeader(im, size, IPL_DEPTH_8U, channels, 0, 8);
 }
 
 

@@ -319,7 +319,7 @@ init_find_self(GstSparrow *sparrow){
 
   /*initialise IPL structs for openCV */
   for (int i = 0; i < SPARROW_N_IPL_IN; i++){
-    calibrate->in_ipl[i] = init_ipl_image(&(sparrow->in));
+    calibrate->in_ipl[i] = init_ipl_image(&sparrow->in, PIXSIZE);
   }
 
   int i;

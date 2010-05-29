@@ -239,11 +239,9 @@ init_find_screen(GstSparrow *sparrow){
   finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
 
-  finder->im = cvCreateImageHeader(size, IPL_DEPTH_8U, PIXSIZE);
-  cvInitImageHeader(finder->im, size, IPL_DEPTH_8U, PIXSIZE, 0, 8);
+  finder->im = init_ipl_image(&sparrow->in, PIXSIZE);
+  finder->mask  = init_ipl_image(&sparrow->in, 1);
 
-  finder->mask = cvCreateImageHeader(size, IPL_DEPTH_8U, 1);
-  cvInitImageHeader(finder->mask, size, IPL_DEPTH_8U, 1, 0, 8);
   finder->mask->imageData = (char *)sparrow->screenmask;
   GST_DEBUG("init_find_screen: green %p, working %p, mask %p, im %p finder %p\n",
       finder->green, finder->working, finder->mask, finder->im, finder);
