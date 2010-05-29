@@ -57,13 +57,15 @@ typedef struct sparrow_find_lines_s {
   int n_lines;
   int n_vlines;
   int n_hlines;
-  gint threshold;
   gint shift1;
   gint shift2;
   sparrow_intersect_t *map;
   sparrow_corner_t *mesh;
   sparrow_cluster_t *clusters;
   IplImage *debug;
+  IplImage *threshold;
+  IplImage *working;
+  IplImage *input;
   int counter;
 } sparrow_find_lines_t;
 
