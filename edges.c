@@ -39,7 +39,6 @@
 #define SPARROW_MAP_LUT_SHIFT 1
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
-#define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
 
 #define FL_DUMPFILE "/tmp/edges.dump"
@@ -98,8 +97,11 @@ static inline int sort_median(int *a, guint n)
   return answer;
 }
 
+static void
 debug_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 }
+
+#define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
@@ -131,6 +133,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
               iy + (LINE_PERIOD - 1) * mesh_square->dyr, in_w);
           int start_on = mask[ii];
           int end_on = mask[ii_end];
+          GST_DEBUG("start %d end %d row s %d e %d", start_on, end_on, row->start, row->end);
           if(start_on && end_on){
             /*add the point, maybe switch on */
             if (row->start == row->end){/* if both are 0 */

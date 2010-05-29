@@ -23,6 +23,23 @@
 #include <math.h>
 
 
+static void
+play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  sparrow_map_t *map = &sparrow->map;
+  memset(out, 0, sparrow->out.size);
+  int x, y;
+  guint32 *line = (guint32 *)out;
+  for (y = 0; y < sparrow->out.height; y++){
+    sparrow_map_row_t *row = map->rows + y;
+    line += sparrow->out.width;
+    for(x = row->start; x < row->end; x++){
+      line[x] = ~0;
+    }
+    //GST_DEBUG("row %d: s %d e%d", y, row->start, row->end);
+  }
+}
+
+
 UNUSED
 static void
 simple_negation(guint8 * bytes, guint size){
@@ -47,9 +64,9 @@ gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
-  memcpy(out, in, sparrow->out.size);
-  simple_negation(out, sparrow->out.size);
-
+  //memcpy(out, in, sparrow->out.size);
+  //simple_negation(out, sparrow->out.size);
+  play_from_lut(sparrow, in, out);
   return SPARROW_STATUS_QUO;
 }
 
