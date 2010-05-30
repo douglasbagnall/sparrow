@@ -235,11 +235,11 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     int txd = x;
     int tyr = y;
     int tyd = y;
-    for (int j = 1; j < LINE_PERIOD; j++){
-      txr += c->dxr;
-      txd += c->dxd;
-      tyr += c->dyr;
-      tyd += c->dyd;
+    for (int j = 1; j < LINE_PERIOD; j+= 2){
+      txr += c->dxr * 2;
+      txd += c->dxd * 2;
+      tyr += c->dyr * 2;
+      tyd += c->dyd * 2;
       data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
       data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
     }
@@ -264,8 +264,8 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     colour = colours[i % 5];
     sparrow_voter_t *v = clusters[i].voters;
     for (j = 0; j < clusters[i].n; j++){
-      data[(v[j].y >> SPARROW_FIXED_POINT) * sparrow->in.width +
-          (v[j].x >> SPARROW_FIXED_POINT)] = (colour * (v[j].signal / 2)) / 256;
+      data[v[j].y * sparrow->in.width +
+          v[j].x] = (colour * (v[j].signal / 2)) / 256;
     }
   }
   MAYBE_DEBUG_IPL(fl->debug);
