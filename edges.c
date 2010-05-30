@@ -636,6 +636,28 @@ draw_line(GstSparrow * sparrow, sparrow_line_t *line, guint8 *out){
   }
 }
 
+static void
+jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
+  if (state == EDGES_NEXT_STATE){
+    fl->state++;
+  }
+  else {
+    fl->state = state;
+  }
+  switch (fl->state){
+  case EDGES_FIND_NOISE:
+    sparrow->countdown = sparrow->lag + 2;
+    break;
+  case EDGES_FIND_LINES:
+    sparrow->countdown = sparrow->lag + 2;
+    break;
+  case EDGES_FIND_CORNERS:
+    sparrow->countdown = 4;
+  default:
+    GST_DEBUG("jumped to state %d\n", fl->state);
+    break;
+  }
+}
 
 /* show each line for 2 frames, then wait sparrow->lag frames, leaving line on
    until last one.
@@ -647,20 +669,22 @@ draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *ou
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
   if (sparrow->countdown){
-    /* show the line except on the first round, when we find a threshold*/
-    if (fl->threshold){
-      GST_DEBUG("current %d line %p\n", fl->current, line);
-      draw_line(sparrow, line, out);
-    }
+    GST_DEBUG("current %d line %p\n", fl->current, line);
+    draw_line(sparrow, line, out);
   }
   else{
     /*show nothing, look for result */
     look_for_line(sparrow, in, fl, line);
+    if (sparrow->debug){
+      debug_map_image(sparrow, fl);
+    }
     fl->current++;
-  }
-  sparrow->countdown = sparrow->lag + 2;
-  if (sparrow->debug){
-    debug_map_image(sparrow, fl);
+    if (fl->current == fl->n_lines){
+      jump_state(sparrow, fl, EDGES_NEXT_STATE);
+    }
+    else{
+      sparrow->countdown = sparrow->lag + 2;
+    }
   }
 }
 
@@ -671,48 +695,61 @@ find_threshold(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8
 {
   memset(out, 0, sparrow->out.size);
   /*XXX should average/median over a range of frames */
-  if (fl->counter == -1){
+  if (sparrow->countdown == 0){
     memcpy(fl->threshold->imageData, in, sparrow->in.size);
     /*add a constant, and smooth */
     cvAddS(fl->threshold, cvScalarAll(LINE_THRESHOLD), fl->working, NULL);
-    //cvSmooth(tmp, fl->threshold_im, CV_GAUSSIAN, 3, 0, 0, 0);
-    cvSmooth(fl->working, fl->threshold, CV_MEDIAN, 3, 0, 0, 0);
+    cvSmooth(tmp, fl->threshold_im, CV_GAUSSIAN, 3, 0, 0, 0);
+    //cvSmooth(fl->working, fl->threshold, CV_MEDIAN, 3, 0, 0, 0);
+    jump_state(sparrow, fl, EDGES_NEXT_STATE);
   }
+  sparrow->countdown--;
 }
+
+/*match up lines and find corners */
+static inline int
+find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
+{
+  sparrow->countdown--;
+  switch(sparrow->countdown){
+  case 3:
+    make_clusters(sparrow, fl);
+    break;
+  case 2:
+    make_corners(sparrow, fl);
+    break;
+  case 1:
+    make_map(sparrow, fl);
+    break;
+  case 0:
+    corners_to_lut(sparrow, fl);
+    break;
+  default:
+    GST_DEBUG("how did sparrow->countdown get to be %d?", sparrow->countdown);
+    sparrow->countdown = 4;
+  }
+  return sparrow->countdown;
+}
+
 
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
-  //DEBUG_FIND_LINES(fl);
-  if (fl->counter < 0){
+  switch (fl->state){
+  case EDGES_FIND_NOISE:
     find_threshold(sparrow, fl, in, out);
-    fl->counter++;
-    goto OK;
-  }
-  if (fl->current < fl->n_lines){
+    break;
+  case EDGES_FIND_LINES:
     draw_lines(sparrow, fl, in, out);
-    goto OK;
+    break;
+  case EDGES_FIND_CORNERS:
+    if (find_corners(sparrow, fl))
+      break;
+    return SPARROW_NEXT_STATE;
+  case EDGES_NEXT_STATE:
+    break; /*shush gcc */
   }
-  /*match up lines and find corners */
-  switch(fl->counter){
-  case 0:
-    make_clusters(sparrow, fl);
-    break;
-  case 1:
-    make_corners(sparrow, fl);
-    break;
-  case 2:
-    make_map(sparrow, fl);
-    break;
-  case 3:
-    corners_to_lut(sparrow, fl);
-    goto finished;
-  }
-  fl->counter++;
- OK:
   return SPARROW_STATUS_QUO;
- finished:
-  return SPARROW_NEXT_STATE;
 }
 
 
@@ -754,6 +791,7 @@ setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     break;
   }
 }
+
 
 INVISIBLE void
 init_find_edges(GstSparrow *sparrow){
@@ -824,15 +862,12 @@ init_find_edges(GstSparrow *sparrow){
     memset(fl->map, 0, sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
     //memset(fl->clusters, 0, n_corners * sizeof(sparrow_cluster_t));
     memset(fl->mesh, 0, n_corners * sizeof(sparrow_corner_t));
+    jump_state(sparrow, fl, EDGES_FIND_CORNERS);
 
-    fl->current = fl->n_lines;
-    fl->counter = 0;
   }
   else {
-    sparrow->countdown = sparrow->lag + 2;
-    fl->counter = -(sparrow->lag + 2);
+    jump_state(sparrow, fl, EDGES_FIND_NOISE);
   }
-
   /* opencv images for threshold finding */
   CvSize size = {sparrow->in.width, sparrow->in.height};
   fl->working = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);

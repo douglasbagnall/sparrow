@@ -7,6 +7,14 @@ typedef enum corner_status {
   CORNER_EXACT,
 } corner_status_t;
 
+typedef enum edges_state {
+  EDGES_FIND_NOISE,
+  EDGES_FIND_LINES,
+  EDGES_FIND_CORNERS,
+
+  EDGES_NEXT_STATE,
+} edges_state_t;
+
 typedef struct sparrow_corner_s {
   int in_x;
   int in_y;
@@ -67,6 +75,7 @@ typedef struct sparrow_find_lines_s {
   IplImage *working;
   IplImage *input;
   int counter;
+  edges_state_t state;
 } sparrow_find_lines_t;
 
 
