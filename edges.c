@@ -475,7 +475,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       /*the good points should all be adjacent; distant ones are spurious, so
         are discarded. */
       median_discard_cluster_outliers(cluster);
-
+      
       /* now find a weighted average position */
       int xsum, ysum;
       int xmean, ymean;
@@ -510,7 +510,6 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
-#define LINE_PERIOD_TMP 1
 
 static inline void
 make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -748,7 +747,7 @@ find_threshold(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8
     memcpy(fl->threshold->imageData, in, sparrow->in.size);
     /*add a constant, and smooth */
     cvAddS(fl->threshold, cvScalarAll(LINE_THRESHOLD), fl->working, NULL);
-    cvSmooth(tmp, fl->threshold_im, CV_GAUSSIAN, 3, 0, 0, 0);
+    cvSmooth(fl->working, fl->threshold, CV_GAUSSIAN, 3, 0, 0, 0);
     //cvSmooth(fl->working, fl->threshold, CV_MEDIAN, 3, 0, 0, 0);
     jump_state(sparrow, fl, EDGES_NEXT_STATE);
   }
@@ -868,9 +867,9 @@ init_find_edges(GstSparrow *sparrow){
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;
-  int offset = LINE_PERIOD / 2;
+  int offset;
 
-  for (i = 0, offset = LINE_PERIOD / 2; offset < h;
+  for (i = 0, offset = H_LINE_OFFSET; offset < h;
        i++, offset += LINE_PERIOD){
     line->offset = offset;
     line->dir = SPARROW_HORIZONTAL;
@@ -882,7 +881,7 @@ init_find_edges(GstSparrow *sparrow){
 
   /*now add the vertical lines */
   fl->v_lines = line;
-  for (i = 0, offset = LINE_PERIOD / 2; offset < w;
+  for (i = 0, offset = V_LINE_OFFSET; offset < w;
        i++, offset += LINE_PERIOD){
     line->offset = offset;
     line->dir = SPARROW_VERTICAL;
