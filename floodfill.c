@@ -22,6 +22,7 @@
 #include <string.h>
 #include <math.h>
 
+#define STUPID_DEBUG_TRICK 1
 
 typedef struct sparrow_find_screen_s {
   IplImage *green;
@@ -203,6 +204,9 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     corner = (CvPoint){0, 0};
     memset(mask->imageData, 255, size);
     floodfill_mono_superfast(working, mask, corner);
+#if STUPID_DEBUG_TRICK
+    cvErode(mask, mask, NULL, 9);
+#endif
     MAYBE_DEBUG_IPL(mask);
     goto finish;
   default:
