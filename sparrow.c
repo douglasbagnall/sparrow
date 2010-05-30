@@ -190,7 +190,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 
 #if USE_SPARSE_MAP
-  size_t point_memsize = (sizeof(sparrow_map_point_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
+  size_t point_memsize = (sizeof(sparrow_map_path_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
   size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height + 1;
   sparrow->map.point_mem = malloc_aligned_or_die(point_memsize);
   sparrow->map.rows = zalloc_aligned_or_die(row_memsize);
