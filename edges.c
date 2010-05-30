@@ -295,6 +295,9 @@ static void
 make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_cluster_t *clusters = fl->clusters;
   int x, y;
+  /*special case: spurious values collect up at 0,0 */
+  fl->map[0].signal[SPARROW_VERTICAL] = 0;
+  fl->map[0].signal[SPARROW_HORIZONTAL] = 0;
   /*each point in fl->map is in a vertical line, a horizontal line, both, or
     neither.  Only the "both" case matters. */
   for (y = 0; y < sparrow->in.height; y++){
