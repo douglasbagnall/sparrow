@@ -84,8 +84,8 @@ typedef guint32 pix_t;
 
 
 #define LINE_PERIOD 16
-
-
+#define H_LINE_OFFSET (LINE_PERIOD / 2)
+#define V_LINE_OFFSET (LINE_PERIOD / 2)
 
 
 typedef enum {
@@ -136,17 +136,19 @@ typedef enum sparrow_axis_s {
 */
 #define SPARROW_FIXED_POINT 8
 
-typedef struct sparrow_map_point_s {
-  int x;
-  int y;
+typedef struct sparrow_map_path_s {
   int dx;
   int dy;
-}sparrow_map_point_t;
+  int n;
+}sparrow_map_path_t;
+
 
 typedef struct sparrow_map_row_s {
   int start;
   int end;
-  sparrow_map_point_t *points;
+  int in_x;
+  int in_y;
+  sparrow_map_path_t *points;
 }sparrow_map_row_t;
 
 typedef struct sparrow_map_s {

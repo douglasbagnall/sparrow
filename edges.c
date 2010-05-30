@@ -87,103 +87,165 @@ debug_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 #define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
+/*tolerate up to 1/8 of a pixel drift */
+#define MAX_DRIFT (1 << (SPARROW_FIXED_POINT - 3))
+
+
+static inline sparrow_map_path_t*
+possibly_new_point(sparrow_map_path_t *p, int dx, int dy){
+  if (dx != p->dx && dy != p->dy){
+    p++;
+    p->dx = dx;
+    p->dy = dy;
+    p->n = 0;
+  }
+  return p;
+}
+
 static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
   sparrow_map_t *map = &sparrow->map; /*rows in sparrow->out */
   guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
-
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
   int in_w = sparrow->in.width;
   int mcy, mmy, mcx; /*Mesh Corner|Modulus X|Y*/
 
-  int x;
-  sparrow_map_row_t *row = map->rows;
-  sparrow_map_point_t *p = map->point_mem;
+  int y;
   sparrow_corner_t *mesh_row = mesh;
-  for(mcy = 0; mcy < mesh_h; mcy++){
-    for (mmy = 0; mmy < LINE_PERIOD; mmy++){
+
+  for (y = 0; y < H_LINE_OFFSET; y++){
+    map->rows[y].start = 0;
+    map->rows[y].end = 0;
+    map->rows[y].points = NULL;
+  }
+
+  sparrow_map_row_t *row = map->rows + H_LINE_OFFSET;
+  row->points = map->point_mem;
+  sparrow_map_path_t *p = row->points;
+
+  for(mcy = 0; mcy < mesh_h; mcy++){ /* for each mesh row */
+    for (mmy = 0; mmy < LINE_PERIOD; mmy++){ /* for each output line */
+      int ix, iy; /* input x, y at mesh points, interpolated vertically  */
+      int rx, ry; /* running x, y; approximates ix, iy */
+      int dx, dy;
+      int on = 0;
       sparrow_corner_t *mesh_square = mesh_row;
-      row->points = p;
+      row->points = NULL;
       row->start = 0;
       row->end = 0;
-      for(mcx = 0; mcx < mesh_w; mcx++){
-        if (mesh_square->status != CORNER_UNUSED){
-          int dyd = (mesh_square->dyd / LINE_PERIOD);
-          int dxd = (mesh_square->dxd / LINE_PERIOD);
-          int dyr = (mesh_square->dyr / LINE_PERIOD);
-          int dxr = (mesh_square->dxr / LINE_PERIOD);
-          int iy = mesh_square->in_y + mmy * dyd;
-          int ix = mesh_square->in_x + mmy * dxd;
-          int ii = OFFSET(ix, iy, in_w);
-          int ii_end = OFFSET(ix + mesh_square->dxr - dxr,
-              iy + (LINE_PERIOD - 1) * dyr, in_w);
-          int start_on = mask[ii];
-          int end_on = mask[ii_end];
-          GST_DEBUG("start %d end %d row s %d e %d", start_on, end_on, row->start, row->end);
-          if(start_on && end_on){
-            /*add the point, maybe switch on */
-            if (row->start == row->end){/* if both are 0 */
-              row->start = mcx * LINE_PERIOD;
-            }
-            p->x = ix;
-            p->y = iy;
-            p->dx = dxr;
-            p->dy = dyr;
-            p++;
+      for(mcx = 0; mcx < mesh_w - 1; mcx++){
+        /*for each mesh block except the last, which has no dx,dy.
+         Thus the mesh blocks are referenced in LINE_PERIOD passes.*/
+        if (mesh_square->status == CORNER_UNUSED){
+          if (! on){
+            mesh_square++;
+            continue;
           }
-          else if (start_on){
-            /*add the point, switch off somewhere in the middle*/
-            for (x = 1; x < LINE_PERIOD; x++){
-              iy += dyr;
-              ix += dxr;
-              ii = OFFSET(ix, iy, in_w);
-              if (mask[ii]){
-                /*point is not in the same column with the others,
-                  but sparrow knows this because the row->start says so */
-                row->start = mcx + x;
-                p->x = ix;
-                p->y = iy;
-                p->dx = dxr;
-                p->dy = dyr;
-                p++;
-                break;
-              }
-            }
+          /*lordy! continue with previous deltas*/
+          ix = rx;
+          iy = ry;
+        }
+        else {
+          /* starting point for this row in this block. */
+          iy = mesh_square->in_y + mmy * (mesh_square->dyd / LINE_PERIOD);
+          ix = mesh_square->in_x + mmy * (mesh_square->dxd / LINE_PERIOD);
+          /*incremental delta going left to right in this block */
+          dy = (mesh_square->dyr / LINE_PERIOD);
+          dx = (mesh_square->dxr / LINE_PERIOD);
+        }
+
+        /*index of the last point in this block
+         NB: calculating from ix, iy, which may differ slightly from rx, ry*/
+        int lasti = OFFSET(
+          ix + (LINE_PERIOD - 1) * dx,
+          iy + (LINE_PERIOD - 1) * dy,
+          in_w);
+
+        if (! on){
+          if (! mask[lasti]){
+            /*it doesn't turn on within this block (or it is of ignorably
+              short length). */
+            mesh_square++;
+            continue;
           }
-          else if (end_on){
-            /* add some, switch off */
-            for (x = 1; x < LINE_PERIOD; x++){
-              iy += dyr;
-              ix += dxr;
-              ii = OFFSET(ix, iy, in_w);
-              if (! mask[ii]){
-                row->end = mcx + x;
-                break;
-              }
-            }
-          }
-          else {
-            /*3 cases:
-              start > end: this is first off pixel.
-              start == end: row hasn't started (both 0)
-              start < end: both are set -- row is done
-            */
-            if (row->start > row->end){
-              row->end = mcx * LINE_PERIOD;
-            }
-            else if (row->start < row->end){
+          /*it does turn on. so step through and find it. This happens once
+            per line.*/
+          rx = ix;
+          ry = iy;
+          int j;
+          for (j = 0; j < LINE_PERIOD; j++){
+            if (mask[OFFSET(rx, ry, in_w)]){
               break;
             }
+            rx += dx;
+            ry += dy;
           }
+          row->start = mcx * LINE_PERIOD + j;
+          row->in_x = rx;
+          row->in_y = ry;
+          p = possibly_new_point(p, dx, dy);
+          row->points = p;
+          p->n = LINE_PERIOD - j;
+          on = 1;
+          mesh_square++;
+          continue;
         }
+        /*it is on. */
+        /*maybe rx, ry are drifting badly, in which case, we need to recalculate dx, dy*/
+        if (abs(rx - ix) > MAX_DRIFT ||
+            abs(ry - iy) > MAX_DRIFT){
+          int y = mcy * LINE_PERIOD + mmy;
+          int x = mcx * LINE_PERIOD;
+          GST_DEBUG("output point %d %d, rx, ry %d, %d have got %d, %d away from target %d, %d."
+              " dx, dy is %d, %d\n",
+              x, y, rx, ry, rx - ix, ry - iy, ix, iy, dx, dy);
+          if (mcx < mesh_w - 1){
+            sparrow_corner_t *next = mesh_square + 1;
+            int niy = next->in_y + mmy * (next->dyd / LINE_PERIOD);
+            int nix = next->in_x + mmy * (next->dxd / LINE_PERIOD);
+            dx = (nix - ix) / LINE_PERIOD;
+            dy = (niy - iy) / LINE_PERIOD;            
+          }
+          GST_DEBUG("new dx, dy is %d, %d\n", dx, dy);          
+        }
+
+        /*Probably dx/dy are different, so we need a new point */
+        p = possibly_new_point(p, dx, dy);
+
+        /*does it end it this one? */
+        if (! mask[lasti]){
+          int j;
+          for (j = 0; j < LINE_PERIOD; j++){
+            if (! mask[OFFSET(rx, ry, in_w)]){
+              break;
+            }
+            rx += dx;
+            ry += dy;
+          }
+          p->n += j;
+          row->end = mcx * LINE_PERIOD + j;
+          /*this row is done! */
+          break;
+        }
+        p->n += LINE_PERIOD;
+        rx += LINE_PERIOD * dx;
+        ry += LINE_PERIOD * dy;
         mesh_square++;
       }
       row++;
     }
     mesh_row += mesh_w;
   }
+
+  /*blank lines for the last few */
+  for (y = sparrow->out.height - H_LINE_OFFSET; y < sparrow->out.height; y++){
+    map->rows[y].start = 0;
+    map->rows[y].end = 0;
+    map->rows[y].points = NULL;
+  }
+
   debug_lut(sparrow, fl);
 }
 
