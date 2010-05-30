@@ -402,10 +402,8 @@ median_discard_cluster_outliers(sparrow_cluster_t *cluster)
   const int ymed = sort_median(yvals, cluster->n);
 
   for (i = 0; i < cluster->n; i++){
-    /*dx, dy can be as  much as 1024 << 8 ==  1 << 18. squared = 1 << 36.
-     shift it back to  1<< 14*/
-    int dx = abs(cluster->voters[i].x - xmed) >> (SPARROW_FIXED_POINT - OUTLIER_FIXED_POINT);
-    int dy = abs(cluster->voters[i].y - ymed) >> (SPARROW_FIXED_POINT - OUTLIER_FIXED_POINT);
+    int dx = cluster->voters[i].x - xmed;
+    int dy = cluster->voters[i].y - ymed;
     if (dx *dx + dy * dy > OUTLIER_THRESHOLD){
       drop_cluster_voter(cluster, i);
     }
@@ -448,8 +446,8 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
       if (votes){
-        xmean = xsum / votes;
-        ymean = ysum / votes;
+        xmean = (xsum << SPARROW_FIXED_POINT) / votes;
+        ymean = (ysum << SPARROW_FIXED_POINT) / votes;
       }
       else {
         GST_WARNING("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
@@ -467,6 +465,8 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     }
   }
 }
+
+#define LINE_PERIOD_TMP 1
 
 static inline void
 make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -491,10 +491,10 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           i, x, y, width, corner->in_x, corner->in_y, down->in_x,
           down->in_y, right->in_x,  right->in_y);
       if (corner->status != CORNER_UNUSED){
-        corner->dxr = (right->in_x - corner->in_x) / LINE_PERIOD;
-        corner->dyr = (right->in_y - corner->in_y) / LINE_PERIOD;
-        corner->dxd = (down->in_x -  corner->in_x) / LINE_PERIOD;
-        corner->dyd = (down->in_y -  corner->in_y) / LINE_PERIOD;
+        corner->dxr = (right->in_x - corner->in_x) / LINE_PERIOD_TMP;
+        corner->dyr = (right->in_y - corner->in_y) / LINE_PERIOD_TMP;
+        corner->dxd = (down->in_x -  corner->in_x) / LINE_PERIOD_TMP;
+        corner->dyd = (down->in_y -  corner->in_y) / LINE_PERIOD_TMP;
       }
       else {
           /*copy from both right and down, if they both exist. */
@@ -541,8 +541,8 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         /*now extrapolate position, preferably from both left and right */
         if (right == corner){
           if (down != corner){ /*use down only */
-            corner->in_x = down->in_x - corner->dxd * LINE_PERIOD;
-            corner->in_y = down->in_y - corner->dyd * LINE_PERIOD;
+            corner->in_x = down->in_x - corner->dxd * LINE_PERIOD_TMP;
+            corner->in_y = down->in_y - corner->dyd * LINE_PERIOD_TMP;
           }
           else {/*oh no*/
             GST_DEBUG("can't reconstruct corner %d, %d: no useable neighbours\n", x, y);
@@ -551,14 +551,14 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           }
         }
         else if (down == corner){ /*use right only */
-          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD;
-          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD;
+          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD_TMP;
+          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD_TMP;
         }
         else { /* use both */
-          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD;
-          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD;
-          corner->in_x += down->in_x - corner->dxd * LINE_PERIOD;
-          corner->in_y += down->in_y - corner->dyd * LINE_PERIOD;
+          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD_TMP;
+          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD_TMP;
+          corner->in_x += down->in_x - corner->dxd * LINE_PERIOD_TMP;
+          corner->in_y += down->in_y - corner->dyd * LINE_PERIOD_TMP;
           corner->in_x >>= 1;
           corner->in_y >>= 1;
         }
@@ -595,7 +595,12 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
       if (fl->map[i].lines[line->dir]){
         GST_DEBUG("HEY, expected point %d to be in line %d (dir %d)"
             "and thus empty, but it is also in line %d\n",
-            i, line->index, line->dir, fl->map[i].lines[line->dir]);
+            "old signal %d, new signal %d, ignoring weakest\n",
+            i, line->index, line->dir, fl->map[i].lines[line->dir],
+            fl->map[i].signal[line->dir], signal);
+        if (signal < fl->map[i].signal[line->dir]){
+          continue;
+        }
       }
       fl->map[i].lines[line->dir] = line->index;
       fl->map[i].signal[line->dir] = signal;
