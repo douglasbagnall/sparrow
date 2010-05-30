@@ -337,8 +337,8 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   MAYBE_DEBUG_IPL(fl->debug);
 }
 
-/*signal product is close to 18 bits. reduce to 4 */
-#define SIGNAL_QUANT (1 << 14)
+
+#define SIGNAL_QUANT (1 << 4)
 
 /*maximum number of pixels in a cluster */
 #define CLUSTER_SIZE 8
