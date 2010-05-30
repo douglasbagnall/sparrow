@@ -110,11 +110,15 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       row->end = 0;
       for(mcx = 0; mcx < mesh_w; mcx++){
         if (mesh_square->status != CORNER_UNUSED){
-          int iy = mesh_square->in_y + mmy * mesh_square->dyd;
-          int ix = mesh_square->in_x + mmy * mesh_square->dxd;
+          int dyd = (mesh_square->dyd / LINE_PERIOD);
+          int dxd = (mesh_square->dxd / LINE_PERIOD);
+          int dyr = (mesh_square->dyr / LINE_PERIOD);
+          int dxr = (mesh_square->dxr / LINE_PERIOD);
+          int iy = mesh_square->in_y + mmy * dyd;
+          int ix = mesh_square->in_x + mmy * dxd;
           int ii = OFFSET(ix, iy, in_w);
-          int ii_end = OFFSET(ix + (LINE_PERIOD - 1) * mesh_square->dxr,
-              iy + (LINE_PERIOD - 1) * mesh_square->dyr, in_w);
+          int ii_end = OFFSET(ix + mesh_square->dxr - dxr,
+              iy + (LINE_PERIOD - 1) * dyr, in_w);
           int start_on = mask[ii];
           int end_on = mask[ii_end];
           GST_DEBUG("start %d end %d row s %d e %d", start_on, end_on, row->start, row->end);
@@ -125,15 +129,15 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             }
             p->x = ix;
             p->y = iy;
-            p->dx = mesh_square->dxr;
-            p->dy = mesh_square->dyr;
+            p->dx = dxr;
+            p->dy = dyr;
             p++;
           }
           else if (start_on){
             /*add the point, switch off somewhere in the middle*/
             for (x = 1; x < LINE_PERIOD; x++){
-              iy += mesh_square->dyr;
-              ix += mesh_square->dxr;
+              iy += dyr;
+              ix += dxr;
               ii = OFFSET(ix, iy, in_w);
               if (mask[ii]){
                 /*point is not in the same column with the others,
@@ -141,8 +145,8 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
                 row->start = mcx + x;
                 p->x = ix;
                 p->y = iy;
-                p->dx = mesh_square->dxr;
-                p->dy = mesh_square->dyr;
+                p->dx = dxr;
+                p->dy = dyr;
                 p++;
                 break;
               }
@@ -151,8 +155,8 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           else if (end_on){
             /* add some, switch off */
             for (x = 1; x < LINE_PERIOD; x++){
-              iy += mesh_square->dyr;
-              ix += mesh_square->dxr;
+              iy += dyr;
+              ix += dxr;
               ii = OFFSET(ix, iy, in_w);
               if (! mask[ii]){
                 row->end = mcx + x;
