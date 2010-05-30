@@ -65,6 +65,8 @@ debug_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 #define OFFSET(x, y, w)((((y) * (w)) >> SPARROW_FIXED_POINT) + ((x) >> SPARROW_FIXED_POINT))
 
+#define QUANTISE_DELTA(d)(((d) + LINE_PERIOD / 2) / LINE_PERIOD)
+
 /*tolerate up to 1/8 of a pixel drift */
 #define MAX_DRIFT (1 << (SPARROW_FIXED_POINT - 3))
 
@@ -127,11 +129,11 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         }
         else {
           /* starting point for this row in this block. */
-          iy = mesh_square->in_y + mmy * (mesh_square->dyd / LINE_PERIOD);
-          ix = mesh_square->in_x + mmy * (mesh_square->dxd / LINE_PERIOD);
+          iy = mesh_square->in_y + mmy * (mesh_square->dyd / 1);
+          ix = mesh_square->in_x + mmy * (mesh_square->dxd / 1);
           /*incremental delta going left to right in this block */
-          dy = (mesh_square->dyr / LINE_PERIOD);
-          dx = (mesh_square->dxr / LINE_PERIOD);
+          dy = (mesh_square->dyr / 1);
+          dx = (mesh_square->dxr / 1);
         }
 
         /*index of the last point in this block
@@ -179,14 +181,17 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           GST_DEBUG("output point %d %d, rx, ry %d, %d have got %d, %d away from target %d, %d."
               " dx, dy is %d, %d\n",
               x, y, rx, ry, rx - ix, ry - iy, ix, iy, dx, dy);
-          if (mcx < mesh_w - 1){
-            sparrow_corner_t *next = mesh_square + 1;
-            int niy = next->in_y + mmy * (next->dyd / LINE_PERIOD);
-            int nix = next->in_x + mmy * (next->dxd / LINE_PERIOD);
-            dx = (nix - ix) / LINE_PERIOD;
-            dy = (niy - iy) / LINE_PERIOD;            
+          sparrow_corner_t *next = mesh_square + 1;
+          if(next->status != CORNER_UNUSED){
+            int niy = next->in_y + mmy * (next->dyd / 1);
+            int nix = next->in_x + mmy * (next->dxd / 1);
+            dx = QUANTISE_DELTA(nix - ix);
+            dy = QUANTISE_DELTA(niy - iy);
+            GST_DEBUG("new dx, dy is %d, %d\n", dx, dy);
           }
-          GST_DEBUG("new dx, dy is %d, %d\n", dx, dy);          
+          else{
+            GST_DEBUG("next corner is UNUSED. dx, dy unchanged\n");
+          }
         }
 
         /*Probably dx/dy are different, so we need a new point */
@@ -280,10 +285,10 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     int tyr = y;
     int tyd = y;
     for (int j = 1; j < LINE_PERIOD; j+= 2){
-      txr += c->dxr * 2 / LINE_PERIOD;
-      txd += c->dxd * 2 / LINE_PERIOD;
-      tyr += c->dyr * 2 / LINE_PERIOD;
-      tyd += c->dyd * 2 / LINE_PERIOD;
+      txr += c->dxr * 2;
+      txd += c->dxd * 2;
+      tyr += c->dyr * 2;
+      tyd += c->dyd * 2;
       data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
       data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
     }
@@ -656,6 +661,17 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         corner->status = CORNER_PROJECTED;
       }
     }
+  }
+  /*now quantise delta values.  It would be wrong to do it earlier, when they
+    are being used to calculate whole mesh jumps, but from now they are
+    primarily going to used for pixel (mesh / LINE_PERIOD) jumps. To do this in
+  corners_to_lut puts a whole lot of division in a tight loop.*/
+  for (i = 0; i < width * height; i++){
+    sparrow_corner_t *corner = &mesh[i];
+    corner->dxr = QUANTISE_DELTA(corner->dxr);
+    corner->dyr = QUANTISE_DELTA(corner->dyr);
+    corner->dxd = QUANTISE_DELTA(corner->dxd);
+    corner->dyd = QUANTISE_DELTA(corner->dyd);
   }
   if (sparrow->debug){
     DEBUG_FIND_LINES(fl);
