@@ -330,9 +330,6 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       sparrow_voter_t *voters = cluster->voters;
       int n = cluster->n;
       guint signal = (vsig * hsig) / SIGNAL_QUANT;
-      int xfp = x << SPARROW_FIXED_POINT;
-      int yfp = y << SPARROW_FIXED_POINT;
-
       GST_DEBUG("signal at %p (%d, %d): %dv %dh, product %u, lines: %dv %dh\n"
           "cluster is %p, n is %d\n", p, x, y,
           vsig, hsig, signal, vline, hline, cluster, n);
@@ -342,29 +339,36 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       }
 
       if (n < CLUSTER_SIZE){
-        voters[n].x = xfp;
-        voters[n].y = yfp;
+        voters[n].x = x;
+        voters[n].y = y;
         voters[n].signal = signal;
         cluster->n++;
       }
       else {
-        guint tmp_s;
+        /*duplicate x, y, signal, so they aren't mucked up */
+        guint ts = signal;
+        int tx = x;
+        int ty = y;
+        /*replaced one ends up here */
+        int ts2;
+        int tx2;
+        int ty2;
         for (int j = 0; j < CLUSTER_SIZE; j++){
-          if (voters[j].signal < signal){
-            tmp_s = voters[j].signal;
-            int tmp_x = voters[j].x;
-            int tmp_y = voters[j].y;
-            voters[j].signal = signal;
-            voters[j].x = xfp;
-            voters[j].y = yfp;
-            signal = tmp_s;
-            xfp = tmp_x;
-            yfp = tmp_y;
+          if (voters[j].signal < ts){
+            ts2 = voters[j].signal;
+            tx2 = voters[j].x;
+            ty2 = voters[j].y;
+            voters[j].signal = ts;
+            voters[j].x = tx;
+            voters[j].y = ty;
+            ts = ts2;
+            tx = tx2;
+            ty = ty2;
           }
         }
         GST_DEBUG("more than %d pixels at cluster for corner %d, %d."
             "Dropped %u for %u\n",
-            CLUSTER_SIZE, vline, hline, signal, tmp_s, signal);
+            CLUSTER_SIZE, vline, hline, ts2, signal);
       }
     }
   }
