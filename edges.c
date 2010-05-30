@@ -58,28 +58,6 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 }
 
 
-static inline int sort_median(int *a, guint n)
-{
-  guint i, j;
-  /*stupid sort, but n is very small*/
-  for (i = 0; i <  n; i++){
-    for (j = i + 1; j < n; j++){
-      if (a[i] > a[j]){
-        int tmp = a[j];
-        a[j] = a[i];
-        a[i] = tmp;
-      }
-    }
-  }
-  guint middle = n / 2;
-  int answer = a[middle];
-
-  if ((n & 1) == 0){
-    answer += a[middle - 1];
-    answer /= 2;
-  }
-  return answer;
-}
 
 static void
 debug_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -417,8 +395,6 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
-/* look for connected group. if there is more than one connected group,
- despair.*/
 
 static inline void
 drop_cluster_voter(sparrow_cluster_t *cluster, int n)
@@ -428,6 +404,61 @@ drop_cluster_voter(sparrow_cluster_t *cluster, int n)
       cluster->voters[i] = cluster->voters[i + 1];
     }
     cluster->n--;
+  }
+}
+
+static inline int sort_median(int *a, guint n)
+{
+  guint i, j;
+  /*stupid sort, but n is very small*/
+  for (i = 0; i <  n; i++){
+    for (j = i + 1; j < n; j++){
+      if (a[i] > a[j]){
+        int tmp = a[j];
+        a[j] = a[i];
+        a[i] = tmp;
+      }
+    }
+  }
+  guint middle = n / 2;
+  int answer = a[middle];
+
+  if ((n & 1) == 0){
+    answer += a[middle - 1];
+    answer /= 2;
+  }
+  return answer;
+}
+
+#define EUCLIDEAN_D2(ax, ay, bx, by)((ax - bx) * (ax - bx) + (ay - by) * (ay - by))
+#define NEIGHBOURLY_THRESHOLD (LINE_PERIOD * 4)
+
+static inline void
+neighbourly_discard_cluster_outliers(GstSparrow *sparrow, sparrow_cluster_t *cluster,
+    sparrow_corner_t *neighbour)
+{
+  /* assuming the output mesh entirely fits in the input window (which is
+     required for sparrow to work) the neighbours should be at most
+     LINE_PERIOD * input resolution / output resolution apart. But set the
+     threshold higher, just in case. */
+  const int threshold = NEIGHBOURLY_THRESHOLD * sparrow->in.height / sparrow->out.height;
+  int i;
+  int neighbour_d[CLUSTER_SIZE];
+  int close = 0;
+  for (i = 0; i < cluster->n; i++){
+    int d = EUCLIDEAN_D2(neighbour->in_x, neighbour->in_y,
+        cluster->voters[i].x, cluster->voters[i].y);
+    int pass = d > threshold;
+    neighbour_d[i] = pass;
+    close += pass;
+    GST_DEBUG("failing point %d, distance sq %d, threshold %d\n", i, d, threshold);
+  }
+  if (close > 1){
+    for (i = 0; i < cluster->n; i++){
+      if (! neighbour_d[i]){
+        drop_cluster_voter(cluster, i);
+      }
+    }
   }
 }
 
@@ -448,7 +479,7 @@ median_discard_cluster_outliers(sparrow_cluster_t *cluster)
   for (i = 0; i < cluster->n; i++){
     int dx = cluster->voters[i].x - xmed;
     int dy = cluster->voters[i].y - ymed;
-    if (dx *dx + dy * dy > OUTLIER_THRESHOLD){
+    if (dx * dx + dy * dy > OUTLIER_THRESHOLD){
       drop_cluster_voter(cluster, i);
     }
   }
@@ -473,9 +504,26 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       }
 
       /*the good points should all be adjacent; distant ones are spurious, so
-        are discarded. */
+        are discarded.
+
+        This fails if all the cluster are way off. Obviously it would be good
+        to include information about the grid in the decision, but that is not
+        there yet. (needs iteration, really).
+
+      Here's a slight attempt:*/
+#if 0
+      sparrow_corner_t *neighbour;
+      if (x){
+        neighbour = &mesh[i - 1];
+        neighbourly_discard_cluster_outliers(sparrow, cluster, neighbour);
+      }
+      else if (y){
+        neighbour = &mesh[i - width];
+        neighbourly_discard_cluster_outliers(sparrow, cluster, neighbour);
+      }
+#endif
       median_discard_cluster_outliers(cluster);
-      
+
       /* now find a weighted average position */
       int xsum, ysum;
       int xmean, ymean;
