@@ -693,7 +693,7 @@ draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *ou
   }
 }
 
-#define LINE_THRESHOLD 10
+#define LINE_THRESHOLD 32
 
 static inline void
 find_threshold(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *out)
