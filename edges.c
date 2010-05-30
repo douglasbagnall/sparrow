@@ -105,7 +105,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   row->points = map->point_mem;
   sparrow_map_path_t *p = row->points;
 
-  for(mcy = 0; mcy < mesh_h; mcy++){ /* for each mesh row */
+  for(mcy = 0; mcy < mesh_h - 1; mcy++){ /* for each mesh row */
     for (mmy = 0; mmy < LINE_PERIOD; mmy++){ /* for each output line */
       int ix, iy; /* input x, y at mesh points, interpolated vertically  */
       int rx, ry; /* running x, y; approximates ix, iy */
