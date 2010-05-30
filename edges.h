@@ -1,6 +1,20 @@
 #ifndef __SPARROW_EDGES_H__
 #define __SPARROW_EDGES_H__
 
+#define SIG_WEIGHT 2
+
+/* for discarding outliers */
+#define OUTLIER_RADIUS 7
+#define OUTLIER_THRESHOLD (OUTLIER_RADIUS * OUTLIER_RADIUS)
+
+#define SPARROW_MAP_LUT_SHIFT 1
+#define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
+
+
+
+#define FL_DUMPFILE "/tmp/edges.dump"
+
+
 typedef enum corner_status {
   CORNER_UNUSED,
   CORNER_PROJECTED,

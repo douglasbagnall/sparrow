@@ -26,22 +26,6 @@
 
 #include "cv.h"
 
-/*
-*/
-
-#define SIG_WEIGHT 2
-
-/* for discarding outliers */
-#define OUTLIER_FIXED_POINT 4
-#define OUTLIER_RADIUS 7
-#define OUTLIER_THRESHOLD ((OUTLIER_RADIUS * OUTLIER_RADIUS) << (OUTLIER_FIXED_POINT * 2))
-
-#define SPARROW_MAP_LUT_SHIFT 1
-#define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
-
-
-
-#define FL_DUMPFILE "/tmp/edges.dump"
 
 static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
   GST_DEBUG("about to save to %s\n", filename);
