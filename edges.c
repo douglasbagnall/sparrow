@@ -213,7 +213,6 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow->map_lut = map_lut;
 }
 
-#define DIV ((double)(1 << SPARROW_FIXED_POINT))
 #define INTXY(x)((x) / (1 << SPARROW_FIXED_POINT))
 #define FLOATXY(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
 static void
@@ -244,17 +243,6 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
       data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
     }
-#if 0
-#define LP8 (LINE_PERIOD / 8)
-#define LP4 (LINE_PERIOD / 4)
-#define LP2 (LINE_PERIOD / 2)
-    data[INTXY(y + c->dyr * LP8) * w + INTXY(x + c->dxr * LP8)] = 0xbbbbbbbb;
-    data[INTXY(y + c->dyr * LP4) * w + INTXY(x + c->dxr * LP4)] = 0xaaaaaaaa;
-    data[INTXY(y + c->dyr * LP2) * w + INTXY(x + c->dxr * LP2)] = 0x99999999;
-    data[INTXY(y + c->dyd * LP8) * w + INTXY(x + c->dxd * LP8)] = 0xbb6666bb;
-    data[INTXY(y + c->dyd * LP4) * w + INTXY(x + c->dxd * LP4)] = 0xaa5555aa;
-    data[INTXY(y + c->dyd * LP2) * w + INTXY(x + c->dxd * LP2)] = 0x99444499;
-#endif
     data[INTXY(y) * w + INTXY(x)] = colours[c->status];
   }
   MAYBE_DEBUG_IPL(fl->debug);
@@ -312,7 +300,6 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       /*This one is lobbying for the position of a corner.*/
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
-
       sparrow_cluster_t *cluster = &clusters[hline * fl->n_vlines + vline];
       sparrow_voter_t *voters = cluster->voters;
       int n = cluster->n;
@@ -749,6 +736,7 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
+
 INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
@@ -787,7 +775,6 @@ setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     break;
   }
 }
-
 
 INVISIBLE void
 init_find_edges(GstSparrow *sparrow){
