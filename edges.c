@@ -321,7 +321,7 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 }
 
 
-#define SIGNAL_QUANT (1 << 4)
+#define SIGNAL_QUANT 1
 
 /*maximum number of pixels in a cluster */
 #define CLUSTER_SIZE 8
@@ -696,8 +696,8 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
 
   for (i = 0; i < sparrow->in.pixcount; i++){
     colour = in32[i] & cmask;
-    signal = ((colour >> fl->shift1) +
-        (colour >> fl->shift2)) & 0x1ff;
+    signal = (((colour >> fl->shift1) +
+            (colour >> fl->shift2))) & 0xff;
     if (signal){
       if (fl->map[i].lines[line->dir]){
         GST_DEBUG("HEY, expected point %d to be in line %d (dir %d)"
@@ -720,8 +720,8 @@ debug_map_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint32 *data = (guint32*)fl->debug->imageData;
   memset(data, 0, sparrow->in.size);
   for (guint i = 0; i < sparrow->in.pixcount; i++){
-    data[i] |= (fl->map[i].signal[SPARROW_HORIZONTAL] >> 1) << sparrow->in.gshift;
-    data[i] |= (fl->map[i].signal[SPARROW_VERTICAL] >> 1) << sparrow->in.rshift;
+    data[i] |= fl->map[i].signal[SPARROW_HORIZONTAL] << sparrow->in.gshift;
+    data[i] |= fl->map[i].signal[SPARROW_VERTICAL] << sparrow->in.rshift;
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
@@ -889,18 +889,20 @@ finalise_find_edges(GstSparrow *sparrow){
   sparrow->helper_struct = NULL;
 }
 
+/*reduce the signal a little bit more, avoiding overflow later */
+#define COLOUR_QUANT  1
 
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   switch (sparrow->colour){
   case SPARROW_WHITE:
   case SPARROW_GREEN:
-    fl->shift1 = sparrow->in.gshift;
-    fl->shift2 = sparrow->in.gshift;
+    fl->shift1 = sparrow->in.gshift + COLOUR_QUANT;
+    fl->shift2 = sparrow->in.gshift + COLOUR_QUANT;
     break;
   case SPARROW_MAGENTA:
-    fl->shift1 = sparrow->in.rshift;
-    fl->shift2 = sparrow->in.bshift;
+    fl->shift1 = sparrow->in.rshift + COLOUR_QUANT;
+    fl->shift2 = sparrow->in.bshift + COLOUR_QUANT;
     break;
   }
 }
