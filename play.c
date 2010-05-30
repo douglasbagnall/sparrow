@@ -31,11 +31,11 @@ play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   guint32 *line = (guint32 *)out;
   for (y = 0; y < sparrow->out.height; y++){
     sparrow_map_row_t *row = map->rows + y;
-    line += sparrow->out.width;
     for(x = row->start; x < row->end; x++){
       line[x] = ~0;
     }
     //GST_DEBUG("row %d: s %d e%d", y, row->start, row->end);
+    line += sparrow->out.width;
   }
 }
 
