@@ -240,10 +240,10 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     int tyr = y;
     int tyd = y;
     for (int j = 1; j < LINE_PERIOD; j+= 2){
-      txr += c->dxr * 2;
-      txd += c->dxd * 2;
-      tyr += c->dyr * 2;
-      tyd += c->dyd * 2;
+      txr += c->dxr * 2 / LINE_PERIOD;
+      txd += c->dxd * 2 / LINE_PERIOD;
+      tyr += c->dyr * 2 / LINE_PERIOD;
+      tyd += c->dyd * 2 / LINE_PERIOD;
       data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
       data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
     }
@@ -473,10 +473,10 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           i, x, y, width, corner->in_x, corner->in_y, down->in_x,
           down->in_y, right->in_x,  right->in_y);
       if (corner->status != CORNER_UNUSED){
-        corner->dxr = (right->in_x - corner->in_x) / LINE_PERIOD_TMP;
-        corner->dyr = (right->in_y - corner->in_y) / LINE_PERIOD_TMP;
-        corner->dxd = (down->in_x -  corner->in_x) / LINE_PERIOD_TMP;
-        corner->dyd = (down->in_y -  corner->in_y) / LINE_PERIOD_TMP;
+        corner->dxr = (right->in_x - corner->in_x);
+        corner->dyr = (right->in_y - corner->in_y);
+        corner->dxd = (down->in_x -  corner->in_x);
+        corner->dyd = (down->in_y -  corner->in_y);
       }
       else {
           /*copy from both right and down, if they both exist. */
@@ -523,8 +523,8 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         /*now extrapolate position, preferably from both left and right */
         if (right == corner){
           if (down != corner){ /*use down only */
-            corner->in_x = down->in_x - corner->dxd * LINE_PERIOD_TMP;
-            corner->in_y = down->in_y - corner->dyd * LINE_PERIOD_TMP;
+            corner->in_x = down->in_x - corner->dxd;
+            corner->in_y = down->in_y - corner->dyd;
           }
           else {/*oh no*/
             GST_DEBUG("can't reconstruct corner %d, %d: no useable neighbours\n", x, y);
@@ -533,14 +533,14 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           }
         }
         else if (down == corner){ /*use right only */
-          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD_TMP;
-          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD_TMP;
+          corner->in_x = right->in_x - corner->dxr;
+          corner->in_y = right->in_y - corner->dyr;
         }
         else { /* use both */
-          corner->in_x = right->in_x - corner->dxr * LINE_PERIOD_TMP;
-          corner->in_y = right->in_y - corner->dyr * LINE_PERIOD_TMP;
-          corner->in_x += down->in_x - corner->dxd * LINE_PERIOD_TMP;
-          corner->in_y += down->in_y - corner->dyd * LINE_PERIOD_TMP;
+          corner->in_x = right->in_x - corner->dxr;
+          corner->in_y = right->in_y - corner->dyr;
+          corner->in_x += down->in_x - corner->dxd;
+          corner->in_y += down->in_y - corner->dyd;
           corner->in_x >>= 1;
           corner->in_y >>= 1;
         }
