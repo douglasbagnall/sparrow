@@ -594,8 +594,8 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       sparrow_corner_t *corner = &mesh[i];
       /* calculate the delta to next corner. If this corner is on edge, delta is
        0 and next is this.*/
-      sparrow_corner_t *right = (x >= width - 1) ? corner : corner + 1;
-      sparrow_corner_t *down =  (y >= height - 1) ? corner : corner + width;
+      sparrow_corner_t *right = (x == width - 1) ? corner : corner + 1;
+      sparrow_corner_t *down =  (y == height - 1) ? corner : corner + width;
       GST_DEBUG("i %d xy %d,%d width %d. in_xy %d,%d; down in_xy %d,%d; right in_xy %d,%d\n",
           i, x, y, width, corner->in_x, corner->in_y, down->in_x,
           down->in_y, right->in_x,  right->in_y);
