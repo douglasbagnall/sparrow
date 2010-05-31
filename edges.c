@@ -243,11 +243,12 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
-  int i = 0;
+  int y = H_LINE_OFFSET;
   sparrow_corner_t *mesh_row = mesh;
   for(mcy = 0; mcy < mesh_h; mcy++){
-    for (mmy = 0; mmy < LINE_PERIOD; mmy++){
+    for (mmy = 0; mmy < LINE_PERIOD; mmy++, y++){
       sparrow_corner_t *mesh_square = mesh_row;
+      int i = y * sparrow->out.width + V_LINE_OFFSET;
       for(mcx = 0; mcx < mesh_w; mcx++){
         int iy = mesh_square->in_y + mmy * mesh_square->dyd;
         int ix = mesh_square->in_x + mmy * mesh_square->dxd;
