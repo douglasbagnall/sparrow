@@ -252,8 +252,11 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         int iy = mesh_square->in_y + mmy * mesh_square->dyd;
         int ix = mesh_square->in_x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
-          map_lut[i].x = ix >> SPARROW_FP_2_LUT;
-          map_lut[i].y = iy >> SPARROW_FP_2_LUT;
+          map_lut[i].x = MAX(ix >> SPARROW_FP_2_LUT, 0);
+          map_lut[i].y = MAX(iy >> SPARROW_FP_2_LUT, 0);
+          //GST_DEBUG("ix, iy %d, %d x, y %d, %d\n", ix, iy,
+          //    map_lut[i].x, map_lut[i].y);
+
           ix += mesh_square->dxr;
           iy += mesh_square->dyr;
         }
