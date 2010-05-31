@@ -99,27 +99,36 @@ typedef struct sparrow_find_lines_s {
   "  int n_lines: %d\n"                         \
   "  int n_vlines: %d\n"                        \
   "  int n_hlines: %d\n"                        \
-  "  gint threshold: %d\n"                      \
   "  gint shift1: %d\n"                         \
   "  gint shift2: %d\n"                         \
   "  sparrow_intersect_t *map: %p\n"            \
   "  sparrow_corner_t *mesh: %p\n"              \
   "  sparrow_cluster_t *clusters: %p\n"         \
+  "  IplImage *debug: %p\n"                     \
+  "  IplImage *threshold: %p\n"                 \
+  "  IplImage *working: %p\n"                   \
+  "  IplImage *input: %p\n"                     \
+  "  edges_state_t state: %d\n"                 \
   ,                                             \
-    (fl)->h_lines,                                \
-    (fl)->v_lines,                                \
-    (fl)->shuffled_lines,                         \
-    (fl)->current,                                \
-    (fl)->n_lines,                                \
-    (fl)->n_vlines,                               \
-    (fl)->n_hlines,                               \
-    (fl)->threshold,                              \
-    (fl)->shift1,                                 \
-    (fl)->shift2,                                 \
-    (fl)->map,                                    \
-    (fl)->mesh,                                   \
-  (fl)->clusters)                                 \
-
+  (fl)->h_lines,                                  \
+  (fl)->v_lines,                                  \
+  (fl)->shuffled_lines,                           \
+  (fl)->current,                                  \
+  (fl)->n_lines,                                  \
+  (fl)->n_vlines,                                 \
+  (fl)->n_hlines,                                 \
+  (fl)->threshold,                                \
+  (fl)->shift1,                                   \
+  (fl)->shift2,                                   \
+  (fl)->map,                                      \
+  (fl)->mesh,                                     \
+  (fl)->clusters,                                 \
+  (fl)->debug,                                    \
+  (fl)->threshold,                                \
+  (fl)->working,                                  \
+  (fl)->input,                                    \
+  (fl)->state                                     \
+)
 //#undef debug_find_lines
 //#define debug_find_lines(x) /* */
 
