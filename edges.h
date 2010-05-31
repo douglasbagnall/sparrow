@@ -11,6 +11,7 @@
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
 
+#define BAD_PIXEL -1
 
 #define FL_DUMPFILE "/tmp/edges.dump"
 

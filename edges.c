@@ -350,6 +350,10 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       /*This one is lobbying for the position of a corner.*/
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
+      if (vline == BAD_PIXEL || hline == BAD_PIXEL){
+        GSTR_DEBUG("ignoring bad pixel %d, %d\n", x, y);
+        continue;
+      }
       sparrow_cluster_t *cluster = &clusters[hline * fl->n_vlines + vline];
       sparrow_voter_t *voters = cluster->voters;
       int n = cluster->n;
@@ -701,17 +705,23 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
             (colour >> fl->shift2))) & 0xff;
     if (signal){
       if (fl->map[i].lines[line->dir]){
+        /*assume the pixel is on for everyone and will just confuse
+          matters. ignore it.
+
+          XXX maybe threshold, so if signal is hugely bigger in one, don't ban it.
+        */
         GST_DEBUG("HEY, expected point %d to be in line %d (dir %d)"
-            "and thus empty, but it is also in line %d\n",
-            "old signal %d, new signal %d, ignoring weakest\n",
+            "and thus empty, but it is also in line %d\n"
+            "old signal %d, new signal %d, marking as BAD\n",
             i, line->index, line->dir, fl->map[i].lines[line->dir],
             fl->map[i].signal[line->dir], signal);
-        if (signal < fl->map[i].signal[line->dir]){
-          continue;
-        }
+        fl->map[i].lines[line->dir] = BAD_PIXEL;
+        fl->map[i].signal[line->dir] = 0;
       }
-      fl->map[i].lines[line->dir] = line->index;
-      fl->map[i].signal[line->dir] = signal;
+      else{
+        fl->map[i].lines[line->dir] = line->index;
+        fl->map[i].signal[line->dir] = signal;
+      }
     }
   }
 }
