@@ -49,12 +49,16 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
   for (i = 0; i < sparrow->out.pixcount; i++){
-    int x = sparrow->map_lut[i].x >> SPARROW_MAP_LUT_SHIFT;
-    int y = sparrow->map_lut[i].y >> SPARROW_MAP_LUT_SHIFT;
-    //GST_DEBUG("out i %d, in x, y %d, %d\n", i, x, y);
-    if (x || y){
-      out32[i] = ~in32[y * sparrow->in.width + x];
+    if (sparrow->screenmask[i]){
+      int x = sparrow->map_lut[i].x >> SPARROW_MAP_LUT_SHIFT;
+      int y = sparrow->map_lut[i].y >> SPARROW_MAP_LUT_SHIFT;
+      if (x || y){
+        out32[i] = ~in32[y * sparrow->in.width + x];
+      }
     }
+  }
+  if (sparrow->debug){
+    debug_frame(sparrow, out, sparrow->out.width, sparrow->out.height, PIXSIZE);
   }
 }
 
