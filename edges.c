@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 
 #include "cv.h"
 
@@ -970,14 +971,16 @@ init_find_edges(GstSparrow *sparrow){
 
   setup_colour_shifts(sparrow, fl);
 
-  if (sparrow->reload && *(sparrow->reload)){
-    GST_DEBUG("sparrow>reload is %s\n", sparrow->reload);
+  if (sparrow->reload){
+    if (access(sparrow->reload, R_OK)){
+      GST_DEBUG("sparrow>reload is '%s' and it is UNREADABLE\n", sparrow->reload);
+      exit(1);
+    }
     read_edges_info(sparrow, fl, sparrow->reload);
     memset(fl->map, 0, sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
     //memset(fl->clusters, 0, n_corners * sizeof(sparrow_cluster_t));
     memset(fl->mesh, 0, n_corners * sizeof(sparrow_corner_t));
     jump_state(sparrow, fl, EDGES_FIND_CORNERS);
-
   }
   else {
     jump_state(sparrow, fl, EDGES_FIND_NOISE);
