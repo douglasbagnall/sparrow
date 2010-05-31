@@ -68,7 +68,6 @@ typedef struct sparrow_line_s {
 } sparrow_line_t;
 
 typedef struct sparrow_find_lines_s {
-  //sparrow_line_t *lines;
   sparrow_line_t *h_lines;
   sparrow_line_t *v_lines;
   sparrow_line_t **shuffled_lines;
@@ -85,7 +84,6 @@ typedef struct sparrow_find_lines_s {
   IplImage *threshold;
   IplImage *working;
   IplImage *input;
-  int counter;
   edges_state_t state;
 } sparrow_find_lines_t;
 

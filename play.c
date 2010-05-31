@@ -89,7 +89,6 @@ mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
   //memcpy(out, in, sparrow->out.size);
   //simple_negation(out, sparrow->out.size);
-  GST_DEBUG("playmode with %p, %p\n", in, out);
 #if USE_FULL_LUT
   play_from_full_lut(sparrow, in, out);
 #else

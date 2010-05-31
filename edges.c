@@ -241,7 +241,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 UNUSED static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  //DEBUG_FIND_LINES(fl);
+  DEBUG_FIND_LINES(fl);
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
   sparrow_map_lut_t *map_lut = sparrow->map_lut;
   int mesh_w = fl->n_vlines;
@@ -361,7 +361,7 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       int vline = p->lines[SPARROW_VERTICAL];
       int hline = p->lines[SPARROW_HORIZONTAL];
       if (vline == BAD_PIXEL || hline == BAD_PIXEL){
-        GSTR_DEBUG("ignoring bad pixel %d, %d\n", x, y);
+        GST_DEBUG("ignoring bad pixel %d, %d\n", x, y);
         continue;
       }
       sparrow_cluster_t *cluster = &clusters[hline * fl->n_vlines + vline];
@@ -789,7 +789,7 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
   case EDGES_FIND_CORNERS:
     sparrow->countdown = 4;
   default:
-    GST_DEBUG("jumped to state %d\n", fl->state);
+    GST_DEBUG("jumped to non-existent state %d\n", fl->state);
     break;
   }
 }
@@ -804,7 +804,6 @@ draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *ou
   sparrow->countdown--;
   memset(out, 0, sparrow->out.size);
   if (sparrow->countdown){
-    GST_DEBUG("current %d line %p\n", fl->current, line);
     draw_line(sparrow, line, out);
   }
   else{
@@ -862,7 +861,6 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
 #else
     corners_to_lut(sparrow, fl);
 #endif
-
     break;
   default:
     GST_DEBUG("how did sparrow->countdown get to be %d?", sparrow->countdown);
@@ -891,8 +889,6 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
   return SPARROW_STATUS_QUO;
 }
-
-
 
 INVISIBLE void
 finalise_find_edges(GstSparrow *sparrow){
