@@ -41,6 +41,9 @@ static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
   fwrite(fl->clusters, sizeof(sparrow_cluster_t), fl->n_hlines * fl->n_vlines, f);
   GST_DEBUG("fl->mesh  %d x %d\n", sizeof(sparrow_corner_t), fl->n_hlines * fl->n_vlines);
   fwrite(fl->mesh, sizeof(sparrow_corner_t), fl->n_hlines * fl->n_vlines, f);
+  /*and write the mask too */
+  GST_DEBUG("sparrow->screenmask\n");
+  fwrite(sparrow->screenmask, 1, sparrow->out.pixcount, f);
   fclose(f);
 }
 
@@ -55,6 +58,7 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
   read += fread(fl->map, sizeof(sparrow_intersect_t), sparrow->in.pixcount, f);
   read += fread(fl->clusters, sizeof(sparrow_cluster_t), n_corners, f);
   read += fread(fl->mesh, sizeof(sparrow_corner_t), n_corners, f);
+  read += fread(sparrow->screenmask, 1, sparrow->out.pixcount, f);
   fclose(f);
 }
 
