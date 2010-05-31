@@ -540,9 +540,11 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       median_discard_cluster_outliers(cluster);
 
       /* now find a weighted average position */
-      int xsum, ysum;
-      int xmean, ymean;
-      int votes;
+      /*64 bit to avoid overflow -- should probably just use floating point
+        (or reduce signal)*/
+      guint64 xsum, ysum;
+      guint xmean, ymean;
+      guint64 votes;
       int j;
       xsum = 0;
       ysum = 0;
