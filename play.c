@@ -34,7 +34,10 @@ play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
     for(x = row->start; x < row->end; x++){
       line[x] = ~0;
     }
-    //GST_DEBUG("row %d: s %d e%d", y, row->start, row->end);
+    /*
+    GST_DEBUG("row %p %d: s %d e%d line %d\n",
+        row, y, row->start, row->end, line);
+    */
     line += sparrow->out.width;
   }
 }

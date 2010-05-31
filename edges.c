@@ -113,6 +113,8 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       int dx, dy;
       int on = 0;
       sparrow_corner_t *mesh_square = mesh_row;
+      GST_DEBUG("row %p, y %d, row offset %d\n", row, y, row - map->rows);
+      y++;
       row->points = NULL;
       row->start = 0;
       row->end = 0;
@@ -143,7 +145,7 @@ static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           ix + (LINE_PERIOD - 1) * dx,
           iy + (LINE_PERIOD - 1) * dy,
           in_w);
-
+        //GST_DEBUG("lasti is %d, ix %d, iy %d\n", lasti, ix, iy);
         if (! on){
           if (! mask[lasti]){
             /*it doesn't turn on within this block (or it is of ignorably
