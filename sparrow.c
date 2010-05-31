@@ -189,14 +189,14 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 
-#if USE_SPARSE_MAP
+#if ! USE_FULL_LUT
   size_t point_memsize = (sizeof(sparrow_map_path_t) * sparrow->out.pixcount / LINE_PERIOD) + 1;
   size_t row_memsize = sizeof(sparrow_map_row_t) * sparrow->out.height + 1;
   sparrow->map.point_mem = malloc_aligned_or_die(point_memsize);
   sparrow->map.rows = zalloc_aligned_or_die(row_memsize);
 #else
   size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
-  sparrow->map_lut = malloc_aligned_or_die(lutsize);
+  sparrow->map_lut = zalloc_aligned_or_die(lutsize);
 #endif
 
   sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
@@ -237,7 +237,7 @@ sparrow_finalise(GstSparrow *sparrow)
   free(sparrow->work_frame);
   free(sparrow->dsfmt);
   free(sparrow->screenmask);
-#if USE_SPARSE_MAP
+#if ! USE_FULL_LUT
   free(sparrow->map.point_mem);
   free(sparrow->map.rows);
 #else

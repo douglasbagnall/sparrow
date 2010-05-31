@@ -39,6 +39,22 @@ play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
+static void
+play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
+  memset(out, 0, sparrow->out.size);
+  guint i;
+  guint32 *out32 = (guint32 *)out;
+  guint32 *in32 = (guint32 *)in;
+  for (i = 0; i < sparrow->out.pixcount; i++){
+    int x = sparrow->map_lut[i].x >> SPARROW_MAP_LUT_SHIFT;
+    int y = sparrow->map_lut[i].y >> SPARROW_MAP_LUT_SHIFT;
+    //GST_DEBUG("out i %d, in x, y %d, %d\n", i, x, y);
+    if (x || y){
+      out32[i] = ~in32[y * sparrow->in.width + x];
+    }
+  }
+}
+
 
 UNUSED
 static void
@@ -66,7 +82,12 @@ mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //do actual stuff here
   //memcpy(out, in, sparrow->out.size);
   //simple_negation(out, sparrow->out.size);
+  GST_DEBUG("playmode with %p, %p\n", in, out);
+#if USE_FULL_LUT
+  play_from_full_lut(sparrow, in, out);
+#else
   play_from_lut(sparrow, in, out);
+#endif
   return SPARROW_STATUS_QUO;
 }
 

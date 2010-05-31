@@ -845,7 +845,12 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
     make_map(sparrow, fl);
     break;
   case 0:
+#if USE_FULL_LUT
+    corners_to_full_lut(sparrow, fl);
+#else
     corners_to_lut(sparrow, fl);
+#endif
+
     break;
   default:
     GST_DEBUG("how did sparrow->countdown get to be %d?", sparrow->countdown);

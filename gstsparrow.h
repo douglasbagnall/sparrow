@@ -41,10 +41,9 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
 
-
+#define USE_FULL_LUT 1
 
 #define SPARROW_PPM_DEBUG 1
-#define USE_SPARSE_MAP 1
 
 #define TIMER_LOG_FILE "/tmp/timer.log"
 
@@ -135,6 +134,8 @@ typedef enum sparrow_axis_s {
    stored in a fixed point notation.
 */
 #define SPARROW_FIXED_POINT 8
+#define SPARROW_MAP_LUT_SHIFT 1
+#define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
 typedef struct sparrow_map_path_s {
   int dx;
