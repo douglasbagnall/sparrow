@@ -785,10 +785,10 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
   }
   switch (fl->state){
   case EDGES_FIND_NOISE:
-    sparrow->countdown = sparrow->lag + 2;
+    sparrow->countdown = MAX(sparrow->lag, 1) + 2;
     break;
   case EDGES_FIND_LINES:
-    sparrow->countdown = sparrow->lag + 2;
+    sparrow->countdown = MAX(sparrow->lag, 1) + 2;
     break;
   case EDGES_FIND_CORNERS:
     sparrow->countdown = 4;
@@ -821,7 +821,7 @@ draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *ou
       jump_state(sparrow, fl, EDGES_NEXT_STATE);
     }
     else{
-      sparrow->countdown = sparrow->lag + 2;
+      sparrow->countdown = MAX(sparrow->lag, 1) + 2;
     }
   }
 }
