@@ -12,7 +12,7 @@ else
 ARCH_CFLAGS = -m32 -msse2
 endif
 
-ALL_CFLAGS = -march=native -pthread $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(ARCH_CFLAGS) $(CFLAGS) 
+ALL_CFLAGS = -march=native -pthread $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(ARCH_CFLAGS) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
 
 
@@ -41,6 +41,8 @@ OPENCV_PREFIX = $(shell test -d /usr/local/include/opencv && echo /usr/local || 
 
 #OPENCV_INCLUDE = -I/usr/include/opencv/
 OPENCV_INCLUDE = -isystem $(OPENCV_PREFIX)/include/opencv/
+
+GTK_INCLUDES = -I/usr/include/gtk-2.0/ -I/usr/include/cairo/ -I/usr/include/pango-1.0/ -I/usr/lib/gtk-2.0/include/ -I/usr/include/atk-1.0/
 
 #GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
@@ -106,6 +108,9 @@ test-valgrind: debug
 test-gdb: debug
 	echo "set args $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)" > /tmp/gdb-args.txt
 	gdb -x /tmp/gdb-args.txt $(GST_LAUNCH)
+
+sparrow.xml::
+	$(GST_LAUNCH) -o sparrow.xml $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
 test-times: all
 	timeout -3 20 time -v $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
@@ -211,3 +216,7 @@ rsync:
 .PHONY: TAGS all cproto cproto-nonstatic sysprof splint unittest unittest-shifts unittest-edges \
 	debug ccmalloc rsync
 
+APP_C = app/app2.c
+go:	$(APP_C)
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) $(GTK_INCLUDES)  -lglib-2.0 $(LINKS) -lgstinterfaces-0.10 -o go $(APP_C)
+	./go
