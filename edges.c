@@ -31,10 +31,14 @@
 static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
   GST_DEBUG("about to save to %s\n", filename);
   FILE *f = fopen(filename, "w");
+  sparrow_fl_condensed_t condensed;
+  condensed.n_vlines = fl->n_vlines;
+  condensed.n_hlines = fl->n_hlines;
+
   /* simply write fl, map, clusters and mesh in sequence */
   GST_DEBUG("fl is %p, file is %p\n", fl, f);
   GST_DEBUG("fl: %d x %d\n", sizeof(sparrow_find_lines_t), 1);
-  fwrite(fl, sizeof(sparrow_find_lines_t), 1, f);
+  fwrite(&condensed, sizeof(sparrow_fl_condensed_t), 1, f);
   GST_DEBUG("fl->map %d x %d\n", sizeof(sparrow_intersect_t), sparrow->in.pixcount);
   fwrite(fl->map, sizeof(sparrow_intersect_t), sparrow->in.pixcount, f);
   GST_DEBUG("fl->clusters  %d x %d\n", sizeof(sparrow_cluster_t), fl->n_hlines * fl->n_vlines);
@@ -49,10 +53,10 @@ static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 
 static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
   FILE *f = fopen(filename, "r");
-  sparrow_find_lines_t fl2;
-  size_t read = fread(&fl2, sizeof(sparrow_find_lines_t), 1, f);
-  assert(fl2.n_hlines == fl->n_hlines);
-  assert(fl2.n_vlines == fl->n_vlines);
+  sparrow_fl_condensed_t condensed;
+  size_t read = fread(&condensed, sizeof(sparrow_fl_condensed_t), 1, f);
+  assert(condensed.n_hlines == fl->n_hlines);
+  assert(condensed.n_vlines == fl->n_vlines);
 
   guint n_corners = fl->n_hlines * fl->n_vlines;
   read += fread(fl->map, sizeof(sparrow_intersect_t), sparrow->in.pixcount, f);

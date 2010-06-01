@@ -67,6 +67,14 @@ typedef struct sparrow_line_s {
   gint index;
 } sparrow_line_t;
 
+/*condensed version of <struct sparrow_find_lines_s> for saving: contains no
+  pointers or other unnecessary things that might vary in size across
+  architectures. */
+typedef struct sparrow_fl_condensed {
+  gint32 n_vlines;
+  gint32 n_hlines;
+} sparrow_fl_condensed_t;
+
 typedef struct sparrow_find_lines_s {
   sparrow_line_t *h_lines;
   sparrow_line_t *v_lines;
