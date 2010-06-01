@@ -989,7 +989,7 @@ init_find_edges(GstSparrow *sparrow){
   GST_DEBUG("allocated %d lines, status %d\n", n_lines, line - fl->h_lines);
 
   /*now shuffle */
-  for (i = 0; i < n_lines - 1; i++){
+  for (i = 0; i < n_lines; i++){
     int j = RANDINT(sparrow, 0, n_lines);
     sparrow_line_t *tmp = fl->shuffled_lines[j];
     fl->shuffled_lines[j] = fl->shuffled_lines[i];
