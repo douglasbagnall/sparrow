@@ -290,8 +290,11 @@ change_state(GstSparrow *sparrow, sparrow_state state)
   case SPARROW_FIND_EDGES:
     init_find_edges(sparrow);
     break;
-  case SPARROW_INIT:
   case SPARROW_PLAY:
+    init_play(sparrow);
+    break;
+  case SPARROW_INIT:
+    //init_init(sparrow);
     break;
   default:
     GST_DEBUG("change_state got unknown state: %d\n", state);
@@ -325,8 +328,10 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
   case SPARROW_FIND_EDGES:
     new_state = mode_find_edges(sparrow, in, out);
     break;
-  default:
+  case SPARROW_PLAY:
     new_state = mode_play(sparrow, in, out);
+  default:
+    GST_DEBUG("unknown state:%d\n", sparrow->state);
   }
   sparrow->frame_count++;
   if (new_state != SPARROW_STATUS_QUO){

@@ -40,7 +40,7 @@ G_BEGIN_DECLS
 #define GST_IS_SPARROW_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPARROW))
 
-
+/*XXX could be run time option */
 #define USE_FULL_LUT 1
 
 #define SPARROW_PPM_DEBUG 1

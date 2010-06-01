@@ -97,5 +97,10 @@ mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-INVISIBLE void init_play(GstSparrow *sparrow){}
-INVISIBLE void finalise_play(GstSparrow *sparrow){}
+INVISIBLE void init_play(GstSparrow *sparrow){
+  GST_DEBUG("starting play mode\n");
+}
+
+INVISIBLE void finalise_play(GstSparrow *sparrow){
+  GST_DEBUG("leaving play mode\n");
+}

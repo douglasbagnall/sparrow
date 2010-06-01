@@ -792,6 +792,7 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
     break;
   case EDGES_FIND_CORNERS:
     sparrow->countdown = 4;
+    break;
   default:
     GST_DEBUG("jumped to non-existent state %d\n", fl->state);
     break;
@@ -914,6 +915,7 @@ finalise_find_edges(GstSparrow *sparrow){
   cvReleaseImage(&fl->working);
   cvReleaseImageHeader(&fl->input);
   free(fl);
+  GST_DEBUG("freed everything\n");
   sparrow->helper_struct = NULL;
 }
 
