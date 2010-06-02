@@ -101,64 +101,6 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 }
 
 
-
-
-
-
-/* find a suitable threshold level by looking at the histogram of a monochrome
-   image */
-static int
-find_edges_threshold(IplImage *im)
-{
-  int w = im->width;
-  int h = im->height;
-  CvSize small_size = {w / 4, h / 4};
-  IplImage *small = cvCreateImage(small_size, IPL_DEPTH_8U, 1); /*for quicker histogram (stupid, perhaps?)*/
-  cvResize(im, small, CV_INTER_NN);
-  int hist_size[] = {255};
-  float range[] = {0, 255};
-  float *ranges[] = {range};
-  CvHistogram* hist = cvCreateHist(1, hist_size, CV_HIST_ARRAY, ranges, 1);
-  cvCalcHist(&small, hist, 0, NULL);
-
-  int pixels = small->width * small->height;
-  int min_black = pixels / 16;
-  int max_black = pixels * 3 / 4;
-  int totals[256] = {0};
-
-  int best_d = pixels + 1;
-  int best_t = 0;
-
-  /* look for a low region in the histogram between the two peaks.
-     (big assumption: two peaks, with most in whiter peak) */
-  int total = 0;
-  for (int i = 0; i < 255; i++){
-    int v = (int)cvQueryHistValue_1D(hist, i);
-    total += v;
-    totals[i] = total;
-    if (total >= min_black){
-      if (i >= 5){
-        int diff = total - totals[i - 5];
-        if (diff < best_d){
-          best_d = diff;
-          best_t = i - 2;
-        }
-        if (total >= max_black){
-          break;
-        }
-      }
-    }
-  }
-  GST_DEBUG("found best threshold %d -- %d pixel change at %d/%d pixels\n",
-      best_t, best_d, totals[best_t], pixels);
-  //MAYBE_DEBUG_IPL(small);
-  cvReleaseImage(&small);
-  cvReleaseHist(&hist);
-
-  return best_t;
-}
-
-
 /* a minature state progression within this one, in case the processing is too
    much for one frame.*/
 INVISIBLE sparrow_state
