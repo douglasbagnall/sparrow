@@ -155,19 +155,6 @@ extract_caps(sparrow_format *im, GstCaps *caps)
 
 /*Most functions below here are called from gstsparrow.c and are NOT static */
 
-void INVISIBLE
-sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf){
-  if (sparrow->in_buffer){
-    gst_buffer_unref(sparrow->prev_buffer);
-    sparrow->prev_buffer = sparrow->in_buffer;
-    sparrow->prev_frame = sparrow->in_frame;
-  }
-  gst_buffer_ref(inbuf);
-  sparrow->in_buffer = inbuf;
-
-  sparrow->in_frame = GST_BUFFER_DATA(inbuf);
-}
-
 /* called by gst_sparrow_init(). The source/sink capabilities (and commandline
    arguments[?]) are unknown at this stage, so there isn't much useful to do
    here.*/
@@ -185,7 +172,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->out), outcaps);
   sparrow_format *in = &(sparrow->in);
 
-  sparrow->work_frame = zalloc_aligned_or_die(in->size);
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 
@@ -200,12 +186,9 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 #endif
 
   sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
-  sparrow->prev_frame  = GST_BUFFER_DATA(sparrow->prev_buffer);
-  memset(sparrow->prev_frame, 0, in->size);
 
   sparrow->timer_start.tv_sec = 0;
   sparrow->timer_stop.tv_sec = 0;
-
 
   rng_init(sparrow, sparrow->rng_seed);
 
@@ -234,7 +217,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
 void INVISIBLE
 sparrow_finalise(GstSparrow *sparrow)
 {
-  free(sparrow->work_frame);
   free(sparrow->dsfmt);
   free(sparrow->screenmask);
 #if ! USE_FULL_LUT

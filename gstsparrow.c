@@ -298,7 +298,6 @@ gst_sparrow_transform (GstBaseTransform * base, GstBuffer * inbuf,
   if (insize != sparrow->in.size || outsize != sparrow->out.size)
     goto wrong_size;
 
-  sparrow_rotate_history(sparrow, inbuf);
   sparrow_transform(sparrow, indata, outdata);
   return GST_FLOW_OK;
 

@@ -45,7 +45,6 @@ INVISIBLE void finalise_play(GstSparrow *sparrow);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height, int pixsize);
-INVISIBLE void sparrow_rotate_history(GstSparrow *sparrow, GstBuffer *inbuf);
 INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
 INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
