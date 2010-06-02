@@ -1,6 +1,7 @@
 #ifndef __SPARROW_EDGES_H__
 #define __SPARROW_EDGES_H__
 
+#define SAFETY_LAG 3;
 #define SIG_WEIGHT 2
 
 /* for discarding outliers */
