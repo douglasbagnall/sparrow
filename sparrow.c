@@ -314,6 +314,7 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
     new_state = mode_play(sparrow, in, out);
   default:
     GST_DEBUG("unknown state:%d\n", sparrow->state);
+    new_state = SPARROW_STATUS_QUO;
   }
   sparrow->frame_count++;
   if (new_state != SPARROW_STATUS_QUO){

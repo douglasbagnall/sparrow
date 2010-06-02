@@ -91,7 +91,8 @@ possibly_new_point(sparrow_map_path_t *p, int dx, int dy){
   return p;
 }
 
-static void corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+static void UNUSED
+corners_to_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
   sparrow_map_t *map = &sparrow->map; /*rows in sparrow->out */
   guint8 *mask = sparrow->screenmask; /*mask in sparrow->in */
@@ -593,7 +594,7 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_corner_t *mesh = fl->mesh;
   gint x, y;
 
-  //DEBUG_FIND_LINES(fl);
+  DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
   i = width * height - 1;

@@ -55,7 +55,7 @@ INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 
 #define MAYBE_DEBUG_IPL(ipl)((sparrow->debug) ?                         \
       debug_frame(sparrow, (guint8*)(ipl)->imageData, (ipl)->width,     \
-          (ipl)->height, (ipl)->nChannels):0)
+          (ipl)->height, (ipl)->nChannels):(void)0)
 
 
 #define CALIBRATE_WAIT_SIGNAL_THRESHOLD 32

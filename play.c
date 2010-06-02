@@ -23,7 +23,7 @@
 #include <math.h>
 
 
-static void
+static void UNUSED
 play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_map_t *map = &sparrow->map;
   memset(out, 0, sparrow->out.size);
