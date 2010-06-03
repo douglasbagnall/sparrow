@@ -7,6 +7,8 @@
 #warning UNUSED is set
 #endif
 
+#define WIDTH 352
+#define HEIGHT 288
 
 const gchar *PLUGIN_DIR = "/home/douglas/sparrow";
 
@@ -49,16 +51,16 @@ make_pipeline(GstElement *sink){
   g_object_set(G_OBJECT(caps1), "caps",
       gst_caps_new_simple ("video/x-raw-yuv",
           "format", G_TYPE_STRING, "(fourcc)YUY2",
-          "width", G_TYPE_INT, 352,
-          "height", G_TYPE_INT, 288,
+          "width", G_TYPE_INT, WIDTH,
+          "height", G_TYPE_INT, HEIGHT,
           "framerate", GST_TYPE_FRACTION, 25, 1,
           NULL), NULL);
 
   g_object_set(G_OBJECT(caps2), "caps",
       gst_caps_new_simple ("video/x-raw-rgb",
           //"format", G_TYPE_STRING, "(fourcc)YUY2",
-          "width", G_TYPE_INT, 352,
-          "height", G_TYPE_INT, 288,
+          "width", G_TYPE_INT, WIDTH,
+          "height", G_TYPE_INT, HEIGHT,
           "framerate", GST_TYPE_FRACTION, 25, 1,
           NULL), NULL);
 
