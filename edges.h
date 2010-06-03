@@ -124,7 +124,6 @@ typedef struct sparrow_find_lines_s {
   (fl)->n_lines,                                  \
   (fl)->n_vlines,                                 \
   (fl)->n_hlines,                                 \
-  (fl)->threshold,                                \
   (fl)->shift1,                                   \
   (fl)->shift2,                                   \
   (fl)->map,                                      \

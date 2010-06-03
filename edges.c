@@ -254,7 +254,7 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
   int y = H_LINE_OFFSET;
   sparrow_corner_t *mesh_row = mesh;
-  for(mcy = 0; mcy < mesh_h; mcy++){
+  for(mcy = 0; mcy < mesh_h -1; mcy++){
     for (mmy = 0; mmy < LINE_PERIOD; mmy++, y++){
       sparrow_corner_t *mesh_square = mesh_row;
       int i = y * sparrow->out.width + V_LINE_OFFSET;
@@ -264,8 +264,8 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
           map_lut[i].x = MAX(ix >> SPARROW_FP_2_LUT, 0);
           map_lut[i].y = MAX(iy >> SPARROW_FP_2_LUT, 0);
-          //GST_DEBUG("ix, iy %d, %d x, y %d, %d\n", ix, iy,
-          //    map_lut[i].x, map_lut[i].y);
+          //GST_DEBUG("ix, iy %d, %d x, y %d, %d i: %d, y%d\n", ix, iy,
+          //    map_lut[i].x, map_lut[i].y, i, y);
 
           ix += mesh_square->dxr;
           iy += mesh_square->dyr;
@@ -695,8 +695,8 @@ make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     corner->dxd = QUANTISE_DELTA(corner->dxd);
     corner->dyd = QUANTISE_DELTA(corner->dyd);
   }
+  DEBUG_FIND_LINES(fl);
   if (sparrow->debug){
-    DEBUG_FIND_LINES(fl);
     debug_corners_image(sparrow, fl);
   }
 }
