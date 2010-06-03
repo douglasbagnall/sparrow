@@ -42,6 +42,9 @@ key_press_event_cb(GtkWidget *widget, GdkEventKey *event, gpointer data)
   case 'f':
     toggle_fullscreen(widget);
     break;
+  case 'q':
+    g_signal_emit_by_name(widget, "destroy");
+    break;
   default:
     break;
   }
@@ -65,6 +68,11 @@ gint main (gint argc, gchar *argv[])
   GMainLoop *loop = g_main_loop_new(NULL, FALSE);
   GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
+  gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
+  //gtk_window_fullscreen(GTK_WINDOW(widget));
+  //GdkScreen *screen = gdk_display_get_screen(0|1);
+  //gtk_window_set_screen(GTK_WINDOW(window), screen);
+
   GstElement *sink = gst_element_factory_make("ximagesink", "sink");
   GstElement *pipeline = (GstElement *)make_pipeline(sink);
 
@@ -73,7 +81,7 @@ gint main (gint argc, gchar *argv[])
 
   // attach key press signal to key press callback
   gtk_widget_set_events(window, GDK_KEY_PRESS_MASK);
-  g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(key_press_event_cb), sink);
+  g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(key_press_event_cb), NULL);
   g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(destroy_cb), loop);
 
 
