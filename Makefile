@@ -101,6 +101,9 @@ TEST_V4L2_PIPE_TAIL = $(TEST_V4L2_SHAPE) ! $(TEST_PIPE_TAIL)
 test: all
 	$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
+test-gtk: all
+	GST_DEBUG=sparrow:$(DEBUG_LEVEL) ./gtk-app 2> /tmp/gst.log || less -R /tmp/gst.log
+
 test-valgrind: debug
 	valgrind --log-file=valgrind.log --trace-children=yes --suppressions=valgrind-python.supp \
 	 $(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL) 2> gst.log
