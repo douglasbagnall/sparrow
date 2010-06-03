@@ -312,6 +312,7 @@ sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
     break;
   case SPARROW_PLAY:
     new_state = mode_play(sparrow, in, out);
+    break;
   default:
     GST_DEBUG("unknown state:%d\n", sparrow->state);
     new_state = SPARROW_STATUS_QUO;
