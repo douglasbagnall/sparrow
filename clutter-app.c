@@ -62,22 +62,36 @@ size_change (ClutterTexture *texture,
   clutter_actor_set_size (CLUTTER_ACTOR (texture), new_width, new_height);
 }
 
+void
+set_initial_size (ClutterTexture *texture)
+{
+  ClutterActor *stage;
+  gfloat new_x, new_y;
+  gfloat stage_width, stage_height;
+  stage = clutter_actor_get_stage (CLUTTER_ACTOR (texture));
+  clutter_actor_get_size (stage, &stage_width, &stage_height);
+  new_x = (stage_width - WIDTH) / 2;
+  new_y = (stage_height - HEIGHT) / 2;
+  clutter_actor_set_position (CLUTTER_ACTOR(texture), new_x, new_y);
+  clutter_actor_set_size (CLUTTER_ACTOR(texture), WIDTH, HEIGHT);
+}
+
+
 int
 main (int argc, char *argv[])
 {
   ClutterTimeline  *timeline;
   ClutterActor     *stage;
   ClutterActor     *texture;
-
-  if (argc < 1) {
-          g_error ("Usage: %s", argv[0]);
-          return 1;
-  }
+  ClutterColor     black = {0, 0, 0, 255};
 
   clutter_init (&argc, &argv);
   gst_init (&argc, &argv);
 
   stage = clutter_stage_get_default ();
+  clutter_stage_set_color(CLUTTER_STAGE(stage), &black);
+  clutter_stage_set_fullscreen(CLUTTER_STAGE(stage), TRUE);
+  clutter_stage_hide_cursor(CLUTTER_STAGE(stage));
 
   /* Make a timeline */
   timeline = clutter_timeline_new (1000);
@@ -91,10 +105,11 @@ main (int argc, char *argv[])
 			  "disable-slicing", TRUE,
 			  NULL);
 
+  /*
   g_signal_connect (CLUTTER_TEXTURE (texture),
 		    "size-change",
 		    G_CALLBACK (size_change), NULL);
-
+  */
 
 
   GstElement *sink = clutter_gst_video_sink_new(CLUTTER_TEXTURE(texture));
@@ -110,6 +125,7 @@ main (int argc, char *argv[])
   // clutter_actor_set_opacity (texture, 0x11);
   clutter_actor_show_all (stage);
 
+  set_initial_size(CLUTTER_TEXTURE(texture));
   clutter_main();
 
   return 0;
