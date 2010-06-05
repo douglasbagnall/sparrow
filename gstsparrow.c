@@ -126,10 +126,6 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
   gobject_class->get_property = gst_sparrow_get_property;
   gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_sparrow_finalize);
 
-  g_object_class_install_property (gobject_class, PROP_CALIBRATE,
-      g_param_spec_boolean ("calibrate", "Calibrate", "calibrate against projection [on]",
-          DEFAULT_PROP_CALIBRATE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
   g_object_class_install_property (gobject_class, PROP_DEBUG,
       g_param_spec_boolean ("debug", "Debug", "save PPM files of internal state [off]",
           DEFAULT_PROP_DEBUG,
@@ -193,10 +189,6 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
   GST_DEBUG("gst_sparrow_set_property\n");
   if (value){
     switch (prop_id) {
-    case PROP_CALIBRATE:
-      sparrow->calibrate_flag = g_value_get_boolean(value);
-      GST_DEBUG("Calibrate argument is %d\n", sparrow->calibrate_flag);
-      break;
     case PROP_DEBUG:
       sparrow->debug = g_value_get_boolean(value);
       GST_DEBUG("debug_value is %d\n", sparrow->debug);
@@ -238,9 +230,6 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
   sparrow = GST_SPARROW (object);
 
   switch (prop_id) {
-    case PROP_CALIBRATE:
-      g_value_set_boolean (value, sparrow->calibrate_flag);
-      break;
     case PROP_DEBUG:
       g_value_set_boolean(value, sparrow->debug);
       break;

@@ -184,7 +184,6 @@ struct _GstSparrow
   /* properties / command line options */
   gboolean debug;
   gboolean use_timer;
-  gint calibrate_flag;  /*whether to calibrate */
   guint32 rng_seed;
 
   /* misc */
@@ -245,7 +244,6 @@ enum
 enum
 {
   PROP_0,
-  PROP_CALIBRATE,
   PROP_DEBUG,
   PROP_TIMER,
   PROP_RNG_SEED,
