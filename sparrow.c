@@ -54,8 +54,8 @@ static void rng_init(GstSparrow *sparrow, guint32 seed){
 /** debugging: write frames out somewhere. **/
 
 /*spit out the frame as a ppm image */
-static void
-ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char *name)
+void INVISIBLE
+ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, const char *name)
 {
   guint i;
   FILE *fh = fopen(name, "w");
@@ -77,8 +77,8 @@ ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, char 
 }
 
 /*pgm for greyscale */
-static void
-pgm_dump(guint8 *data, guint32 width, guint32 height, char *name)
+void INVISIBLE
+pgm_dump(guint8 *data, guint32 width, guint32 height, const char *name)
 {
   FILE *fh = fopen(name, "w");
   size_t size = width * height;

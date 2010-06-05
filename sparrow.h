@@ -49,6 +49,15 @@ INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
 INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
 INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
+INVISIBLE void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, const char *name);
+INVISIBLE void pgm_dump(guint8 *data, guint32 width, guint32 height, const char *name);
+
+
+/* jpeg_src.c */
+INVISIBLE void decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8 *src,
+    int size, guint8 *dest, int *width, int *height);
+INVISIBLE void init_jpeg_src(GstSparrow *sparrow);
+INVISIBLE void finalise_jpeg_src(GstSparrow *sparrow);
 
 
 #define SPARROW_CALIBRATE_ON  1

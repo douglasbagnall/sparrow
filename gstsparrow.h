@@ -219,6 +219,8 @@ struct _GstSparrow
   sparrow_map_t map;
   /*full sized LUT */
   sparrow_map_lut_t *map_lut;
+  /*for jpeg decompression*/
+  struct jpeg_decompress_struct *cinfo;
 };
 
 

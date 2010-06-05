@@ -8,9 +8,15 @@ WARNINGS = -Wall -Wextra -Wno-unused-parameter
 ARCH = $(shell arch)
 ifeq "$(ARCH)" "x86_64"
 ARCH_CFLAGS = -fPIC -DPIC -m64
+JPEG_LIBRARY_PATH=/opt/libjpeg-turbo/lib64
 else
 ARCH_CFLAGS = -m32 -msse2
+JPEG_LIBRARY_PATH=/opt/libjpeg-turbo/lib32
 endif
+
+JPEG_CPATH = /opt/libjpeg-turbo/include
+CPATH = $(JPEG_CPATH)
+LIBRARY_PATH = $(JPEG_LIBRARY_PATH)
 
 ALL_CFLAGS = -march=native -pthread $(VECTOR_FLAGS) -O3 $(WARNINGS) -pipe  -D_GNU_SOURCE -DDSFMT_MEXP=19937 -std=gnu99 $(INCLUDES) $(ARCH_CFLAGS) $(CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS)
@@ -46,15 +52,23 @@ GTK_INCLUDES = -I/usr/include/gtk-2.0/ -I/usr/include/cairo/ -I/usr/include/pang
 
 #GST_PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '_*\(gst_\|Gst\|GST_\).*'
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
-INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE)
+INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE) -I$(JPEG_CPATH)
+
+JPEG_LINKS = -L$(JPEG_LIBRARY_PATH) -Wl,-Bstatic -ljpeg -Wl,-Bdynamic
+# -L$(JPEG_LIBRARY_PATH) -Wl,-Bstatic -ljpeg -Wl,-Bdynamic
+#or, to use dynamic, allegedly, -R $(JPEG_LIBRARY_PATH)
+# or just put in the list of linkees $(JPEG_LIBRARY_PATH)/libjpeg.a
+JPEG_STATIC=$(JPEG_LIBRARY_PATH)/libjpeg.a
 
 LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
-	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv
+	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv $(JPEG_LINKS)
 #  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
+
+SOURCES = gstsparrow.c sparrow.c calibrate.c play.c floodfill.c edges.c dSFMT/dSFMT.c jpeg_src.c
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o
+libgstsparrow.so: gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
@@ -67,6 +81,8 @@ dSFMT/dSFMT.o: dSFMT/dSFMT.c
 	$(CC)  $(DSFMT_FLAGS)  -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
 
 .c.o:
+#	@echo $(CPATH)
+#	@echo $(LIBRARY_PATH)
 	$(CC)  -c -MD $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 #	$(CC)  -c $(ALL_CFLAGS) $(CPPFLAGS) -MD $<
 
@@ -195,6 +211,10 @@ unittest-median:
 	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) -o test test-median.c
 	./test
 
+unittest-jpeg: gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o
+	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(LINKS)  -o test $^ $(JPEG_STATIC)  test-jpeg.c
+
+	#./test
 
 debug:
 	make -B CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
@@ -229,3 +249,5 @@ clutter-app:
 
 app-clean:
 	$(RM) gtk-app clutter-app
+
+#ffmpeg -i sparrow-yadif-scale.avi -vcodec copy jpg/x%06d.jpg
