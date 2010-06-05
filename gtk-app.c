@@ -95,7 +95,6 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
   gtk_widget_set_events(window, GDK_KEY_PRESS_MASK);
   g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(key_press_event_cb), NULL);
   g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(destroy_cb), loop);
-  g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(destroy_cb), loop);
 
   gtk_widget_modify_bg(window, GTK_STATE_NORMAL, &black);
   gtk_widget_show_all(window);
@@ -131,12 +130,11 @@ gint main (gint argc, gchar *argv[])
 
   GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
   gst_bus_add_watch(bus, (GstBusFunc)bus_call, &windows);
-  //gst_object_unref (bus);
+  gst_object_unref (bus);
 
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
   g_main_loop_run(loop);
-
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_object_unref (pipeline);
