@@ -7,8 +7,14 @@
 #warning UNUSED is set
 #endif
 
-#define WIDTH 352
-#define HEIGHT 288
+#define WIDTH 320
+#define HEIGHT 240
+
+#define COMMON_CAPS \
+  "framerate", GST_TYPE_FRACTION, 30, 1,                        \
+    "width", G_TYPE_INT, WIDTH,                                 \
+    "height", G_TYPE_INT, HEIGHT,                               \
+    NULL
 
 const gchar *PLUGIN_DIR = "/home/douglas/sparrow";
 
@@ -50,19 +56,12 @@ make_pipeline(GstElement *sink){
 
   g_object_set(G_OBJECT(caps1), "caps",
       gst_caps_new_simple ("video/x-raw-yuv",
-          "format", G_TYPE_STRING, "(fourcc)YUY2",
-          "width", G_TYPE_INT, WIDTH,
-          "height", G_TYPE_INT, HEIGHT,
-          "framerate", GST_TYPE_FRACTION, 25, 1,
-          NULL), NULL);
+          "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC ('Y', 'U', 'Y', '2'),
+          COMMON_CAPS), NULL);
 
   g_object_set(G_OBJECT(caps2), "caps",
       gst_caps_new_simple ("video/x-raw-rgb",
-          //"format", G_TYPE_STRING, "(fourcc)YUY2",
-          "width", G_TYPE_INT, WIDTH,
-          "height", G_TYPE_INT, HEIGHT,
-          "framerate", GST_TYPE_FRACTION, 25, 1,
-          NULL), NULL);
+          COMMON_CAPS), NULL);
 
 
   g_object_set(G_OBJECT(sparrow),
@@ -75,7 +74,7 @@ make_pipeline(GstElement *sink){
       NULL);
 
   gst_bin_add_many (GST_BIN(pipeline), src,
-      //caps1,
+      caps1,
       cs,
       sparrow,
       caps2,
@@ -83,7 +82,7 @@ make_pipeline(GstElement *sink){
       sink,
       NULL);
   gst_element_link_many(src,
-      //caps1,
+      caps1,
       cs,
       sparrow,
       caps2,
@@ -92,6 +91,138 @@ make_pipeline(GstElement *sink){
       NULL);
   return pipeline;
 }
+
+
+
+static inline void
+post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstPad *pad, GstElement *sink,
+    int rngseed, int colour, int timer, int debug){
+  GstElement *queue = gst_element_factory_make ("queue", NULL);
+  GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
+  GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *cs_posteriori = gst_element_factory_make("ffmpegcolorspace", NULL);
+  //GstPad *qpad = gst_element_get_compatible_pad(queue, pad, NULL);
+
+  g_object_set(G_OBJECT(caps_posteriori), "caps",
+      gst_caps_new_simple ("video/x-raw-rgb",
+          COMMON_CAPS), NULL);
+
+  g_object_set(G_OBJECT(sparrow),
+      "timer", timer,
+      "debug", debug,
+      "rngseed", rngseed,
+      "colour", colour,
+      //"reload", "dumpfiles/gtk.dump",
+      //"save", "dumpfiles/gtk.dump",
+      NULL);
+
+  gst_bin_add_many (GST_BIN(pipeline),
+      queue,
+      sparrow,
+      caps_posteriori,
+      cs_posteriori,
+      sink,
+      NULL);
+
+  //gst_pad_link(pad, qpad);
+
+  gst_element_link_many(tee,
+      queue,
+      sparrow,
+      caps_posteriori,
+      cs_posteriori,
+      sink,
+      NULL);
+}
+
+/*
+gst-launch-0.10  --gst-plugin-path=. --gst-debug=sparrow:5 v4l2src ! ffmpegcolorspace ! tee name=vid2 \
+	! queue  ! sparrow  ! 'video/x-raw-rgb,width=320,height=240,framerate=25/1' ! ximagesink \
+	vid2. ! queue  ! sparrow  ! 'video/x-raw-rgb,width=320,height=240,framerate=25/1' ! ximagesink
+*/
+
+static inline GstPipeline *
+make_dual_pipeline(GstElement *sink1, GstElement *sink2)
+{
+  GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new("sparow_pipeline"));
+  //GstElement *src = gst_element_factory_make("v4l2src", NULL);
+  GstElement *src = gst_element_factory_make("videotestsrc", NULL);
+  GstElement *caps_priori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *cs_priori = gst_element_factory_make("ffmpegcolorspace", NULL);
+  GstElement *caps_interiori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *tee = gst_element_factory_make ("tee", NULL);
+
+  g_object_set(G_OBJECT(caps_priori), "caps",
+      gst_caps_new_simple ("video/x-raw-yuv",
+          "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC ('Y', 'U', 'Y', '2'),
+          COMMON_CAPS), NULL);
+
+  g_object_set(G_OBJECT(caps_interiori), "caps",
+      gst_caps_new_simple ("video/x-raw-rgb",
+          COMMON_CAPS), NULL);
+
+  gst_bin_add_many(GST_BIN(pipeline),
+      src,
+      caps_priori,
+      cs_priori,
+      caps_interiori,
+      tee,
+      NULL);
+
+  gst_element_link_many(src,
+      caps_priori,
+      cs_priori,
+      //caps_interiori,
+      tee,
+      NULL);
+
+  GstPad *pad1; //= gst_element_get_request_pad (tee, "src%d");
+  GstPad *pad2; //= gst_element_get_request_pad (tee, "src%d");
+
+  post_tee_pipeline(pipeline, tee, pad1, sink1,
+      1, 1, 1, 0);
+  post_tee_pipeline(pipeline, tee, pad2, sink2,
+      2, 2, 0, 0);
+
+
+  return pipeline;
+
+  /*
+  pad = gst_element_get_static_pad (aqueue, "sink");
+  rpad = gst_element_get_request_pad (tee, "src%d");
+  gst_pad_link (rpad, pad);
+  gst_object_unref (rpad);
+  gst_object_unref (pad);
+  gst_element_link_pads (aqueue, "src", asink, "sink");
+
+  pad = gst_element_get_static_pad (vqueue, "sink");
+  rpad = gst_element_get_request_pad (tee, "src%d");
+  gst_pad_link (rpad, pad);
+  gst_object_unref (rpad);
+  gst_object_unref (pad);
+
+  pad = gst_element_get_static_pad (tee, "sink");
+  gst_element_add_pad (element, gst_ghost_pad_new ("sink", pad));
+  gst_object_unref (pad);
+
+  */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif
 

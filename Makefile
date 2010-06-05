@@ -135,15 +135,9 @@ inspect: all
 
 #show filtered and unfiltered video side by side
 test-tee: all
-	$(GST_LAUNCH)  $(TEST_GST_ARGS) v4l2src ! tee name=vid2 \
-	! queue ! ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
-	vid2. ! queue ! ffmpegcolorspace ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
-
-test-tee2: all
-	$(GST_LAUNCH)  $(TEST_GST_ARGS) -v v4l2src ! ffmpegcolorspace ! tee name=vid2 \
+	$(GST_LAUNCH)  $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace ! tee name=vid2 \
 	! queue  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
-	vid2. ! queue ! fdsink  | \
-	$(GST_LAUNCH) fdsrc ! queue !  $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
+	vid2. ! queue  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
 
 
 TAGS:
