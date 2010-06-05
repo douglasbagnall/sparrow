@@ -185,8 +185,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->map_lut = zalloc_aligned_or_die(lutsize);
 #endif
 
-  sparrow->prev_buffer = gst_buffer_new_and_alloc(in->size);
-
   sparrow->timer_start.tv_sec = 0;
   sparrow->timer_stop.tv_sec = 0;
 

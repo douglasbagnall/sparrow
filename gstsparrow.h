@@ -193,13 +193,8 @@ struct _GstSparrow
   sparrow_state state;
   gint32 countdown; /*intra-state timing*/
 
-  /*buffer pointers for previous frames */
-  guint8 *in_frame;
-  guint8 *debug_frame;
-
+  guint8 *debug_frame;    /* for constructing debug images */
   GstBuffer *in_buffer;
-  GstBuffer *prev_buffer;
-  /*don't need work_buffer */
 
   guint32 colour;
   guint32 frame_count;
@@ -247,7 +242,7 @@ enum
   PROP_DEBUG,
   PROP_TIMER,
   PROP_RNG_SEED,
-  PROP_COLOUR, 
+  PROP_COLOUR,
   PROP_RELOAD,
   PROP_SAVE
 };
