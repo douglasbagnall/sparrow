@@ -162,6 +162,19 @@ typedef struct sparrow_map_lut_s{
   guint16 y;
 } sparrow_map_lut_t;
 
+typedef struct sparrow_frame_s {
+  guint8 *jpeg_data;
+  guint jpeg_size;
+  int successors;
+} sparrow_frame_t;
+
+typedef struct sparrow_shared_s {
+  guint8 *jpeg_blob;
+  size_t blob_size;
+  sparrow_frame_t *jpeg_index;
+  guint image_count;
+} sparrow_shared_t;
+
 
 typedef struct _GstSparrow GstSparrow;
 typedef struct _GstSparrowClass GstSparrowClass;
@@ -174,7 +187,7 @@ typedef struct _GstSparrowClass GstSparrowClass;
 struct _GstSparrow
 {
   GstVideoFilter videofilter;
-
+  sparrow_shared_t *shared; /* images, shared between the vaious instances */
   sparrow_format in;
   sparrow_format out;
 
