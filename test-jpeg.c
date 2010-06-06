@@ -12,7 +12,7 @@ static const int INSIZE = 100000;
 static const int OUTSIZE = 800 * 600 * 4;
 static const char *FN_IN = "test.jpg";
 static const char *FN_OUT = "test.ppm";
-
+static const int cycles = 100;
 
 int main(int argc, char **argv)
 {
@@ -29,19 +29,19 @@ int main(int argc, char **argv)
   GstSparrow sparrow;
   init_jpeg_src(&sparrow);
 
+  gettimeofday(&tv1, NULL);
 
-  for (int i = 0; i < 5; i++){
-    gettimeofday(&tv1, NULL);
-
+  for (int i = 0; i < cycles; i++){
     decompress_buffer(sparrow.cinfo, inbuffer, size, outbuffer,
         &width, &height);
-
-    gettimeofday(&tv2, NULL);
-    t = ((tv2.tv_sec - tv1.tv_sec) * 1000000 +
-        tv2.tv_usec - tv1.tv_usec);
-    printf("took %u microseconds (%0.5f of a frame)\n",
-        t, (double)t * (25.0 / 1000000.0));
   }
+
+  gettimeofday(&tv2, NULL);
+  t = ((tv2.tv_sec - tv1.tv_sec) * 1000000 +
+      tv2.tv_usec - tv1.tv_usec);
+  printf("average of %d took %u microseconds (%0.5f of a frame)\n",
+      cycles, t / cycles, (double)t * (25.0 / 1000000.0 / cycles));
+
 
   sparrow_format rgb;
   rgb.rshift = 24;

@@ -106,7 +106,7 @@ jpeg_mem_src (j_decompress_ptr cinfo, unsigned char* buffer, unsigned int bufsiz
   src->bufsize = bufsize;
 }
 
-#define ROWS_PER_CYCLE 1
+#define ROWS_PER_CYCLE 1 /*I think this needs to be 1 in anycase*/
 
 void
 decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8* src, int size, guint8* dest,
