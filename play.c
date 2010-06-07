@@ -22,6 +22,16 @@
 #include <string.h>
 #include <math.h>
 
+typedef struct sparrow_play_s{
+  guint8 lut[256];
+
+} sparrow_play_t;
+
+
+static inline guint8
+negate(sparrow_play_t *player, guint8 in){
+  return player->lut[in];
+}
 
 static void UNUSED
 play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -45,6 +55,7 @@ play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   memset(out, 0, sparrow->out.size);
+  sparrow_play_t *player = sparrow->helper_struct;
   guint i;
   guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
@@ -53,7 +64,13 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
       int x = sparrow->map_lut[i].x >> SPARROW_MAP_LUT_SHIFT;
       int y = sparrow->map_lut[i].y >> SPARROW_MAP_LUT_SHIFT;
       if (x || y){
-        out32[i] = ~in32[y * sparrow->in.width + x];
+        //out32[i] = ~in32[y * sparrow->in.width + x];
+        guint8 *ib = (guint8 *)&in32[y * sparrow->in.width + x];
+        guint8 *ob = (guint8 *)&out32[i];
+        ob[0] = player->lut[ib[0]];
+        ob[1] = player->lut[ib[1]];
+        ob[2] = player->lut[ib[2]];
+        ob[3] = player->lut[ib[3]];
       }
     }
   }
@@ -62,17 +79,6 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
-
-UNUSED
-static void
-simple_negation(guint8 * bytes, guint size){
-  guint i;
-  guint32 * data = (guint32 *)bytes;
-  //could use sse for superspeed
-  for (i = 0; i < size / 4; i++){
-    data[i] = ~data[i];
-  }
-}
 
 UNUSED
 static void
@@ -97,8 +103,35 @@ mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
+static const double GAMMA = 2.0;
+static const double INV_GAMMA = 1.0 / 2.2;
+static const double FALSE_CEILING = 275;
+
+static void
+init_gamma_lut(sparrow_play_t *player){
+  for (int i = 0; i < 256; i++){
+    /* for each colour:
+       1. perform inverse gamma calculation (-> linear colour space)
+       2. negate
+       3 undo gamma.
+     */
+    double x;
+    x = i / 255.01;
+    x = 1 - pow(x, INV_GAMMA);
+    x = pow(x, GAMMA) * FALSE_CEILING;
+    if (x > 255){
+      x = 255;
+    }
+    player->lut[i] = (guint8)x;
+  }
+
+}
+
 INVISIBLE void init_play(GstSparrow *sparrow){
   GST_DEBUG("starting play mode\n");
+  sparrow_play_t *player = zalloc_aligned_or_die(sizeof(sparrow_play_t));
+  sparrow->helper_struct = player;
+  init_gamma_lut(player);
 }
 
 INVISIBLE void finalise_play(GstSparrow *sparrow){
