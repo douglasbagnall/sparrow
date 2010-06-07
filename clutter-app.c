@@ -88,7 +88,7 @@ main (int argc, char *argv[])
   clutter_init (&argc, &argv);
   gst_init (&argc, &argv);
 
-  stage = clutter_stage_get_default ();
+  stage = clutter_stage_get_default();
   clutter_stage_set_color(CLUTTER_STAGE(stage), &black);
   clutter_stage_set_fullscreen(CLUTTER_STAGE(stage), TRUE);
   clutter_stage_hide_cursor(CLUTTER_STAGE(stage));
