@@ -65,10 +65,11 @@ LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 #  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
 
 SOURCES = gstsparrow.c sparrow.c calibrate.c play.c floodfill.c edges.c dSFMT/dSFMT.c jpeg_src.c
+OBJECTS = gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o load_images.o
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o
+libgstsparrow.so: $(OBJECTS)
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
@@ -235,10 +236,16 @@ GTK_LINKS = -lglib-2.0 $(LINKS) -lgstinterfaces-0.10
 CLUTTER_INCLUDES = -I/usr/include/clutter-1.0/ -I/usr/include/glib-2.0/ -I/usr/lib/glib-2.0/include/ -I/usr/include/pango-1.0/ -I/usr/include/cairo/ -I/usr/include/gstreamer-0.10/ -I/usr/include/libxml2/
 CLUTTER_SRC = clutter-app.c
 CLUTTER_LINKS = -lclutter-gst-0.10  -lglib-2.0
+GTK_CLUTTER_LINKS =  $(LINKS) -lgstinterfaces-0.10 -lclutter-gst-0.10  -lglib-2.0 -lclutter-gtk-0.10
+GTK_CLUTTER_INCLUDES =  $(GTK_INCLUDES) $(CLUTTER_INCLUDES)
 
 gtk-app::
 	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) $(INCLUDES) $(GTK_INCLUDES)\
 	  $(GTK_LINKS) -o $@ $(GTK_APP)
+
+gtk-clutter-app::
+	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(GTK_CLUTTER_LINKS) $(INCLUDES) $(GTK_CLUTTER_INCLUDES) \
+		 -o $@ gtk-clutter-app.c
 
 sparrow.xml::
 	$(GST_LAUNCH) -o sparrow.xml $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)

@@ -59,6 +59,13 @@ INVISIBLE void decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8 *s
 INVISIBLE void init_jpeg_src(GstSparrow *sparrow);
 INVISIBLE void finalise_jpeg_src(GstSparrow *sparrow);
 
+/*load_images.c */
+INVISIBLE sparrow_shared_t * sparrow_get_shared(void);
+INVISIBLE void maybe_load_images(GstSparrow *sparrow);
+INVISIBLE void maybe_unload_images(GstSparrow *sparrow);
+INVISIBLE void maybe_load_index(GstSparrow *sparrow);
+INVISIBLE void maybe_unload_index(GstSparrow *sparrow);
+
 
 #define SPARROW_CALIBRATE_ON  1
 
@@ -198,5 +205,6 @@ init_ipl_image(sparrow_format *dim, int channels){
   return cvInitImageHeader(im, size, IPL_DEPTH_8U, channels, 0, 8);
 }
 
+#define SPARROW_IMAGE_DIR "/home/douglas/sparrow/content/jpg"
 
 #endif /* __SPARROW_SPARROW_H__ */

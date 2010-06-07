@@ -4,10 +4,10 @@ import heapq
 from itertools import count
 
 
-INDEX_FILE = 'content/jpg/jpeg.index'
-TEXT_INDEX_FILE = 'content/jpg/jpeg.index.txt'
+INDEX_FILE = 'content/jpeg.index'
+TEXT_INDEX_FILE = 'content/jpeg.index.txt'
 FRAME_STRUCTURE = 'II48s8I'
-BLOB_NAME='jpeg.blob'
+BLOB_NAME='content/jpeg.blob'
 
 
 def save_frames(frames, filename):

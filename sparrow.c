@@ -172,6 +172,10 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   extract_caps(&(sparrow->out), outcaps);
   sparrow_format *in = &(sparrow->in);
 
+  sparrow->shared = sparrow_get_shared();
+  maybe_load_images(sparrow);
+  maybe_load_index(sparrow);
+
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 

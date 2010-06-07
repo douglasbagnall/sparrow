@@ -20,60 +20,97 @@
 #include "gstsparrow.h"
 
 #include <string.h>
-#include <math.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <sys/mman.h>
 
+static const char *JPEG_BLOB_NAME = "/home/douglas/sparrow/jpeg.blob";
+static const char *JPEG_INDEX_NAME = "/home/douglas/sparrow/jpeg.index";
 
-static void
-load_images(GstSparrow *sparrow){
-  int fd = open(sparrow->jpeg_blob, O_RDONLY);
+INVISIBLE sparrow_shared_t *
+sparrow_get_shared(){
+  static sparrow_shared_t shared;
+  return &shared;
+}
+
+static gpointer
+load_images(gpointer p){
+  GST_DEBUG("load_images with pointer %p", p);
+  GstSparrow *sparrow = (GstSparrow *)p;
+  int fd = open(JPEG_BLOB_NAME, O_RDONLY);
   off_t length = lseek(fd, 0, SEEK_END);
-  off_t start = lseek(fd, 0, SEEK_SET);
+  lseek(fd, 0, SEEK_SET);
+  GST_DEBUG("about to mmap");
+  void *mem = mmap(NULL, length, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+  GST_DEBUG("mmap returned %p", p);
+  madvise(mem, length, POSIX_MADV_WILLNEED);
+  GST_DEBUG("done madvise. sparrow->shared is %p", sparrow->shared);
+  sparrow->shared->jpeg_blob = mem;
+  sparrow->shared->blob_size = length;
 
+  return mem;
+}
+
+static gpointer
+unload_images(gpointer p){
+  GstSparrow *sparrow = (GstSparrow *)p;
+  sparrow_shared_t *shared = sparrow->shared;
+  munmap(shared->jpeg_blob, shared->blob_size);
+  return NULL;
+}
+
+static gpointer
+load_index(gpointer p){
+  GstSparrow *sparrow = (GstSparrow *)p;
+  int fd = open(JPEG_INDEX_NAME, O_RDONLY);
+  off_t length = lseek(fd, 0, SEEK_END);
+  lseek(fd, 0, SEEK_SET);
   void *mem = mmap(NULL, length, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
   madvise(mem, length, POSIX_MADV_WILLNEED);
 
-  sparrow->shared->jpeg_blob = mem;
-  sparrow->shared->blob_size = length;
+  sparrow->shared->index = mem;
+  sparrow->shared->image_count = length / sizeof(sparrow_frame_t);
+  GST_DEBUG("found %d frame info structures of size %d\n", sparrow->shared->image_count,
+      sizeof(sparrow_frame_t));
+  return mem;
 }
 
-static void
-unload_images(GstSparrow *sparrow){
-  int munmap(sparrow->shared->jpeg_blob, sparrow->shared->blob_size);
+static gpointer
+unload_index(gpointer p){
+  GstSparrow *sparrow = (GstSparrow *)p;
+  munmap(sparrow->shared->index,
+      sparrow->shared->image_count * sizeof(sparrow_frame_t));
+  return NULL;
 }
 
-GStaticRWLock blob_lock = G_STATIC_RW_LOCK_INIT;
-GStaticRWLock index_lock = G_STATIC_RW_LOCK_INIT;
 
-/* not using the reader locks (?)
-  g_static_rw_lock_reader_lock ();
-  g_static_rw_lock_reader_unlock ();
-*/
-
-void
+INVISIBLE void
 maybe_load_images(GstSparrow *sparrow)
 {
-  if (g_static_rw_lock_writer_trylock(&blob_lock)){
-    if (sparrow->shared->jpeg_blob == NULL){
-      load_images(sparrow);
-    }
-    else {
-      GST_WARNING("trying to load images that are already loaded !!\n");
-    }
-    g_static_rw_lock_writer_unlock(&blob_lock);
-  }
+  GST_DEBUG("maybe load images");
+  static GOnce image_once = G_ONCE_INIT;
+  g_once(&image_once, load_images, sparrow);
 }
 
 INVISIBLE void
 maybe_unload_images(GstSparrow *sparrow){
-  if (g_static_rw_lock_writer_trylock(&blob_lock)){
-    if (sparrow->shared->jpeg_blob){
-      unload_images(sparrow);
-      sparrow->shared->jpeg_blob = NULL;
-    }
-    g_static_rw_lock_writer_unlock(&blob_lock);
-  }
+  GST_DEBUG("maybe unload images");
+  static GOnce once = G_ONCE_INIT;
+  g_once(&once, unload_images, sparrow);
 }
 
+INVISIBLE void
+maybe_load_index(GstSparrow *sparrow)
+{
+  GST_DEBUG("maybe load index");
+  static GOnce index_once = G_ONCE_INIT;
+  g_once(&index_once, load_index, sparrow);
+}
+
+INVISIBLE void
+maybe_unload_index(GstSparrow *sparrow){
+  static GOnce once = G_ONCE_INIT;
+  g_once(&once, unload_index, sparrow);
+}
 

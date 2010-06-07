@@ -163,15 +163,16 @@ typedef struct sparrow_map_lut_s{
 } sparrow_map_lut_t;
 
 typedef struct sparrow_frame_s {
-  guint8 *jpeg_data;
+  guint offset;
   guint jpeg_size;
-  int successors;
+  guint8 summary[48];
+  int successors[8];
 } sparrow_frame_t;
 
 typedef struct sparrow_shared_s {
   guint8 *jpeg_blob;
   size_t blob_size;
-  sparrow_frame_t *jpeg_index;
+  sparrow_frame_t *index;
   guint image_count;
 } sparrow_shared_t;
 

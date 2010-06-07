@@ -80,8 +80,8 @@ def process_dir(dirname, blobname=BLOB_NAME):
 
     link_frames(frames)
 
-    save_frames(frames, INDEX_FILE + '-post-link')
-    save_frames_text(frames, TEXT_INDEX_FILE + '-post-link')
+    save_frames(frames, INDEX_FILE)
+    save_frames_text(frames, TEXT_INDEX_FILE)
 
 
 
