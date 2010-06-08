@@ -64,8 +64,8 @@ LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv $(JPEG_LINKS)
 #  -lgstcontroller-0.10 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2  -lcv -lcvaux -lhighgui
 
-SOURCES = gstsparrow.c sparrow.c calibrate.c play.c floodfill.c edges.c dSFMT/dSFMT.c jpeg_src.c
-OBJECTS = gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o load_images.o
+SOURCES = gstsparrow.c sparrow.c calibrate.c play.c floodfill.c edges.c dSFMT/dSFMT.c jpeg_src.c load_images.c
+OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
 
 all:: libgstsparrow.so
 
@@ -76,7 +76,7 @@ libgstsparrow.so: $(OBJECTS)
 clean:
 	rm -f *.so *.o *.a *.d *.s
 	cd dSFMT && rm -f *.o *.s
-	rm -f sparrow_false_colour_lut.h sparrow_gamma_lut.h
+	rm -f sparrow_false_colour_lut.h
 
 dSFMT/dSFMT.o: dSFMT/dSFMT.c
 	$(CC)  $(DSFMT_FLAGS)  -MD $(ALL_CFLAGS)  -fvisibility=hidden  $(CPPFLAGS) -c -o $@ $<
@@ -93,15 +93,12 @@ dSFMT/dSFMT.o: dSFMT/dSFMT.c
 %.i:	%.c
 	$(CC)  -E  $(ALL_CFLAGS) $(CPPFLAGS) -o $@ $<
 
-sparrow_gamma_lut.h: gamma.py
-	python $< > $@
-
 sparrow_false_colour_lut.h: false_colour.py
 	python $< > $@
 
-gstsparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
+gstsparrow.c: gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 
-sparrow.c: sparrow_gamma_lut.h gstsparrow.h sparrow_false_colour_lut.h sparrow.h
+sparrow.c: gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 
 GST_LAUNCH = gst-launch-0.10
 DEBUG_LEVEL = 5
@@ -215,7 +212,7 @@ unittest-median:
 unittest-jpeg: gstsparrow.o sparrow.o calibrate.o play.o floodfill.o edges.o dSFMT/dSFMT.o jpeg_src.o
 	$(CC)  -MD $(ALL_CFLAGS) $(CPPFLAGS) $(LINKS)  -o test $^ $(JPEG_STATIC)  test-jpeg.c
 
-	#./test
+#	./test
 
 debug:
 	make -B CFLAGS='-g -fno-inline -fno-inline-functions -fno-omit-frame-pointer'
@@ -257,4 +254,3 @@ clutter-app:
 app-clean:
 	$(RM) gtk-app clutter-app
 
-#ffmpeg -i sparrow-yadif-scale.avi -vcodec copy jpg/x%06d.jpg

@@ -22,6 +22,8 @@
 #include <string.h>
 #include <math.h>
 
+#define DEBUG_PLAY 0
+
 typedef struct sparrow_play_s{
   guint8 lut[256];
 
@@ -74,21 +76,12 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
       }
     }
   }
-  if (sparrow->debug){
+  if (DEBUG_PLAY && sparrow->debug){
     debug_frame(sparrow, out, sparrow->out.width, sparrow->out.height, PIXSIZE);
   }
 }
 
 
-UNUSED
-static void
-gamma_negation(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  //guint i;
-  //XXX  could try oil_tablelookup_u8
-  //for (i = 0; i < size; i++){
-  //  out[i] = sparrow_rgb_gamma_full_range_REVERSE[in[i]];
-  // }
-}
 
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){

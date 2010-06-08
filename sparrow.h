@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include "gstsparrow.h"
 #include "sparrow_false_colour_lut.h"
-#include "sparrow_gamma_lut.h"
 
 /* calibrate.c */
 INVISIBLE void init_find_self(GstSparrow *sparrow);
