@@ -55,8 +55,13 @@ INVISIBLE void pgm_dump(guint8 *data, guint32 width, guint32 height, const char 
 /* jpeg_src.c */
 INVISIBLE void decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8 *src,
     int size, guint8 *dest, int *width, int *height);
+INVISIBLE void begin_reading_jpeg(GstSparrow *sparrow, guint8* src, int size);
+INVISIBLE void read_one_line(GstSparrow *sparrow, guint8* dest);
+INVISIBLE void finish_reading_jpeg(GstSparrow *sparrow);
 INVISIBLE void init_jpeg_src(GstSparrow *sparrow);
 INVISIBLE void finalise_jpeg_src(GstSparrow *sparrow);
+
+
 
 /*load_images.c */
 INVISIBLE sparrow_shared_t * sparrow_get_shared(void);

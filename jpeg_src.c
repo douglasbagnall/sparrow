@@ -22,6 +22,28 @@ In no event shall INPE and Tecgraf / PUC-Rio be held liable to any party for dir
 indirect, special, incidental, or consequential damages arising out of the use
 of this library and its documentation.
 *************************************************************************************/
+
+/* SYNOPSIS
+
+GstSparrow *sparrow;
+guint8 * src;        // pointer to jpeg in mem
+int size;            // length of jpeg in mem
+guint8 * dest;       // pointer to output image row
+
+init_jpeg_src(sparrow);   //once only
+
+FOR EACH jpeg {
+  begin_reading_jpeg(sparrow, src, size);
+  FOR EACH line {
+    read_one_line(sparrow, dest);
+  }
+  finish_reading_jpeg(sparrow);
+}
+
+finalise_jpeg_src(sparrow); // once only (optional really)
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "jpeglib.h"
@@ -83,7 +105,7 @@ term_source (j_decompress_ptr cinfo)
 /*
  Prepare for input from a memory buffer.
  */
-void
+static void
 jpeg_mem_src (j_decompress_ptr cinfo, unsigned char* buffer, unsigned int bufsize)
 {
   sparrow_src_mgr *src;
@@ -108,7 +130,8 @@ jpeg_mem_src (j_decompress_ptr cinfo, unsigned char* buffer, unsigned int bufsiz
 
 #define ROWS_PER_CYCLE 1 /*I think this needs to be 1 in anycase*/
 
-void
+/* the complete decompress function, not actually used in sparrow */
+INVISIBLE void
 decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8* src, int size, guint8* dest,
     int *width, int *height)
 {
@@ -133,7 +156,49 @@ decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8* src, int size, g
   jpeg_finish_decompress(cinfo);
 }
 
-void
+
+
+
+INVISIBLE void
+begin_reading_jpeg(GstSparrow *sparrow, guint8* src, int size){
+  struct jpeg_decompress_struct *cinfo = sparrow->cinfo;
+  GST_DEBUG("cinfo is %p, src %p, size %d\n", cinfo, src, size);
+
+  jpeg_create_decompress(cinfo);
+  jpeg_mem_src(cinfo, src, size);
+
+  jpeg_read_header(cinfo, TRUE);
+  jpeg_start_decompress(cinfo);
+  cinfo->out_color_space = COLOURSPACE;
+  if (cinfo->output_width != (guint)sparrow->out.width ||
+      cinfo->output_height != (guint)sparrow->out.width){
+    GST_ERROR("jpeg sizes are wrong! %dx%d, should be %dx%d.\n"
+        "Not doing anything: this is probably goodbye.\n",
+        cinfo->output_width, cinfo->output_height,
+        sparrow->out.width, sparrow->out.width);
+  }
+}
+
+
+INVISIBLE void
+read_one_line(GstSparrow *sparrow, guint8* dest){
+  struct jpeg_decompress_struct *cinfo = sparrow->cinfo;
+  if (cinfo->output_scanline < cinfo->output_height){
+    int read = jpeg_read_scanlines(cinfo, &dest, 1);
+  }
+  else {
+    GST_WARNING("wanted to read line %d of jpeg that thinks it is %d lines high!",
+        cinfo->output_scanline, cinfo->output_height);
+  }
+}
+
+INVISIBLE void
+finish_reading_jpeg(GstSparrow *sparrow){
+  jpeg_finish_decompress(sparrow->cinfo);
+}
+
+
+INVISIBLE void
 init_jpeg_src(GstSparrow *sparrow){
   sparrow->cinfo = zalloc_or_die(sizeof(struct jpeg_decompress_struct));
   struct jpeg_error_mgr *jerr = zalloc_or_die(sizeof(struct jpeg_error_mgr));
@@ -141,7 +206,7 @@ init_jpeg_src(GstSparrow *sparrow){
   sparrow->cinfo->out_color_space = COLOURSPACE;
 }
 
-void
+INVISIBLE void
 finalise_jpeg_src(GstSparrow *sparrow){
   jpeg_destroy_decompress(sparrow->cinfo);
   free(sparrow->cinfo->err);
