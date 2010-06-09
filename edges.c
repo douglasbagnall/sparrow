@@ -943,24 +943,23 @@ setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 INVISIBLE void
 init_find_edges(GstSparrow *sparrow){
-  gint32 w = sparrow->out.width;
-  gint32 h = sparrow->out.height;
   gint i;
   sparrow_find_lines_t *fl = zalloc_aligned_or_die(sizeof(sparrow_find_lines_t));
   sparrow->helper_struct = (void *)fl;
 
-  gint h_lines = (h + LINE_PERIOD - 1) / LINE_PERIOD;
-  gint v_lines = (w + LINE_PERIOD - 1) / LINE_PERIOD;
-  gint n_lines = (h_lines + v_lines);
+  gint h_lines = (sparrow->out.height + LINE_PERIOD - 1) / LINE_PERIOD;
+  gint v_lines = (sparrow->out.width + LINE_PERIOD - 1) / LINE_PERIOD;
+  gint n_lines_max = (h_lines + v_lines);
   gint n_corners = (h_lines * v_lines);
   fl->n_hlines = h_lines;
   fl->n_vlines = v_lines;
-  fl->n_lines = n_lines;
 
-  fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines);
-  fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t*) * n_lines);
+
+  fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines_max);
+  fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t *) * n_lines_max);
   GST_DEBUG("shuffled lines, malloced %p\n", fl->shuffled_lines);
 
+  GST_DEBUG("map is going to be %d * %d \n", sizeof(sparrow_intersect_t), sparrow->in.pixcount);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
   fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
   fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
@@ -969,7 +968,7 @@ init_find_edges(GstSparrow *sparrow){
   sparrow_line_t **sline = fl->shuffled_lines;
   int offset;
 
-  for (i = 0, offset = H_LINE_OFFSET; offset < h;
+  for (i = 0, offset = H_LINE_OFFSET; offset < sparrow->out.height;
        i++, offset += LINE_PERIOD){
     line->offset = offset;
     line->dir = SPARROW_HORIZONTAL;
@@ -977,11 +976,12 @@ init_find_edges(GstSparrow *sparrow){
     *sline = line;
     line++;
     sline++;
+    //GST_DEBUG("line %d h has offset %d\n", i, offset);
   }
 
   /*now add the vertical lines */
   fl->v_lines = line;
-  for (i = 0, offset = V_LINE_OFFSET; offset < w;
+  for (i = 0, offset = V_LINE_OFFSET; offset < sparrow->out.width;
        i++, offset += LINE_PERIOD){
     line->offset = offset;
     line->dir = SPARROW_VERTICAL;
@@ -989,14 +989,15 @@ init_find_edges(GstSparrow *sparrow){
     *sline = line;
     line++;
     sline++;
+    //GST_DEBUG("line %d v has offset %d\n", i, offset);
   }
   //DEBUG_FIND_LINES(fl);
-
-  GST_DEBUG("allocated %d lines, status %d\n", n_lines, line - fl->h_lines);
+  fl->n_lines = line - fl->h_lines;
+  GST_DEBUG("allocated %d lines, made %d\n", n_lines_max, fl->n_lines);
 
   /*now shuffle */
-  for (i = 0; i < n_lines; i++){
-    int j = RANDINT(sparrow, 0, n_lines);
+  for (i = 0; i < fl->n_lines; i++){
+    int j = RANDINT(sparrow, 0, fl->n_lines);
     sparrow_line_t *tmp = fl->shuffled_lines[j];
     fl->shuffled_lines[j] = fl->shuffled_lines[i];
     fl->shuffled_lines[i] = tmp;
