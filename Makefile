@@ -103,10 +103,14 @@ sparrow.c: gstsparrow.h sparrow_false_colour_lut.h sparrow.h
 GST_LAUNCH = gst-launch-0.10
 DEBUG_LEVEL = 5
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:$(DEBUG_LEVEL)
-TEST_INPUT_SIZE = width=320,height=240
-TEST_OUTPUT_SIZE = width=320,height=240
-TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,$(TEST_INPUT_SIZE),framerate=25/1'
-TEST_OUTPUT_SHAPE = 'video/x-raw-rgb,$(TEST_OUTPUT_SIZE),framerate=25/1'
+#TEST_INPUT_SIZE = width=320,height=240
+#TEST_OUTPUT_SIZE = width=320,height=240
+TEST_FPS=10
+TEST_INPUT_SIZE = width=800,height=600
+TEST_OUTPUT_SIZE = width=800,height=600
+
+TEST_V4L2_SHAPE = 'video/x-raw-yuv,format=(fourcc)YUY2,$(TEST_INPUT_SIZE),framerate=$(TEST_FPS)/1'
+TEST_OUTPUT_SHAPE = 'video/x-raw-rgb,$(TEST_OUTPUT_SIZE),framerate=$(TEST_FPS)/1'
 TEST_SINK = ximagesink
 #TEST_SINK = fbdevsink
 TEST_PIPE_TAIL =   ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK)
