@@ -23,10 +23,16 @@
 #include <math.h>
 
 #define DEBUG_PLAY 0
+#define INITIAL_BLACK 32
+#define MIN_BLACK 0
+#define MAX_BLACK 160
+
 
 typedef struct sparrow_play_s{
   guint8 lut[256];
-
+  guint8 *image_row;
+  guint8 black_level;
+  guint jpeg_index;
 } sparrow_play_t;
 
 
@@ -54,28 +60,102 @@ play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
+static void set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
+  /*XXX pick a jpeg, somehow*/
+  sparrow_frame_t *frame = &sparrow->shared->index[player->jpeg_index];
+  GST_DEBUG("set up jpeg shared->index is %p, offset %d, frame %p\n",
+      sparrow->shared->index, player->jpeg_index, frame);
+  guint8 *src = sparrow->shared->jpeg_blob + frame->offset;
+
+  guint size = frame->jpeg_size;
+  GST_DEBUG("blob is %p, offset %d, src %p, size %d\n",
+      sparrow->shared->jpeg_blob, frame->offset, src, size);
+
+  begin_reading_jpeg(sparrow, src, size);
+  player->jpeg_index++;
+
+}
+
+
+static inline guint8 one_subpixel(guint8 inpix, guint8 jpegpix){
+  /* simplest possible */
+  guint sum = ~inpix + jpegpix;
+  return sum / 2;
+}
+
+static inline void
+do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix){
+  /* rather than cancel the whole other one, we need to calculate the
+     difference from the desired image, and only compensate by that
+     amount.  If a lot of negative compensation (i.e, trying to blacken)
+     is needed, then it is time to raise the black level for the next
+     round (otherwise, lower the black level). Use sum of
+     compensations?, or count? or thresholded? or squared (via LUT)?
+
+     How are relative calculations calculated via LUT?
+
+     1. pre scale
+     2. combine
+     3. re scale
+
+  */
+  //sparrow_play_t *player = sparrow->helper_struct;
+  //guint8 black = player->black_level;
+  /*
+    int r = ib[sparrow->in.rbyte];
+    int g = ib[sparrow->in.gbyte];
+    int b = ib[sparrow->in.bbyte];
+  */
+  //outpix[0] = player->lut[inpix[0]];
+  //outpix[1] = player->lut[inpix[1]];
+  //outpix[2] = player->lut[inpix[2]];
+  //outpix[3] = player->lut[inpix[3]];
+  outpix[0] = one_subpixel(inpix[0], jpegpix[0]);
+  outpix[1] = one_subpixel(inpix[1], jpegpix[1]);
+  outpix[2] = one_subpixel(inpix[2], jpegpix[2]);
+  outpix[3] = one_subpixel(inpix[3], jpegpix[3]);
+}
+
+static inline guint8* get_in_pixel(GstSparrow *sparrow, guint32 *in32, int x, int y){
+  /* one day, might average from indicated pixels */
+  x >>= SPARROW_MAP_LUT_SHIFT;
+  y >>= SPARROW_MAP_LUT_SHIFT;
+  return (guint8 *)&in32[y * sparrow->in.width + x];
+};
+
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  memset(out, 0, sparrow->out.size);
+  GST_DEBUG("play_from_full_lut\n");
+  memset(out, 0, sparrow->out.size); /*is this necessary? (only for outside
+                                       screen map, maybe in-loop might be
+                                       quicker) */
   sparrow_play_t *player = sparrow->helper_struct;
   guint i;
-  guint32 *out32 = (guint32 *)out;
+  int ox, oy;
+  //guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
-  for (i = 0; i < sparrow->out.pixcount; i++){
-    if (sparrow->screenmask[i]){
-      int x = sparrow->map_lut[i].x >> SPARROW_MAP_LUT_SHIFT;
-      int y = sparrow->map_lut[i].y >> SPARROW_MAP_LUT_SHIFT;
+  set_up_jpeg(sparrow, player);
+  GST_DEBUG("jpeg is set up");
+
+  guint8 *jpeg_row = player->image_row;
+  i = 0;
+  for (oy = 0; oy < sparrow->out.height; oy++){
+    GST_DEBUG("sbout to read line to %p", player->image_row);
+    read_one_line(sparrow, player->image_row);
+    for (ox = 0; ox < sparrow->out.width; ox++, i++){
+      int x = sparrow->map_lut[i].x;
+      int y = sparrow->map_lut[i].y;
       if (x || y){
-        //out32[i] = ~in32[y * sparrow->in.width + x];
-        guint8 *ib = (guint8 *)&in32[y * sparrow->in.width + x];
-        guint8 *ob = (guint8 *)&out32[i];
-        ob[0] = player->lut[ib[0]];
-        ob[1] = player->lut[ib[1]];
-        ob[2] = player->lut[ib[2]];
-        ob[3] = player->lut[ib[3]];
+        guint8 *inpix = get_in_pixel(sparrow, in32, x, y);
+        do_one_pixel(sparrow,
+            &out[i * PIXSIZE],
+            inpix,
+            &jpeg_row[x * PIXSIZE]);
       }
     }
   }
+  finish_reading_jpeg(sparrow);
+
   if (DEBUG_PLAY && sparrow->debug){
     debug_frame(sparrow, out, sparrow->out.width, sparrow->out.height, PIXSIZE);
   }
@@ -122,9 +202,14 @@ init_gamma_lut(sparrow_play_t *player){
 
 INVISIBLE void init_play(GstSparrow *sparrow){
   GST_DEBUG("starting play mode\n");
+  init_jpeg_src(sparrow);
   sparrow_play_t *player = zalloc_aligned_or_die(sizeof(sparrow_play_t));
+  player->image_row = zalloc_aligned_or_die(sparrow->out.width * PIXSIZE);
+  player->black_level = INITIAL_BLACK;
   sparrow->helper_struct = player;
   init_gamma_lut(player);
+
+  GST_DEBUG("finished init_play\n");
 }
 
 INVISIBLE void finalise_play(GstSparrow *sparrow){

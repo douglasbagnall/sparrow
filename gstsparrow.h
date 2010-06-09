@@ -117,6 +117,9 @@ typedef struct sparrow_format_s {
   guint32 rshift;
   guint32 gshift;
   guint32 bshift;
+  guint32 rbyte;
+  guint32 gbyte;
+  guint32 bbyte;
   guint32 rmask;
   guint32 gmask;
   guint32 bmask;

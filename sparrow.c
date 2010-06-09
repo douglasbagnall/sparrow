@@ -138,6 +138,9 @@ extract_caps(sparrow_format *im, GstCaps *caps)
   im->rmask = 0xff << im->rshift;
   im->gmask = 0xff << im->gshift;
   im->bmask = 0xff << im->bshift;
+  im->rbyte = im->rshift / 8;
+  im->gbyte = im->gshift / 8;
+  im->bbyte = im->bshift / 8;
 
   im->pixcount = im->width * im->height;
   im->size = im->pixcount * PIXSIZE;
