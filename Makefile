@@ -120,11 +120,10 @@ TEST_V4L2_PIPE_TAIL = $(TEST_V4L2_SHAPE) ! $(TEST_PIPE_TAIL)
 test: all
 	$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_PIPE_TAIL)
 
-#test-capture: all
-#	$(GST_LAUNCH) $(TEST_GST_ARGS) v4l2src ! $(TEST_V4L2_SHAPE) ! \
-#	ffmpegcolorspace  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! ffmpegcolorspace ! tee name=v \
-#	! queue ! xvimagesink \
-#	v. queue ! ffmpegcolorspace ! theoraenc ! oggmux ! filesink location='/tmp/sparrow.ogv'
+test-capture: all
+	$(GST_LAUNCH)  $(TEST_GST_ARGS) v4l2src ! ffmpegcolorspace ! tee name=vid2 \
+	! queue  ! sparrow $(TEST_OPTIONS) ! $(TEST_OUTPUT_SHAPE) ! $(TEST_SINK) \
+	vid2. ! queue ! ffmpegcolorspace ! theoraenc ! oggmux ! filesink location='/tmp/sparrow.ogv'
 
 test-gtk: all
 	GST_DEBUG=sparrow:$(DEBUG_LEVEL) ./gtk-app 2> /tmp/gst.log || less -R /tmp/gst.log
