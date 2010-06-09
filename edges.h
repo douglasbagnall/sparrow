@@ -8,7 +8,7 @@
 #define OUTLIER_RADIUS 7
 #define OUTLIER_THRESHOLD (OUTLIER_RADIUS * OUTLIER_RADIUS)
 
-#define BAD_PIXEL -1
+#define BAD_PIXEL 0xffff
 
 #define FL_DUMPFILE "/tmp/edges.dump"
 
