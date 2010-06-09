@@ -73,7 +73,9 @@ static void set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
 
   begin_reading_jpeg(sparrow, src, size);
   player->jpeg_index++;
-
+  if (player->jpeg_index == sparrow->shared->image_count){
+    player->jpeg_index = 0;
+  }
 }
 
 
