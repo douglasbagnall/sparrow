@@ -79,10 +79,14 @@ static void set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
 }
 
 
-static inline guint8 one_subpixel(guint8 inpix, guint8 jpegpix){
+static inline guint8 one_subpixel(sparrow_play_t *player, guint8 inpix, guint8 jpegpix){
   /* simplest possible */
-  guint sum = ~inpix + jpegpix;
-  return sum / 2;
+  guint sum = player->lut[inpix] + jpegpix;
+  //int diff = jpegpix - inpix;
+
+
+  return sum >> 1;
+  //return jpegpix;
 }
 
 static inline void
@@ -101,7 +105,7 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
      3. re scale
 
   */
-  //sparrow_play_t *player = sparrow->helper_struct;
+  sparrow_play_t *player = sparrow->helper_struct;
   //guint8 black = player->black_level;
   /*
     int r = ib[sparrow->in.rbyte];
@@ -112,10 +116,10 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
   //outpix[1] = player->lut[inpix[1]];
   //outpix[2] = player->lut[inpix[2]];
   //outpix[3] = player->lut[inpix[3]];
-  outpix[0] = one_subpixel(inpix[0], jpegpix[0]);
-  outpix[1] = one_subpixel(inpix[1], jpegpix[1]);
-  outpix[2] = one_subpixel(inpix[2], jpegpix[2]);
-  outpix[3] = one_subpixel(inpix[3], jpegpix[3]);
+  outpix[0] = one_subpixel(player, inpix[0], jpegpix[0]);
+  outpix[1] = one_subpixel(player, inpix[1], jpegpix[1]);
+  outpix[2] = one_subpixel(player, inpix[2], jpegpix[2]);
+  outpix[3] = one_subpixel(player, inpix[3], jpegpix[3]);
 }
 
 static inline guint8* get_in_pixel(GstSparrow *sparrow, guint32 *in32, int x, int y){
@@ -178,8 +182,8 @@ mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
   return SPARROW_STATUS_QUO;
 }
 
-static const double GAMMA = 2.0;
-static const double INV_GAMMA = 1.0 / 2.2;
+static const double GAMMA = 1.5;
+static const double INV_GAMMA = 1.0 / 1.5;
 static const double FALSE_CEILING = 275;
 
 static void
