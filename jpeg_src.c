@@ -58,7 +58,7 @@ typedef struct
   unsigned int   bufsize;
 } sparrow_src_mgr;
 
-#define COLOURSPACE JCS_EXT_XBGR
+#define COLOURSPACE JCS_EXT_BGRX
 
 
 /*
@@ -171,11 +171,11 @@ begin_reading_jpeg(GstSparrow *sparrow, guint8* src, int size){
   jpeg_start_decompress(cinfo);
   cinfo->out_color_space = COLOURSPACE;
   if (cinfo->output_width != (guint)sparrow->out.width ||
-      cinfo->output_height != (guint)sparrow->out.width){
+      cinfo->output_height != (guint)sparrow->out.height){
     GST_ERROR("jpeg sizes are wrong! %dx%d, should be %dx%d.\n"
         "Not doing anything: this is probably goodbye.\n",
         cinfo->output_width, cinfo->output_height,
-        sparrow->out.width, sparrow->out.width);
+        sparrow->out.width, sparrow->out.height);
   }
 }
 
@@ -184,7 +184,7 @@ INVISIBLE void
 read_one_line(GstSparrow *sparrow, guint8* dest){
   struct jpeg_decompress_struct *cinfo = sparrow->cinfo;
   if (cinfo->output_scanline < cinfo->output_height){
-    int read = jpeg_read_scanlines(cinfo, &dest, 1);
+    jpeg_read_scanlines(cinfo, &dest, 1);
   }
   else {
     GST_WARNING("wanted to read line %d of jpeg that thinks it is %d lines high!",
