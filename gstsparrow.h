@@ -82,7 +82,7 @@ typedef guint32 pix_t;
 #define FAKE_OTHER_PROJECTION 1
 
 
-#define LINE_PERIOD 16
+#define LINE_PERIOD 32
 #define H_LINE_OFFSET (LINE_PERIOD / 2)
 #define V_LINE_OFFSET (LINE_PERIOD / 2)
 
