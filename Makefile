@@ -106,7 +106,7 @@ DEBUG_LEVEL = 5
 TEST_GST_ARGS =   --gst-plugin-path=. --gst-debug=sparrow:$(DEBUG_LEVEL)
 #TEST_INPUT_SIZE = width=320,height=240
 #TEST_OUTPUT_SIZE = width=320,height=240
-TEST_FPS=10
+TEST_FPS=20
 TEST_INPUT_SIZE = width=800,height=600
 TEST_OUTPUT_SIZE = width=800,height=600
 
