@@ -141,17 +141,18 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   //guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
   set_up_jpeg(sparrow, player);
-  GST_DEBUG("jpeg is set up");
+  GST_DEBUG("in %p out %p", in, out);
 
   guint8 *jpeg_row = player->image_row;
   i = 0;
   for (oy = 0; oy < sparrow->out.height; oy++){
-    //GST_DEBUG("sbout to read line to %p", player->image_row);
+    //GST_DEBUG("about to read line to %p", player->image_row);
     read_one_line(sparrow, player->image_row);
     for (ox = 0; ox < sparrow->out.width; ox++, i++){
       int x = sparrow->map_lut[i].x;
       int y = sparrow->map_lut[i].y;
       if (x || y){
+        //GST_DEBUG("in %p x %d y %d", in, x, y);
         guint8 *inpix = get_in_pixel(sparrow, in32, x, y);
         do_one_pixel(sparrow,
             &out[i * PIXSIZE],
