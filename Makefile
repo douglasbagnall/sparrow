@@ -253,7 +253,7 @@ GTK_CLUTTER_LINKS =  $(LINKS) -lgstinterfaces-0.10 -lclutter-gst-0.10  -lglib-2.
 GTK_CLUTTER_INCLUDES =  $(GTK_INCLUDES) $(CLUTTER_INCLUDES)
 
 gtk-app::
-	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) $(INCLUDES) $(GTK_INCLUDES)\
+	$(CC)  -g $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) $(INCLUDES) $(GTK_INCLUDES)\
 	  $(GTK_LINKS) -o $@ $(GTK_APP)
 
 gtk-clutter-app::
