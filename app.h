@@ -7,41 +7,17 @@
 #warning UNUSED is set
 #endif
 
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH  800
+#define HEIGHT 600
+#define FPS    20
 
 #define COMMON_CAPS \
-  "framerate", GST_TYPE_FRACTION, 30, 1,                        \
+  "framerate", GST_TYPE_FRACTION, FPS, 1,                       \
     "width", G_TYPE_INT, WIDTH,                                 \
     "height", G_TYPE_INT, HEIGHT,                               \
     NULL
 
 const gchar *PLUGIN_DIR = "/home/douglas/sparrow";
-
-const guchar *SPARROW_XML = (guchar *)"/home/douglas/sparrow/sparrow.xml";
-
-#if PIPELINE_TEST
-
-static inline GstPipeline *
-make_pipeline(GstElement *sink){
-  GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new (NULL));
-  GstElement *src = gst_element_factory_make ("videotestsrc", NULL);
-  //GstElement *warp = gst_element_factory_make ("warptv", NULL);
-  //GstElement *colorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
-
-  gst_bin_add_many(GST_BIN (pipeline),
-      src,
-      //warp,
-      //colorspace,
-      sink, NULL);
-  gst_element_link_many(src,
-      //warp,
-      //colorspace,
-      sink, NULL);
-  return pipeline;
-}
-
-#else
 
 static inline GstPipeline *
 make_pipeline(GstElement *sink){
@@ -141,7 +117,7 @@ gst-launch-0.10  --gst-plugin-path=. --gst-debug=sparrow:5 v4l2src ! ffmpegcolor
 static inline GstPipeline *
 make_dual_pipeline(GstElement *sink1, GstElement *sink2)
 {
-  GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new("sparow_pipeline"));
+  GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
   //GstElement *src = gst_element_factory_make("v4l2src", NULL);
   GstElement *src = gst_element_factory_make("videotestsrc", NULL);
   GstElement *caps_priori = gst_element_factory_make("capsfilter", NULL);
@@ -180,26 +156,6 @@ make_dual_pipeline(GstElement *sink1, GstElement *sink2)
 
 
   return pipeline;
-
-  /*
-  pad = gst_element_get_static_pad (aqueue, "sink");
-  rpad = gst_element_get_request_pad (tee, "src%d");
-  gst_pad_link (rpad, pad);
-  gst_object_unref (rpad);
-  gst_object_unref (pad);
-  gst_element_link_pads (aqueue, "src", asink, "sink");
-
-  pad = gst_element_get_static_pad (vqueue, "sink");
-  rpad = gst_element_get_request_pad (tee, "src%d");
-  gst_pad_link (rpad, pad);
-  gst_object_unref (rpad);
-  gst_object_unref (pad);
-
-  pad = gst_element_get_static_pad (tee, "sink");
-  gst_element_add_pad (element, gst_ghost_pad_new ("sink", pad));
-  gst_object_unref (pad);
-
-  */
 }
 
 
