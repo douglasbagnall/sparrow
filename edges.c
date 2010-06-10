@@ -280,11 +280,22 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 #define INTXY(x)((x) / (1 << SPARROW_FIXED_POINT))
 #define FLOATXY(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
+
+static inline int
+clamp_intxy(int x, const int max){
+  if (x < 0)
+    return 0;
+  if (x >= max << SPARROW_FIXED_POINT)
+    return max;
+  return x / (1 << SPARROW_FIXED_POINT);
+}
+
 static void
 debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_corner_t *mesh = fl->mesh;
   guint32 *data = (guint32*)fl->debug->imageData;
   guint w = fl->debug->width;
+  guint h = fl->debug->height;
   memset(data, 0, sparrow->in.size);
   guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xcccccccc};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
@@ -305,10 +316,10 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       txd += c->dxd * 2;
       tyr += c->dyr * 2;
       tyd += c->dyd * 2;
-      data[INTXY(tyr) * w + INTXY(txr)] = 0x000088;
-      data[INTXY(tyd) * w + INTXY(txd)] = 0x663300;
+      data[clamp_intxy(tyr, h) * w + clamp_intxy(txr, w)] = 0x000088;
+      data[clamp_intxy(tyd, h) * w + clamp_intxy(txd, w)] = 0x663300;
     }
-    data[INTXY(y) * w + INTXY(x)] = colours[c->status];
+    data[clamp_intxy(y, h) * w + clamp_intxy(x, w)] = colours[c->status];
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
