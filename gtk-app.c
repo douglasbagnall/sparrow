@@ -1,37 +1,132 @@
 /*
-Largely based on an example by Tristan Matthews
+initially based on an example by Tristan Matthews
 http://tristanswork.blogspot.com/2008/09/fullscreen-video-in-gstreamer-with-gtk.html
-
 */
 #include <gst/gst.h>
 #include <gtk/gtk.h>
 #include <gst/interfaces/xoverlay.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
-#include "app.h"
-
-static gboolean option_fullscreen = FALSE;
-static gint option_screens = 1;
-static gboolean option_overlay = FALSE;
+#include "gtk-app.h"
 
 
-typedef struct windows_s {
-  GstElement *sinks[2];
-  XID windows[2];
-  int n;
-} windows_t;
+static void hide_mouse(GtkWidget *widget){
+  static GdkCursor *cursor = NULL;
+  GdkWindow *w = GDK_WINDOW(widget->window);
+  if (cursor == NULL){
+    GdkDisplay *display = gdk_display_get_default();
+    cursor = gdk_cursor_new_for_display(display, GDK_BLANK_CURSOR);
+    gdk_window_set_cursor(w, cursor);
+  }
+}
+
+static void
+post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
+    int rngseed, int colour, int timer, int debug){
+  GstElement *queue = gst_element_factory_make ("queue", NULL);
+  GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
+  GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *cs_posteriori = gst_element_factory_make("ffmpegcolorspace", NULL);
+
+  g_object_set(G_OBJECT(caps_posteriori), "caps",
+      gst_caps_new_simple ("video/x-raw-rgb",
+          COMMON_CAPS), NULL);
+
+  g_object_set(G_OBJECT(sparrow),
+      "timer", timer,
+      "debug", debug,
+      "rngseed", rngseed,
+      "colour", colour,
+      //"reload", "dumpfiles/gtk.dump",
+      //"save", "dumpfiles/gtk.dump",
+      NULL);
+
+  gst_bin_add_many (GST_BIN(pipeline),
+      queue,
+      sparrow,
+      caps_posteriori,
+      cs_posteriori,
+      sink,
+      NULL);
+
+  gst_element_link_many(tee,
+      queue,
+      sparrow,
+      caps_posteriori,
+      cs_posteriori,
+      sink,
+      NULL);
+}
+
+static GstElement *
+pre_tee_pipeline(GstPipeline *pipeline){
+  if (pipeline == NULL){
+    pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
+  }
+  GstElement *src = gst_element_factory_make("v4l2src", NULL);
+  GstElement *caps_priori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *cs_priori = gst_element_factory_make("ffmpegcolorspace", NULL);
+  GstElement *caps_interiori = gst_element_factory_make("capsfilter", NULL);
+  GstElement *tee = gst_element_factory_make ("tee", NULL);
+
+  g_object_set(G_OBJECT(caps_priori), "caps",
+      gst_caps_new_simple ("video/x-raw-yuv",
+          "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC('Y', 'U', 'Y', '2'),
+          COMMON_CAPS), NULL);
+
+  g_object_set(G_OBJECT(caps_interiori), "caps",
+      gst_caps_new_simple ("video/x-raw-rgb",
+          COMMON_CAPS), NULL);
+
+  gst_bin_add_many(GST_BIN(pipeline),
+      src,
+      caps_priori,
+      cs_priori,
+      //caps_interiori,
+      tee,
+      NULL);
+
+  gst_element_link_many(src,
+      caps_priori,
+      cs_priori,
+      //caps_interiori,
+      tee,
+      NULL);
+  return tee;
+}
+
+
+static GstPipeline *
+make_multi_pipeline(windows_t *windows, int count)
+{
+  GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
+  GstElement *tee = pre_tee_pipeline(pipeline);
+
+  int i;
+  for (i = 0; i < count; i++){
+    GstElement *sink = windows->sinks[i];
+    //args are:
+    //(pipeline, tee, sink, int rngseed, int colour, timer flag, int debug flag)
+    /* timer should only run on one of them. colour >= 3 is undefined */
+    int debug = option_debug && i == 0;
+    post_tee_pipeline(pipeline, tee, sink, i, i + 1, i == 0, debug);
+  }
+  return pipeline;
+}
 
 
 static void
 bus_call(GstBus * bus, GstMessage *msg, gpointer data)
 {
-  windows_t *w = (windows_t *)data;
+  windows_t *windows = (windows_t *)data;
   if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ELEMENT &&
       gst_structure_has_name(msg->structure, "prepare-xwindow-id")){
-    g_print("Got prepare-xwindow-id msg\n");
-    for (int i = 0; i < 2; i++){
-      gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(w->sinks[i]),
-          w->windows[i]);
+    g_print("Got prepare-xwindow-id msg. option screens: %d\n", option_screens);
+    for (int i = 0; i < option_screens; i++){
+      gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(windows->sinks[i]),
+          windows->xwindows[i]);
+      g_print("connected sink %d to window %lu\n", i, windows->xwindows[i]);
+      hide_mouse(windows->gtk_windows[i]);
     }
   }
 }
@@ -46,7 +141,6 @@ toggle_fullscreen(GtkWidget *widget){
     gtk_window_fullscreen(GTK_WINDOW(widget));
   }
 }
-
 
 static gboolean
 key_press_event_cb(GtkWidget *widget, GdkEventKey *event, gpointer data)
@@ -73,22 +167,24 @@ void destroy_cb(GtkWidget * widget, gpointer data)
 }
 
 static void
-video_widget_realize_cb (GtkWidget * widget, gpointer data)
+video_widget_realize_cb(GtkWidget *widget, gpointer data)
 {
-  windows_t *w = (windows_t *)data;
-  if (w->n < 2){
-    w->windows[w->n] = GDK_WINDOW_XID(GDK_WINDOW(widget->window));
+  windows_t *windows = (windows_t *)data;
+  int r = windows->realised;
+  if (r < MAX_SCREENS){
+    windows->xwindows[r] = GDK_WINDOW_XID(GDK_WINDOW(widget->window));
+    g_print("realised window %d with XID %lu\n", r, windows->xwindows[r]);
   }
   else {
-    g_print("wtf, there seem to be %d windows!\n", w->n);
+    g_print("wtf, there seem to be %d windows!\n", r);
   }
-  w->n++;
-  return;
+  windows->realised++;
+  hide_mouse(widget);
 }
 
 
 static void
-set_up_window(GMainLoop *loop, GtkWidget *window){
+set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
   static const GdkColor black = {0, 0, 0, 0};
   gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
 
@@ -96,8 +192,22 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
     gtk_window_fullscreen(GTK_WINDOW(window));
   }
 
-  //GdkScreen *screen = gdk_display_get_screen(0|1);
-  //gtk_window_set_screen(GTK_WINDOW(window), screen);
+  /*if more than one screen is requested, set the screen number.
+    otherwise let it fall were it falls */
+  if (option_screens > 1){
+    /* "screen" is not the same thing as "monitor" */
+    GdkScreen * screen = gdk_screen_get_default();
+    int width = gdk_screen_get_width(screen);
+    //int monitor = gdk_screen_get_monitor_at_point(screen,
+    //    width / 2 + width * screen_no, 50);
+    gtk_window_move(GTK_WINDOW(window), (width / 2 * screen_no + 50), 50);
+
+
+    //GdkDisplay *display = gdk_display_get_default();
+    //GdkScreen *screen = gdk_display_get_screen(display, screen_no);
+    //gtk_window_set_screen(GTK_WINDOW(window), screen);
+    hide_mouse(window);
+  }
 
   // attach key press signal to key press callback
   gtk_widget_set_events(window, GDK_KEY_PRESS_MASK);
@@ -106,56 +216,62 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
 
   gtk_widget_modify_bg(window, GTK_STATE_NORMAL, &black);
   gtk_widget_show_all(window);
+  hide_mouse(window);
 }
 
 
 static GOptionEntry entries[] =
 {
   { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
-  { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
-  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
-  { NULL }
+  { "screens", 's', 2, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
+  { "debug", 'd', 2, G_OPTION_ARG_NONE, &option_debug, "Save debug images in /tmp", NULL },
+  //  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
+  { NULL, 0, 0, 0, NULL, NULL, NULL }
 };
 
 
 gint main (gint argc, gchar *argv[])
 {
-  /* initialization */
-  gst_init (&argc, &argv);
-  //gtk_init (&argc, &argv);
-
+  //initialise threads before any gtk stuff (because not using gtk_init)
+  g_thread_init(NULL);
+  /*this is more complicated than plain gtk_init/gst_init, so that options from
+    all over can be gathered and presented together.
+   */
+  GOptionGroup *gst_opts = gst_init_get_option_group();
+  GOptionGroup *gtk_opts = gtk_get_option_group(TRUE);
+  GOptionContext *ctx = g_option_context_new("...!");
+  g_option_context_add_main_entries(ctx, entries, NULL);
+  g_option_context_add_group(ctx, gst_opts);
+  g_option_context_add_group(ctx, gtk_opts);
   GError *error = NULL;
-  gtk_init_with_args (&argc, &argv,
-      "options:",
-      entries,
-      NULL,
-      &error);
-
-  /* herein we count windows and map them to sinks */
-  windows_t windows;
-  windows.n = 0;
+  if (!g_option_context_parse(ctx, &argc, &argv, &error)){
+    g_print ("Error initializing: %s\n", GST_STR_NULL(error->message));
+    exit (1);
+  }
+  g_option_context_free(ctx);
 
   GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-  GtkWidget *window1 = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  GtkWidget *window2 = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  g_signal_connect (window1, "realize",
-      G_CALLBACK (video_widget_realize_cb), &windows);
-  g_signal_connect (window2, "realize",
-      G_CALLBACK (video_widget_realize_cb), &windows);
 
-  GstElement *sink1 = gst_element_factory_make("ximagesink", "sink1");
-  GstElement *sink2 = gst_element_factory_make("ximagesink", "sink2");
-  GstElement *pipeline = (GstElement *)make_dual_pipeline(sink1, sink2);
+  windows_t windows;
+  windows.realised = 0;
 
-  windows.sinks[0] = sink1;
-  windows.sinks[1] = sink2;
+  int i;
+  for (i = 0; i < option_screens; i++){
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    g_signal_connect(window, "realize",
+        G_CALLBACK(video_widget_realize_cb), &windows);
+    /* set up sink here */
+    GstElement *sink = gst_element_factory_make("ximagesink", NULL);
+    set_up_window(loop, window, i);
+    windows.gtk_windows[i] = window;
+    windows.sinks[i] = sink;
+  }
 
-  set_up_window(loop, window1);
-  set_up_window(loop, window2);
+  GstElement *pipeline = (GstElement *)make_multi_pipeline(&windows, option_screens);
 
   GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
   gst_bus_add_watch(bus, (GstBusFunc)bus_call, &windows);
-  gst_object_unref (bus);
+  gst_object_unref(bus);
 
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
@@ -165,4 +281,3 @@ gint main (gint argc, gchar *argv[])
   gst_object_unref (pipeline);
   return 0;
 }
-
