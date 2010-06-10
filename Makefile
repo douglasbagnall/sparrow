@@ -8,12 +8,15 @@ WARNINGS = -Wall -Wextra -Wno-unused-parameter
 ARCH = $(shell arch)
 ifeq "$(ARCH)" "x86_64"
 ARCH_CFLAGS = -fPIC -DPIC -m64
-JPEG_LIBRARY_PATH=/opt/libjpeg-turbo/lib64
+JPEG_LIBRARY_PATH=/opt/libjpeg-turbo/lib
+JPEG_STATIC=
+JPEG_LINKS = -ljpeg
 else
 ARCH_CFLAGS = -m32 -msse2
 JPEG_LIBRARY_PATH=/opt/libjpeg-turbo/lib32
+JPEG_STATIC=$(JPEG_LIBRARY_PATH)/libjpeg.a
+JPEG_LINKS = -L$(JPEG_LIBRARY_PATH) -Wl,-Bstatic -ljpeg -Wl,-Bdynamic
 endif
-
 JPEG_CPATH = /opt/libjpeg-turbo/include
 CPATH = $(JPEG_CPATH)
 LD_LIBRARY_PATH = $(JPEG_LIBRARY_PATH):$(LD_LIBRARY_PATH)
@@ -55,11 +58,12 @@ GTK_INCLUDES = -I/usr/include/gtk-2.0/ -I/usr/include/cairo/ -I/usr/include/pang
 GST_INCLUDES =  -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/libxml2
 INCLUDES = -I. $(GST_INCLUDES) -I/usr/include/liboil-0.3 $(OPENCV_INCLUDE) -I$(JPEG_CPATH)
 
-JPEG_LINKS = -L$(JPEG_LIBRARY_PATH) -Wl,-Bstatic -ljpeg -Wl,-Bdynamic
+#
 # -L$(JPEG_LIBRARY_PATH) -Wl,-Bstatic -ljpeg -Wl,-Bdynamic
-#or, to use dynamic, allegedly, -R $(JPEG_LIBRARY_PATH)
+#or, to use dynamic linking, allegedly, -R $(JPEG_LIBRARY_PATH)
 # or just put in the list of linkees $(JPEG_LIBRARY_PATH)/libjpeg.a
-JPEG_STATIC=$(JPEG_LIBRARY_PATH)/libjpeg.a
+# or symlink /usr/lib/libjpeg* to /opt/..
+#
 
 LINKS = -L/usr/local/lib -lgstbase-0.10 -lgstreamer-0.10 -lgobject-2.0 \
 	-lglib-2.0 -lgstvideo-0.10 -lcxcore -lcv $(JPEG_LINKS)
@@ -70,7 +74,7 @@ OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
 
 all:: libgstsparrow.so
 
-libgstsparrow.so: $(OBJECTS)
+libgstsparrow.so: $(OBJECTS) $(JPEG_STATIC)
 	$(CC) -shared -Wl,-O1 $+ $(GST_PLUGIN_LDFLAGS)  $(INCLUDES) $(DEFINES)  $(LINKS) -Wl,-soname -Wl,$@ \
 	  -o $@
 
