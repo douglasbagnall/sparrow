@@ -95,13 +95,12 @@ make_pipeline(GstElement *sink){
 
 
 static inline void
-post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstPad *pad, GstElement *sink,
+post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
     int rngseed, int colour, int timer, int debug){
   GstElement *queue = gst_element_factory_make ("queue", NULL);
   GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
   GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
   GstElement *cs_posteriori = gst_element_factory_make("ffmpegcolorspace", NULL);
-  //GstPad *qpad = gst_element_get_compatible_pad(queue, pad, NULL);
 
   g_object_set(G_OBJECT(caps_posteriori), "caps",
       gst_caps_new_simple ("video/x-raw-rgb",
@@ -123,8 +122,6 @@ post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstPad *pad, GstElemen
       cs_posteriori,
       sink,
       NULL);
-
-  //gst_pad_link(pad, qpad);
 
   gst_element_link_many(tee,
       queue,
@@ -176,12 +173,9 @@ make_dual_pipeline(GstElement *sink1, GstElement *sink2)
       tee,
       NULL);
 
-  GstPad *pad1; //= gst_element_get_request_pad (tee, "src%d");
-  GstPad *pad2; //= gst_element_get_request_pad (tee, "src%d");
-
-  post_tee_pipeline(pipeline, tee, pad1, sink1,
+  post_tee_pipeline(pipeline, tee, sink1,
       1, 1, 1, 0);
-  post_tee_pipeline(pipeline, tee, pad2, sink2,
+  post_tee_pipeline(pipeline, tee, sink2,
       2, 2, 0, 0);
 
 
