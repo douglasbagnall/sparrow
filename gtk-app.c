@@ -10,6 +10,11 @@ http://tristanswork.blogspot.com/2008/09/fullscreen-video-in-gstreamer-with-gtk.
 #include <gdk/gdkx.h>
 #include "app.h"
 
+static gboolean option_fullscreen = FALSE;
+static gint option_screens = 1;
+static gboolean option_overlay = FALSE;
+
+
 typedef struct windows_s {
   GstElement *sinks[2];
   XID windows[2];
@@ -87,7 +92,10 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
   static const GdkColor black = {0, 0, 0, 0};
   gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
 
-  //gtk_window_fullscreen(GTK_WINDOW(widget));
+  if (option_fullscreen){
+    gtk_window_fullscreen(GTK_WINDOW(window));
+  }
+
   //GdkScreen *screen = gdk_display_get_screen(0|1);
   //gtk_window_set_screen(GTK_WINDOW(window), screen);
 
@@ -100,11 +108,28 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
   gtk_widget_show_all(window);
 }
 
+
+static GOptionEntry entries[] =
+{
+  { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
+  { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
+  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
+  { NULL }
+};
+
+
 gint main (gint argc, gchar *argv[])
 {
   /* initialization */
   gst_init (&argc, &argv);
-  gtk_init (&argc, &argv);
+  //gtk_init (&argc, &argv);
+
+  GError *error = NULL;
+  gtk_init_with_args (&argc, &argv,
+      "options:",
+      entries,
+      NULL,
+      &error);
 
   /* herein we count windows and map them to sinks */
   windows_t windows;
