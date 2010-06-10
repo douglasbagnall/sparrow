@@ -79,7 +79,7 @@ typedef guint32 pix_t;
 
 #define SPARROW_N_IPL_IN 3
 
-#define FAKE_OTHER_PROJECTION 1
+//#define FAKE_OTHER_PROJECTION 1
 
 
 #define LINE_PERIOD 32
