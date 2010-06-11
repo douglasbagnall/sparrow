@@ -16,3 +16,6 @@ images
 cscope.out
 dumpfiles
 content
+gtk-app
+test
+clutter-app
