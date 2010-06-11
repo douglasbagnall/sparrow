@@ -11,19 +11,17 @@ http://tristanswork.blogspot.com/2008/09/fullscreen-video-in-gstreamer-with-gtk.
 
 
 static void hide_mouse(GtkWidget *widget){
-  static GdkCursor *cursor = NULL;
   GdkWindow *w = GDK_WINDOW(widget->window);
-  if (cursor == NULL){
-    GdkDisplay *display = gdk_display_get_default();
-    cursor = gdk_cursor_new_for_display(display, GDK_BLANK_CURSOR);
-    gdk_window_set_cursor(w, cursor);
-  }
+  GdkDisplay *display = gdk_display_get_default();
+  GdkCursor *cursor = gdk_cursor_new_for_display(display, GDK_BLANK_CURSOR);
+  gdk_window_set_cursor(w, cursor);
+  gdk_cursor_unref (cursor);
 }
 
 static void
 post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
     int rngseed, int colour, int timer, int debug){
-  GstElement *queue = gst_element_factory_make ("queue", NULL);
+  GstElement *queue = gst_element_factory_make("queue", NULL);
   GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
   GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
   GstElement *cs_posteriori = gst_element_factory_make("ffmpegcolorspace", NULL);
@@ -206,7 +204,6 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
     //GdkDisplay *display = gdk_display_get_default();
     //GdkScreen *screen = gdk_display_get_screen(display, screen_no);
     //gtk_window_set_screen(GTK_WINDOW(window), screen);
-    hide_mouse(window);
   }
 
   // attach key press signal to key press callback
