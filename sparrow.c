@@ -201,7 +201,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
     init_debug(sparrow);
   }
 
-  if (sparrow->rng_seed & 2){/*XXX need better test */
+  if (sparrow->rng_seed & 1){/*XXX need better test */
     sparrow->colour = SPARROW_GREEN;
   }
   else {
