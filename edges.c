@@ -736,8 +736,8 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
 
   for (i = 0; i < sparrow->in.pixcount; i++){
     colour = in32[i] & cmask;
-    signal = (((colour >> fl->shift1) +
-            (colour >> fl->shift2))) & 0xff;
+    signal = (((colour >> fl->shift1) & COLOUR_MASK) +
+            ((colour >> fl->shift2) & COLOUR_MASK));
     if (signal){
       if (fl->map[i].lines[line->dir]){
         /*assume the pixel is on for everyone and will just confuse
@@ -964,11 +964,10 @@ finalise_find_edges(GstSparrow *sparrow){
   sparrow->helper_struct = NULL;
 }
 
-/*reduce the signal a little bit more, avoiding overflow later */
-#define COLOUR_QUANT  1
-
 static void
 setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  /*COLOUR_QUANT reduces the signal a little bit more, avoiding overflow
+    later */
   switch (sparrow->colour){
   case SPARROW_WHITE:
   case SPARROW_GREEN:

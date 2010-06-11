@@ -12,6 +12,9 @@
 
 #define FL_DUMPFILE "/tmp/edges.dump"
 
+#define COLOUR_QUANT  1
+#define COLOUR_MASK  (0xff >> COLOUR_QUANT)
+
 
 typedef enum corner_status {
   CORNER_UNUSED,
