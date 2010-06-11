@@ -119,7 +119,7 @@ extract_green_channel(GstSparrow *sparrow,  sparrow_find_screen_t *finder, guint
 }
 
 
-#define SIGNAL_THRESHOLD 64
+#define SIGNAL_THRESHOLD 100
 /*see whether there seems to be activity:  */
 gboolean INVISIBLE
 check_for_signal(GstSparrow *sparrow, sparrow_find_screen_t *finder, guint8 *in){
