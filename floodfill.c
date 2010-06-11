@@ -104,17 +104,21 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
 }
 
 static inline IplImage *
-extract_green_channel(GstSparrow *sparrow,  sparrow_find_screen_t *finder, guint8 *in)
+extract_green_channel(GstSparrow *sparrow, sparrow_find_screen_t *finder, guint8 *in)
 {
   IplImage *im = finder->im;
   IplImage *green = finder->green;
   im->imageData = (char*)in;
   guint32 gshift = sparrow->in.gshift;
+  GST_DEBUG("gshift is %d, green is %p, data is %p, im data is %p",
+      gshift, green, green->imageData, im->imageData);
   cvSplit(im,
       (gshift == 24) ? green : NULL,
       (gshift == 16) ? green : NULL,
       (gshift ==  8) ? green : NULL,
       (gshift ==  0) ? green : NULL);
+  GST_DEBUG("returning green %p, data %p",
+      green, green->imageData);
   return green;
 }
 
@@ -134,10 +138,11 @@ check_for_signal(GstSparrow *sparrow, sparrow_find_screen_t *finder, guint8 *in)
       break;
     }
   }
-  //memcpy(finder->working, green, sparrow->in.pixcount);
-  char *tmp = working->imageData;
-  working->imageData = green->imageData;
-  green->imageData = tmp;
+  memcpy(working->imageData, green->imageData, sparrow->in.pixcount);
+  //char *tmp = working->imageData;
+  //working->imageData = green->imageData;
+  //green->imageData = tmp;
+  GST_DEBUG("answering %d", answer);
   return answer;
 }
 
@@ -166,6 +171,7 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     /* time to look and see if the screen is there.
        Look at the histogram of a single channel. */
     green = extract_green_channel(sparrow, finder, in);
+    MAYBE_DEBUG_IPL(green);
     cvCanny(green, mask, 100, 170, 3);
     MAYBE_DEBUG_IPL(mask);
     goto black;
