@@ -123,9 +123,6 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
 }
 
 static inline guint8* get_in_pixel(GstSparrow *sparrow, guint32 *in32, int x, int y){
-  /* one day, might average from indicated pixels */
-  x >>= SPARROW_MAP_LUT_SHIFT;
-  y >>= SPARROW_MAP_LUT_SHIFT;
   return (guint8 *)&in32[y * sparrow->in.width + x];
 };
 
