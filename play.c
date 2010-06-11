@@ -169,20 +169,11 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  //do actual stuff here
-  //memcpy(out, in, sparrow->out.size);
-  //simple_negation(out, sparrow->out.size);
-  if (sparrow->countdown){
-    memset(out, 0, sparrow->out.size);
-    sparrow->countdown--;
-  }
-  else{
 #if USE_FULL_LUT
-    play_from_full_lut(sparrow, in, out);
+  play_from_full_lut(sparrow, in, out);
 #else
-    play_from_lut(sparrow, in, out);
+  play_from_lut(sparrow, in, out);
 #endif
-  }
   return SPARROW_STATUS_QUO;
 }
 
@@ -207,7 +198,6 @@ init_gamma_lut(sparrow_play_t *player){
     }
     player->lut[i] = (guint8)x;
   }
-
 }
 
 INVISIBLE void init_play(GstSparrow *sparrow){
@@ -218,7 +208,6 @@ INVISIBLE void init_play(GstSparrow *sparrow){
   player->black_level = INITIAL_BLACK;
   sparrow->helper_struct = player;
   init_gamma_lut(player);
-  sparrow->countdown = 100;
   GST_DEBUG("finished init_play\n");
 }
 

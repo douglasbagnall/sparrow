@@ -27,6 +27,7 @@
 
 #include "cv.h"
 
+static int global_number_of_edge_finders = 0;
 
 static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
   GST_DEBUG("about to save to %s\n", filename);
@@ -814,6 +815,10 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
   case EDGES_FIND_CORNERS:
     sparrow->countdown = 4;
     break;
+  case EDGES_WAIT_FOR_PLAY:
+    global_number_of_edge_finders--;
+    sparrow->countdown = 300;
+    break;
   default:
     GST_DEBUG("jumped to non-existent state %d\n", fl->state);
     break;
@@ -896,16 +901,12 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
   return sparrow->countdown;
 }
 
+/*use a dirty shared variable*/
 static gboolean
 wait_for_play(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  switch(sparrow->countdown){
-  case 0:
-    /*just starting! set to wait time*/
-    sparrow->countdown = 100;
-  case 1:
+  if (global_number_of_edge_finders == 0 ||
+      sparrow->countdown == 0){
     return TRUE;
-  default:
-    break;
   }
   sparrow->countdown--;
   return FALSE;
@@ -923,8 +924,8 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
     break;
   case EDGES_FIND_CORNERS:
     memset(out, 0, sparrow->out.size);
-    if (find_corners(sparrow, fl))
-      break;
+    find_corners(sparrow, fl);
+    break;
   case EDGES_WAIT_FOR_PLAY:
     memset(out, 0, sparrow->out.size);
     if (wait_for_play(sparrow, fl)){
@@ -991,7 +992,6 @@ init_find_edges(GstSparrow *sparrow){
   gint n_corners = (h_lines * v_lines);
   fl->n_hlines = h_lines;
   fl->n_vlines = v_lines;
-
 
   fl->h_lines = malloc_aligned_or_die(sizeof(sparrow_line_t) * n_lines_max);
   fl->shuffled_lines = malloc_aligned_or_die(sizeof(sparrow_line_t *) * n_lines_max);
@@ -1069,5 +1069,7 @@ init_find_edges(GstSparrow *sparrow){
   if (sparrow->debug){
     fl->debug = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
   }
+
+  global_number_of_edge_finders++;
 }
 
