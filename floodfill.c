@@ -22,8 +22,8 @@
 #include <string.h>
 #include <math.h>
 
+#define STUPID_DEBUG_TRICK 0
 #define WAIT_TIME CALIBRATE_MAX_T + 5
-#define STUPID_DEBUG_TRICK 1
 
 typedef struct sparrow_find_screen_s {
   IplImage *green;
