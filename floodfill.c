@@ -22,6 +22,7 @@
 #include <string.h>
 #include <math.h>
 
+#define WAIT_TIME CALIBRATE_MAX_T + 5
 #define STUPID_DEBUG_TRICK 1
 
 typedef struct sparrow_find_screen_s {
@@ -29,6 +30,8 @@ typedef struct sparrow_find_screen_s {
   IplImage *working;
   IplImage *mask;
   IplImage *im;
+  gboolean waiting;
+  IplImage *signal;
 } sparrow_find_screen_t;
 
 
@@ -100,6 +103,44 @@ floodfill_mono_superfast(IplImage *im, IplImage *mim, CvPoint start)
   return im;
 }
 
+static inline IplImage *
+extract_green_channel(GstSparrow *sparrow,  sparrow_find_screen_t *finder, guint8 *in)
+{
+  IplImage *im = finder->im;
+  IplImage *green = finder->green;
+  im->imageData = (char*)in;
+  guint32 gshift = sparrow->in.gshift;
+  cvSplit(im,
+      (gshift == 24) ? green : NULL,
+      (gshift == 16) ? green : NULL,
+      (gshift ==  8) ? green : NULL,
+      (gshift ==  0) ? green : NULL);
+  return green;
+}
+
+
+#define SIGNAL_THRESHOLD 64
+/*see whether there seems to be activity:  */
+gboolean INVISIBLE
+check_for_signal(GstSparrow *sparrow, sparrow_find_screen_t *finder, guint8 *in){
+  IplImage *green = extract_green_channel(sparrow, finder, in);
+  IplImage *working = finder->working;
+  guint i;
+  gboolean answer = FALSE;
+  cvAbsDiff(green, finder->working, finder->signal);
+  for (i = 0; i < sparrow->in.pixcount; i++){
+    if (finder->signal->imageData[i] > SIGNAL_THRESHOLD){
+      answer = TRUE;
+      break;
+    }
+  }
+  //memcpy(finder->working, green, sparrow->in.pixcount);
+  char *tmp = working->imageData;
+  working->imageData = green->imageData;
+  green->imageData = tmp;
+  return answer;
+}
+
 
 /* a minature state progression within this one, in case the processing is too
    much for one frame.*/
@@ -108,29 +149,23 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow->countdown--;
   GST_DEBUG("in find_screen with countdown %d\n", sparrow->countdown);
   sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
-  IplImage *im = finder->im;
-  IplImage *green = finder->green;
+  IplImage *green;
   IplImage *working = finder->working;
   IplImage *mask = finder->mask;
   /* size is 1 byte per pixel, not 4! */
   size_t size = sparrow->in.pixcount;
   CvPoint middle, corner;
   switch (sparrow->countdown){
+  case 6:
+  case 5:
+  case 4:
+  case 3:
+    /*send white and wait for the picture to arrive back. */
+    goto white;
   case 2:
     /* time to look and see if the screen is there.
        Look at the histogram of a single channel. */
-    im->imageData = (char*)in;
-    guint32 gshift = sparrow->in.gshift;
-    cvSplit(im,
-        (gshift == 24) ? green : NULL,
-        (gshift == 16) ? green : NULL,
-        (gshift ==  8) ? green : NULL,
-        (gshift ==  0) ? green : NULL);
-    //int best_t = find_edges_threshold(green);
-    /*XXX if best_t is wrong, add to sparrow->countdown: probably the light is
-      not really on.  But what counts as wrong? */
-    //
-    //cvCmpS(green, best_t, mask, CV_CMP_GT);
+    green = extract_green_channel(sparrow, finder, in);
     cvCanny(green, mask, 100, 170, 3);
     MAYBE_DEBUG_IPL(mask);
     goto black;
@@ -152,10 +187,15 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     MAYBE_DEBUG_IPL(mask);
     goto finish;
   default:
-    /*send white and wait for the picture to arrive back. */
-    memset(out, 255, sparrow->out.size);
-    return SPARROW_STATUS_QUO;
+    GST_DEBUG("checking for signal. sparrow countdown is %d", sparrow->countdown);
+    if (check_for_signal(sparrow, finder, in)){
+      sparrow->countdown = sparrow->lag + WAIT_TIME;
+    }
+    goto black;
   }
+ white:
+  memset(out, 255, sparrow->out.size);
+  return SPARROW_STATUS_QUO;
  black:
   memset(out, 0, sparrow->out.size);
   return SPARROW_STATUS_QUO;
@@ -169,6 +209,7 @@ finalise_find_screen(GstSparrow *sparrow){
   sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;
   GST_DEBUG("finalise_find_screen: green %p, working %p, mask %p, im %p finder %p\n",
       finder->green, finder->working, finder->mask, finder->im, finder);
+  cvReleaseImage(&finder->signal);
   cvReleaseImage(&finder->green);
   cvReleaseImage(&finder->working);
   cvReleaseImageHeader(&finder->mask);
@@ -180,11 +221,12 @@ INVISIBLE void
 init_find_screen(GstSparrow *sparrow){
   sparrow_find_screen_t *finder = zalloc_aligned_or_die(sizeof(sparrow_find_screen_t));
   sparrow->helper_struct = (void *)finder;
-  sparrow->countdown = sparrow->lag + 5;
+  sparrow->countdown = sparrow->lag + WAIT_TIME;
+  finder->waiting = TRUE;
   CvSize size = {sparrow->in.width, sparrow->in.height};
   finder->green = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->working = cvCreateImage(size, IPL_DEPTH_8U, 1);
-
+  finder->signal = cvCreateImage(size, IPL_DEPTH_8U, 1);
   finder->im = init_ipl_image(&sparrow->in, PIXSIZE);
   finder->mask  = init_ipl_image(&sparrow->in, 1);
 

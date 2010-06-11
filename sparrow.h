@@ -78,9 +78,11 @@ INVISIBLE void maybe_unload_index(GstSparrow *sparrow);
           (ipl)->height, (ipl)->nChannels):(void)0)
 
 
-#define CALIBRATE_WAIT_SIGNAL_THRESHOLD 32
-
-
+#define CALIBRATE_ON_MIN_T 2
+#define CALIBRATE_ON_MAX_T 7
+#define CALIBRATE_OFF_MIN_T 2
+#define CALIBRATE_OFF_MAX_T 9
+#define CALIBRATE_MAX_T MAX(CALIBRATE_OFF_MAX_T, CALIBRATE_ON_MAX_T)
 
 /*memory allocation */
 #define ALIGNMENT 16
