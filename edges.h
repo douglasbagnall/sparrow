@@ -15,6 +15,9 @@
 #define COLOUR_QUANT  1
 #define COLOUR_MASK  (0xff >> COLOUR_QUANT)
 
+/*XXX should dither */
+#define QUANTISE_DELTA(d)(((d) + LINE_PERIOD / 2) / LINE_PERIOD)
+
 
 typedef enum corner_status {
   CORNER_UNUSED,
