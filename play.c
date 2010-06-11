@@ -103,9 +103,6 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
   outpix[3] = one_subpixel(player, inpix[3], jpegpix[3]);
 }
 
-static inline guint8* get_in_pixel(GstSparrow *sparrow, guint32 *in32, int x, int y){
-  return (guint8 *)&in32[y * sparrow->in.width + x];
-};
 
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -124,13 +121,13 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   guint8 *jpeg_row = player->image_row;
   i = 0;
   for (oy = 0; oy < sparrow->out.height; oy++){
-    //GST_DEBUG("about to read line to %p", player->image_row);
-    read_one_line(sparrow, player->image_row);
+    //GST_DEBUG("about to read line to %p", jpeg_row);
+    read_one_line(sparrow, jpeg_row);
     for (ox = 0; ox < sparrow->out.width; ox++, i++){
       int x = sparrow->map_lut[i].x;
       int y = sparrow->map_lut[i].y;
       if (x || y){
-        guint8 *inpix = get_in_pixel(sparrow, in32, x, y);
+        guint8 *inpix = (guint8*)&in32[y * sparrow->in.width + x];
         do_one_pixel(sparrow,
             &out[i * PIXSIZE],
             inpix,
