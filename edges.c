@@ -254,6 +254,9 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
   int y = H_LINE_OFFSET;
   sparrow_corner_t *mesh_row = mesh;
+  int max_x = (sparrow->in.width << SPARROW_MAP_LUT_SHIFT) - 1;
+  int max_y = (sparrow->in.height << SPARROW_MAP_LUT_SHIFT) - 1;
+
   for(mcy = 0; mcy < mesh_h - 1; mcy++){
     for (mmy = 0; mmy < LINE_PERIOD; mmy++, y++){
       sparrow_corner_t *mesh_square = mesh_row;
@@ -262,11 +265,13 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         int iy = mesh_square->in_y + mmy * mesh_square->dyd;
         int ix = mesh_square->in_x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
-          map_lut[i].x = MAX(ix >> SPARROW_FP_2_LUT, 0);
-          map_lut[i].y = MAX(iy >> SPARROW_FP_2_LUT, 0);
-          //GST_DEBUG("ix, iy %d, %d x, y %d, %d i: %d, y%d\n", ix, iy,
-          //    map_lut[i].x, map_lut[i].y, i, y);
-
+          int ixx = CLAMP(ix >> SPARROW_FP_2_LUT, 0, max_x);
+          int iyy = CLAMP(iy >> SPARROW_FP_2_LUT, 0, max_y);
+          if(sparrow->screenmask[(iyy >> SPARROW_MAP_LUT_SHIFT) * sparrow->in.width
+                  + (ixx >> SPARROW_MAP_LUT_SHIFT)]){
+            map_lut[i].x = ixx;
+            map_lut[i].y = iyy;
+          }
           ix += mesh_square->dxr;
           iy += mesh_square->dyr;
         }
