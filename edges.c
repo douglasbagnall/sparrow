@@ -68,6 +68,9 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 }
 
 static void
+debug_map_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  sparrow_map_lut_t *map_lut = sparrow->map_lut;
+  debug_frame(sparrow, (guint8*)map_lut, sparrow->out.width, sparrow->out.height, PIXSIZE);
 }
 
 
@@ -107,6 +110,7 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     mesh_row += mesh_w;
   }
   sparrow->map_lut = map_lut;
+  debug_map_lut(sparrow, fl);
 }
 
 #define INTXY(x)((x) / (1 << SPARROW_FIXED_POINT))
