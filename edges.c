@@ -886,6 +886,7 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
 #else
     corners_to_lut(sparrow, fl);
 #endif
+    jump_state(sparrow, fl, EDGES_NEXT_STATE);
     break;
   default:
     GST_DEBUG("how did sparrow->countdown get to be %d?", sparrow->countdown);
@@ -894,6 +895,20 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
   return sparrow->countdown;
 }
 
+static gboolean
+wait_for_play(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  switch(sparrow->countdown){
+  case 0:
+    /*just starting! set to wait time*/
+    sparrow->countdown = 100;
+  case 1:
+    return TRUE;
+  default:
+    break;
+  }
+  sparrow->countdown--;
+  return FALSE;
+}
 
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
@@ -906,9 +921,15 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
     draw_lines(sparrow, fl, in, out);
     break;
   case EDGES_FIND_CORNERS:
+    memset(out, 0, sparrow->out.size);
     if (find_corners(sparrow, fl))
       break;
-    return SPARROW_NEXT_STATE;
+  case EDGES_WAIT_FOR_PLAY:
+    memset(out, 0, sparrow->out.size);
+    if (wait_for_play(sparrow, fl)){
+      return SPARROW_NEXT_STATE;
+    }
+    break;
   case EDGES_NEXT_STATE:
     break; /*shush gcc */
   }

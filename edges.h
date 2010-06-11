@@ -23,6 +23,7 @@ typedef enum edges_state {
   EDGES_FIND_NOISE,
   EDGES_FIND_LINES,
   EDGES_FIND_CORNERS,
+  EDGES_WAIT_FOR_PLAY,
 
   EDGES_NEXT_STATE,
 } edges_state_t;
