@@ -71,7 +71,7 @@ init_one_square(GstSparrow *sparrow, sparrow_shape_t* shape){
         sparrow->out.height * 7 / 8 - shape->h);
 }
 
-
+#if 0
 /*fake other projection */
 static void add_random_signal(GstSparrow *sparrow, guint8 *out){
   int i;
@@ -98,6 +98,7 @@ static void add_random_signal(GstSparrow *sparrow, guint8 *out){
   }
   countdown--;
 }
+#endif
 
 static gboolean cycle_pattern(GstSparrow *sparrow){
   sparrow_calibrate_t *calibrate = (sparrow_calibrate_t *)sparrow->helper_struct;
