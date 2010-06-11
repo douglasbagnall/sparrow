@@ -131,8 +131,8 @@ test-capture: all
 # ! jpegenc ! avimux ! filesink location=mjpeg.avi
 #jpegenc quality=85
 
-test-gtk: all
-	GST_DEBUG=sparrow:$(DEBUG_LEVEL) ./gtk-app 2> /tmp/gst.log || less -R /tmp/gst.log
+test-gtk: debug gtk-app
+	GST_DEBUG=sparrow:$(DEBUG_LEVEL) gdb ./gtk-app
 
 test-valgrind: debug
 	valgrind --log-file=valgrind.log --trace-children=yes --suppressions=valgrind-python.supp \
