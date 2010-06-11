@@ -307,11 +307,13 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     sparrow_corner_t *c = &mesh[i];
     int x = c->in_x;
     int y = c->in_y;
+    /*
     GST_DEBUG("i %d status %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
         "int x, y %d,%d (raw %d,%d) data %p\n",
         i, c->status, FLOATXY(x), FLOATXY(y),
         FLOATXY(c->dxr), FLOATXY(c->dyr), FLOATXY(c->dxd), FLOATXY(c->dyd),
         INTXY(x), INTXY(y), x, y, data);
+    */
     int txr = x;
     int txd = x;
     int tyr = y;

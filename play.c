@@ -149,7 +149,6 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
       int x = sparrow->map_lut[i].x;
       int y = sparrow->map_lut[i].y;
       if (x || y){
-        //GST_DEBUG("in %p x %d y %d", in, x, y);
         guint8 *inpix = get_in_pixel(sparrow, in32, x, y);
         do_one_pixel(sparrow,
             &out[i * PIXSIZE],
