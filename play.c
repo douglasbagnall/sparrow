@@ -41,25 +41,6 @@ negate(sparrow_play_t *player, guint8 in){
   return player->lut[in];
 }
 
-static void UNUSED
-play_from_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  sparrow_map_t *map = &sparrow->map;
-  memset(out, 0, sparrow->out.size);
-  int x, y;
-  guint32 *line = (guint32 *)out;
-  for (y = 0; y < sparrow->out.height; y++){
-    sparrow_map_row_t *row = map->rows + y;
-    for(x = row->start; x < row->end; x++){
-      line[x] = ~0;
-    }
-    /*
-    GST_DEBUG("row %p %d: s %d e%d line %d\n",
-        row, y, row->start, row->end, line);
-    */
-    line += sparrow->out.width;
-  }
-}
-
 static void set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
   /*XXX pick a jpeg, somehow*/
   sparrow_frame_t *frame = &sparrow->shared->index[player->jpeg_index];
@@ -165,14 +146,9 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
 }
 
 
-
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
-#if USE_FULL_LUT
   play_from_full_lut(sparrow, in, out);
-#else
-  play_from_lut(sparrow, in, out);
-#endif
   return SPARROW_STATUS_QUO;
 }
 
