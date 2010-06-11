@@ -137,7 +137,7 @@ typedef enum sparrow_axis_s {
    stored in a fixed point notation.
 */
 #define SPARROW_FIXED_POINT 10
-#define SPARROW_MAP_LUT_SHIFT 1
+#define SPARROW_MAP_LUT_SHIFT 0
 #define SPARROW_FP_2_LUT (SPARROW_FIXED_POINT - SPARROW_MAP_LUT_SHIFT)
 
 typedef struct sparrow_map_path_s {
