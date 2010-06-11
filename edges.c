@@ -739,14 +739,16 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
       if (fl->map[i].lines[line->dir]){
         /*assume the pixel is on for everyone and will just confuse
           matters. ignore it.
-          XXX maybe threshold, so if signal is hugely bigger in one, don't ban it.
         */
+
         if (fl->map[i].lines[line->dir] != BAD_PIXEL){
+          /*
           GST_DEBUG("HEY, expected point %d to be in line %d (dir %d) "
               "and thus empty, but it is also in line %d\n"
               "old signal %d, new signal %d, marking as BAD\n",
               i, line->index, line->dir, fl->map[i].lines[line->dir],
               fl->map[i].signal[line->dir], signal);
+          */
           fl->map[i].lines[line->dir] = BAD_PIXEL;
           fl->map[i].signal[line->dir] = 0;
         }
