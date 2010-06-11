@@ -107,9 +107,11 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   GST_DEBUG("play_from_full_lut\n");
+#if 0
   memset(out, 0, sparrow->out.size); /*is this necessary? (only for outside
                                        screen map, maybe in-loop might be
                                        quicker) */
+#endif
   sparrow_play_t *player = sparrow->helper_struct;
   guint i;
   int ox, oy;
