@@ -3,8 +3,10 @@
 #define FPS    20
 
 static gboolean option_fullscreen = FALSE;
-static gboolean option_debug = FALSE;
+static gint option_debug = -1;
 static gint option_screens = 1;
+static char **option_reload = NULL;
+static char **option_save = NULL;
 
 //static gboolean option_overlay = FALSE;
 

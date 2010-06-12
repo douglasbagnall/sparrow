@@ -20,7 +20,7 @@ static void hide_mouse(GtkWidget *widget){
 
 static void
 post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
-    int rngseed, int colour, int timer, int debug){
+    int rngseed, int colour, int timer, int debug, char *save, char *reload){
   GstElement *queue = gst_element_factory_make("queue", NULL);
   GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
   GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
@@ -35,9 +35,17 @@ post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
       "debug", debug,
       "rngseed", rngseed,
       "colour", colour,
-      //"reload", "dumpfiles/gtk.dump",
-      //"save", "dumpfiles/gtk.dump",
       NULL);
+  if (reload){
+    g_object_set(G_OBJECT(sparrow),
+        "reload", reload,
+        NULL);
+  }
+  if (save){
+    g_object_set(G_OBJECT(sparrow),
+        "save", save,
+        NULL);
+  }
 
   gst_bin_add_many (GST_BIN(pipeline),
       queue,
@@ -99,15 +107,26 @@ make_multi_pipeline(windows_t *windows, int count)
 {
   GstPipeline *pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
   GstElement *tee = pre_tee_pipeline(pipeline);
-
+  char *reload = NULL;
+  char *save = NULL;
   int i;
   for (i = 0; i < count; i++){
     GstElement *sink = windows->sinks[i];
     //args are:
     //(pipeline, tee, sink, int rngseed, int colour, timer flag, int debug flag)
     /* timer should only run on one of them. colour >= 3 is undefined */
-    int debug = option_debug && i == 0;
-    post_tee_pipeline(pipeline, tee, sink, i, i + 1, i == 0, debug);
+    int debug = option_debug == i;
+    if (option_reload != NULL){
+      if (option_reload[i] == NULL){
+        g_critical("You can't reload some screens and not others!");
+        exit(1);
+      }
+      reload = option_reload[i];
+    }
+    if (option_save && option_save[i]){
+      save = option_save[i];
+    }
+    post_tee_pipeline(pipeline, tee, sink, i, i + 1, i == 0, debug, save, reload);
   }
   return pipeline;
 }
@@ -220,8 +239,12 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
 static GOptionEntry entries[] =
 {
   { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
-  { "screens", 's', 2, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
-  { "debug", 'd', 2, G_OPTION_ARG_NONE, &option_debug, "Save debug images in /tmp", NULL },
+  { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
+  { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
+  { "reload", 'r', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_reload,
+    "load calibration data from FILE (one per screen)", "FILE" },
+  { "save", 'S', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_save,
+    "save calibration data to FILE (one per screen)", "FILE" },
   //  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
   { NULL, 0, 0, 0, NULL, NULL, NULL }
 };

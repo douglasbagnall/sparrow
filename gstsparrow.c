@@ -185,7 +185,7 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
 
   g_return_if_fail (GST_IS_SPARROW (object));
   sparrow = GST_SPARROW (object);
-
+  guint val;
   GST_DEBUG("gst_sparrow_set_property\n");
   if (value){
     switch (prop_id) {
@@ -202,7 +202,10 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       GST_DEBUG("rng seed is %d\n", sparrow->rng_seed);
       break;
     case PROP_COLOUR:
-      sparrow->colour = g_value_get_uint(value);
+      val = g_value_get_uint(value);
+      if (val < SPARROW_LAST_COLOUR){
+        sparrow->colour = val;
+      }
       GST_DEBUG("colour is %d\n", sparrow->rng_seed);
       break;
     case PROP_RELOAD:
