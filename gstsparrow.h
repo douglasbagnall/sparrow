@@ -145,19 +145,6 @@ typedef struct sparrow_map_path_s {
 }sparrow_map_path_t;
 
 
-typedef struct sparrow_map_row_s {
-  int start;
-  int end;
-  int in_x;
-  int in_y;
-  sparrow_map_path_t *points;
-}sparrow_map_row_t;
-
-typedef struct sparrow_map_s {
-  sparrow_map_row_t *rows;
-  void *point_mem;
-}sparrow_map_t;
-
 typedef struct sparrow_map_lut_s{
   guint16 x;
   guint16 y;
@@ -225,7 +212,6 @@ struct _GstSparrow
   /*calibration results */
   guint32 lag;
   guint8 *screenmask;
-  sparrow_map_t map;
   /*full sized LUT */
   sparrow_map_lut_t *map_lut;
   /*for jpeg decompression*/

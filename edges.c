@@ -94,8 +94,8 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       sparrow_corner_t *mesh_square = mesh_row;
       int i = y * sparrow->out.width + V_LINE_OFFSET;
       for(mcx = 0; mcx < mesh_w - 1; mcx++){
-        int iy = mesh_square->in_y + mmy * mesh_square->dyd;
-        int ix = mesh_square->in_x + mmy * mesh_square->dxd;
+        int iy = mesh_square->y + mmy * mesh_square->dyd;
+        int ix = mesh_square->x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
           int ixx = CLAMP(ix >> SPARROW_FIXED_POINT, 0, max_x);
           int iyy = CLAMP(iy >> SPARROW_FIXED_POINT, 0, max_y);
@@ -138,8 +138,8 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xcccccccc};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
     sparrow_corner_t *c = &mesh[i];
-    int x = c->in_x;
-    int y = c->in_y;
+    int x = c->x;
+    int y = c->y;
     /*
     GST_DEBUG("i %d status %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
         "int x, y %d,%d (raw %d,%d) data %p\n",
@@ -208,7 +208,7 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 #define CLUSTER_SIZE 8
 
 
-/*create the mesh */
+/*find map points with common intersection data, and collect them into clusters */
 static void
 make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_cluster_t *clusters = fl->clusters;
@@ -435,8 +435,8 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
           i, cluster->n, votes, xsum, ysum, xmean, ymean);
 
-      mesh[i].in_x = xmean;
-      mesh[i].in_y = ymean;
+      mesh[i].x = xmean;
+      mesh[i].y = ymean;
       mesh[i].status = CORNER_EXACT;
       GST_DEBUG("found corner %d at (%3f, %3f)\n",
           i, FLOATXY(xmean), FLOATXY(ymean));

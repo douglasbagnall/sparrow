@@ -35,8 +35,8 @@ typedef enum edges_state {
 } edges_state_t;
 
 typedef struct sparrow_corner_s {
-  int in_x;
-  int in_y;
+  int x;
+  int y;
   /*dyr -> dy to next point right
    dxd ->dx to next point down */
   int dxr;
