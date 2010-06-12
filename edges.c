@@ -399,7 +399,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       if (cluster->n == 0){
         continue;
       }
-#if 1
+#if 0
       /*discard outliers based on sum of squared distances: good points should
         be in a cluster, and have lowest sum*/
       euclidean_discard_cluster_outliers(cluster);
