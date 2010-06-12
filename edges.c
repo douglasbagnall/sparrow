@@ -156,8 +156,22 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       txd += c->dxd * 2;
       tyr += c->dyr * 2;
       tyd += c->dyd * 2;
-      data[clamp_intxy(tyr, h) * w + clamp_intxy(txr, w)] = 0x000088;
-      data[clamp_intxy(tyd, h) * w + clamp_intxy(txd, w)] = 0x663300;
+      guint hl = clamp_intxy(tyr, h) * w + clamp_intxy(txr, w);
+      if (hl < sparrow->in.pixcount){
+        data[hl] = 0x88000088;
+      }
+      else{
+        GST_WARNING("overflow in debug_corners: hl %d, txr %d tyr %d",
+            hl, txr, tyr);
+      }
+      guint vl = clamp_intxy(tyd, h) * w + clamp_intxy(txd, w);
+      if (vl < sparrow->in.pixcount){
+        data[vl] = 0x00663300;
+      }
+      else{
+        GST_WARNING("overflow in debug_corners: vl %d, txd %d tyd %d",
+            vl, txd, tyd);
+      }
     }
     data[clamp_intxy(y, h) * w + clamp_intxy(x, w)] = colours[c->status];
   }
