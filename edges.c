@@ -460,9 +460,266 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
+static const sparrow_estimator_t base_estimators[] = {
+  { 0, 1,     0, 2,    0, 3},
+  { 0, 2,     0, 4,    0, 6},
+  { 1, 0,     2, 0,    3, 0},
+  { 1, 1,     2, 2,    3, 3},
+  { 1, 2,     2, 4,    3, 6},
+  { 1, 3,     2, 6,    3, 9},
+  { 2, 0,     4, 0,    6, 0},
+  { 2, 1,     4, 2,    6, 3},
+  { 2, 2,     4, 4,    6, 6},
+  { 2, 3,     4, 6,    6, 9},
+  { 3, 1,     6, 2,    9, 3},
+  { 3, 2,     6, 4,    9, 6},
+};
+
+#define BASE_ESTIMATORS (sizeof(base_estimators) / sizeof(sparrow_estimator_t))
+#define ESTIMATORS  (BASE_ESTIMATORS * 4)
 
 static inline void
-make_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+calculate_estimator_tables(sparrow_estimator_t *estimators){
+  guint i, j;
+  sparrow_estimator_t *e = estimators;
+  for (i = 0; i < BASE_ESTIMATORS; i++){
+    for (j = 0; j < 4; j++){
+      *e = base_estimators[i];
+      if (j & 1){
+        if (! e->x1){
+          continue;
+        }
+        e->x1 = -e->x1;
+        e->x2 = -e->x2;
+        e->x3 = -e->x3;
+      }
+      if (j & 2){
+        if (! e->y1){
+          continue;
+        }
+        e->y1 = -e->y1;
+        e->y2 = -e->y2;
+        e->y3 = -e->y3;
+      }
+      GST_DEBUG("estimator: %-d,%-d  %-d,%-d  %-d,%-d",
+          e->x1, e->y1, e->x2, e->y2, e->x3, e->y3);
+      e++;
+    }
+  }
+}
+
+/* nice big word. acos(1.0 - MAX_NONCOLLINEARITY) = angle of deviation.
+   0.005: 5.7 degrees, 0.01: 8.1, 0.02: 11.5, 0.04: 16.3, 0.08: 23.1
+   1 pixel deviation in 32 -> ~ 1/33 == 0.03 (if I understand correctly)
+*/
+#define MAX_NONCOLLINEARITY 0.02
+
+/*the map made above is likely to be full of errors. Fix them, and add in
+  missing points */
+static void
+complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  //linear regression?
+  //slopes and lines
+  sparrow_voter_t estimates[ESTIMATORS];
+  sparrow_estimator_t estimators[ESTIMATORS];
+  calculate_estimator_tables(estimators);
+
+  guint32 *debug = NULL;
+  if (sparrow->debug){
+    debug = (guint32*)fl->debug->imageData;
+    memset(debug, 0, sparrow->in.size);
+  }
+
+  int x, y;
+  int width = fl->n_vlines;
+  int height = fl->n_hlines;
+  int screen_width = sparrow->in.width << SPARROW_FIXED_POINT;
+  int screen_height = sparrow->in.height << SPARROW_FIXED_POINT;
+  sparrow_corner_t *mesh = fl->mesh;
+
+  int prev_settled = 0;
+  while (1){
+    int settled = 0;
+    for (y = 0; y < height; y++){
+      for (x = 0; x < width; x++){
+        sparrow_corner_t *corner = &mesh[y * width + x];
+        if (corner->status == CORNER_SETTLED){
+          settled ++;
+          GST_DEBUG("ignoring settled corner %d, %d", x, y);
+          continue;
+        }
+        //memset(estimates, 0, sizeof(estimates));
+        int k = 0;
+        for (guint j = 0; j < ESTIMATORS; j++){
+          sparrow_estimator_t *e = &estimators[j];
+          int x3, y3, x2, y2, x1, y1;
+          y3 = y + e->y3;
+          x3 = x + e->x3;
+          if (!(y3 >= 0 && y3 < height &&
+                  x3 >= 0 && x3 < width &&
+                  mesh[y3 * width + x3].status != CORNER_UNUSED
+              )){
+            GST_DEBUG("not using estimator %d because corners aren't used, or are off screen\n"
+                "x3 %d, y3 %d", j, x3, y3);
+            continue;
+          }
+          y2 = y + e->y2;
+          x2 = x + e->x2;
+          y1 = y + e->y1;
+          x1 = x + e->x1;
+          if (mesh[y2 * width + x2].status == CORNER_UNUSED ||
+              mesh[y1 * width + x1].status == CORNER_UNUSED){
+            GST_DEBUG("not using estimator %d because corners aren't used", j);
+            continue;
+          }
+          /*there are 3 points, and the unknown one.
+            They should all be in a line.
+            The ratio of the p3-p2:p2-p1 sould be the same as
+            p2-p1:p1:p0.
+
+            This really has to be done in floating point.
+
+            collinearity, no division, but no useful error metric
+            x[0] * (y[1]-y[2]) + x[1] * (y[2]-y[0]) + x[2] * (y[0]-y[1])  == 0
+            (at least not without further division)
+
+            This way:
+
+            cos angle = dot product / product of euclidean lengths
+
+            (dx12 * dx23 + dy12 * dy23) /
+            (sqrt(dx12 * dx12 + dy12 * dy12) * sqrt(dx23 * dx23 + dy23 * dy23))
+
+            is costly up front (sqrt), but those distances need to be
+            calculated anyway (or at least they are handy).  Not much gained by
+            short-circuiting on bad collinearity, though.
+
+            It also handlily catches all the division by zeros in one meaningful
+            go.
+          */
+          sparrow_corner_t *c1 = &mesh[y1 * width + x1];
+          sparrow_corner_t *c2 = &mesh[y2 * width + x2];
+          sparrow_corner_t *c3 = &mesh[y3 * width + x3];
+
+          double dx12 = c1->x - c2->x;
+          double dy12 = c1->y - c2->y;
+          double dx23 = c2->x - c3->x;
+          double dy23 = c2->y - c3->y;
+          double distance12 = sqrt(dx12 * dx12 + dy12 * dy12);
+          double distance23 = sqrt(dx23 * dx23 + dy23 * dy23);
+
+          double dp = dx12 * dx23 + dy12 * dy23;
+
+          double distances = distance12 * distance23;
+          if (distances == 0.0){
+            GST_DEBUG("at least two points out of %d,%d, %d,%d, %d,%d are the same!",
+                x1, y1, x2, y2, x3, y3);
+            continue;
+          }
+          double line_error = 1.0 - dp / distances;
+          if (line_error > MAX_NONCOLLINEARITY){
+            GST_DEBUG("Points %d,%d, %d,%d, %d,%d are not in a line: non-collinearity: %3f",
+                x1, y1, x2, y2, x3, y3, line_error);
+            continue;
+          }
+          GST_DEBUG("GOOD collinearity: %3f", line_error);
+
+
+          double ratio = distance12 / distance23;
+          /*so here's the estimate!*/
+          int dx = (int) dx12 * ratio + 0.5;
+          int dy = (int) dy12 * ratio + 0.5;
+          int ex = x1 + dx;
+          int ey = y1 + dy;
+          if(ey < 0 || ey >= screen_height ||
+              ex < 0 || ex >= screen_width){
+            GST_DEBUG("rejecting estimate for %d, %d, due to ex, ey being %d, %d", x, y, ex, ey);
+            continue;
+          }
+          GST_DEBUG("estimator %d,%d SUCCESSFULLY estimated that %d, %d will be %d, %d",
+              x1, x2, x, y, ex, ey);
+
+          estimates[k].x = x1 + dx;
+          estimates[k].y = y1 + dy;
+          if (sparrow->debug){
+            debug[clamp_intxy(estimates[k].y, sparrow->in.height) * sparrow->in.width +
+                clamp_intxy(estimates[k].x, sparrow->in.width)] = 0x00aa7700;
+          }
+          k++;
+        }
+        /*now there is an array of estimates.
+          The *_discard_cluster_outliers functions should fit here */
+        GST_DEBUG("got %d estimates for %d,%d", k, x, y);
+        if(! k){
+          continue;
+        }
+        k = euclidean_discard_cluster_outliers(estimates, k);
+        if (sparrow->debug){
+          for (int j = 0; j < k; j++){
+            debug[clamp_intxy(estimates[j].y, sparrow->in.height) * sparrow->in.width +
+                clamp_intxy(estimates[j].x, sparrow->in.width)] = 0x00ffff00;
+          }
+        }
+        GST_DEBUG("After discard, left with %d estimates", k);
+        /*now what? the mean? yes.*/
+        int sumx = k / 2;
+        int sumy = k / 2;
+        for (int j = 0; j < k; j++){
+          sumx += estimates[j].x;
+          sumy += estimates[j].y;
+        }
+        int guess_x = sumx / k;
+        int guess_y = sumy / k;
+        GST_DEBUG("estimating %d,%d", guess_x, guess_y);
+
+        if (corner->status == CORNER_EXACT){
+          GST_DEBUG("exact corner");
+          if (sparrow->debug){
+            debug[clamp_intxy(corner->y, sparrow->in.height) * sparrow->in.width +
+                clamp_intxy(corner->x, sparrow->in.width)] = 0xffff3300;
+
+          }
+          GST_DEBUG("exact corner");
+          if (abs(corner->x - guess_x) < 2){
+            guess_x = corner->x;
+          }
+          if (abs(corner->y - guess_y) < 2){
+            guess_y = corner->y;
+          }
+        }
+        if (k < 5){
+          GST_DEBUG("weak evidence, mark corner PROJECTED");
+          corner->status = CORNER_PROJECTED;
+          if (sparrow->debug){
+            debug[clamp_intxy(guess_y, sparrow->in.height) * sparrow->in.width +
+                clamp_intxy(guess_x, sparrow->in.width)] = 0xff0000ff;
+          }
+        }
+        else{
+          GST_DEBUG("corner is SETTLED");
+          corner->status = CORNER_SETTLED;
+          settled ++;
+          if (sparrow->debug){
+            debug[clamp_intxy(guess_y, sparrow->in.height) * sparrow->in.width +
+                clamp_intxy(guess_x, sparrow->in.width)] = 0xffffffff;
+          }
+        }
+        corner->x = guess_x;
+        corner->y = guess_y;
+      }
+    }
+    if (settled == width * height ||
+        settled == prev_settled){
+      break;
+    }
+    prev_settled = settled;
+  }
+  MAYBE_DEBUG_IPL(fl->debug);
+}
+
+
+static void
+calculate_deltas(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int i;
   int width = fl->n_vlines;
   int height = fl->n_hlines;
@@ -743,10 +1000,10 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
     make_corners(sparrow, fl);
     break;
   case 2:
-    make_map(sparrow, fl);
+    complete_map(sparrow, fl);
     break;
   case 1:
-    fix_map(sparrow, fl);
+    calculate_deltas(sparrow, fl);
     break;
   case 0:
 #if USE_FULL_LUT

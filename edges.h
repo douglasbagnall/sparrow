@@ -18,11 +18,11 @@
 /*XXX should dither */
 #define QUANTISE_DELTA(d)(((d) + LINE_PERIOD / 2) / LINE_PERIOD)
 
-
 typedef enum corner_status {
   CORNER_UNUSED,
   CORNER_PROJECTED,
   CORNER_EXACT,
+  CORNER_SETTLED,
 } corner_status_t;
 
 typedef enum edges_state {
@@ -33,6 +33,16 @@ typedef enum edges_state {
 
   EDGES_NEXT_STATE,
 } edges_state_t;
+
+typedef struct sparrow_estimator_s {
+  int x1;
+  int y1;
+  int x2;
+  int y2;
+  int x3;
+  int y3;
+  //int mul; /* estimate: x1,y1 + mul * diff */
+} sparrow_estimator_t;
 
 typedef struct sparrow_corner_s {
   int x;
