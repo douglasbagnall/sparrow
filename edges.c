@@ -119,12 +119,13 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 #define FLOATXY(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
 
 static inline int
-clamp_intxy(int x, const int max){
+clamp_intxy(int x, const int max_plus_one){
   if (x < 0)
     return 0;
-  if (x >= max << SPARROW_FIXED_POINT)
-    return max;
-  return x / (1 << SPARROW_FIXED_POINT);
+  x >>= SPARROW_FIXED_POINT;
+  if (x >= max_plus_one)
+    return max_plus_one - 1;
+  return x;
 }
 
 static void
