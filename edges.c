@@ -889,6 +889,18 @@ init_find_edges(GstSparrow *sparrow){
 
   setup_colour_shifts(sparrow, fl);
 
+  /* opencv images for threshold finding */
+  CvSize size = {sparrow->in.width, sparrow->in.height};
+  fl->working = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
+  fl->threshold = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
+
+  /*input has no data allocated -- it uses latest frame*/
+  fl->input = init_ipl_image(&sparrow->in, PIXSIZE);
+  //DEBUG_FIND_LINES(fl);
+  if (sparrow->debug){
+    fl->debug = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
+  }
+
   if (sparrow->reload){
     if (access(sparrow->reload, R_OK)){
       GST_DEBUG("sparrow>reload is '%s' and it is UNREADABLE\n", sparrow->reload);
@@ -902,18 +914,6 @@ init_find_edges(GstSparrow *sparrow){
   }
   else {
     jump_state(sparrow, fl, EDGES_FIND_NOISE);
-  }
-  /* opencv images for threshold finding */
-  CvSize size = {sparrow->in.width, sparrow->in.height};
-  fl->working = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
-  fl->threshold = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
-
-  /*input has no data allocated -- it uses latest frame*/
-  fl->input = init_ipl_image(&sparrow->in, PIXSIZE);
-
-  //DEBUG_FIND_LINES(fl);
-  if (sparrow->debug){
-    fl->debug = cvCreateImage(size, IPL_DEPTH_8U, PIXSIZE);
   }
 
   global_number_of_edge_finders++;
