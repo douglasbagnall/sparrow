@@ -726,7 +726,7 @@ calculate_deltas(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_corner_t *mesh = fl->mesh;
   gint x, y;
 
-  DEBUG_FIND_LINES(fl);
+  //DEBUG_FIND_LINES(fl);
   /* calculate deltas toward adjacent corners */
   /* try to extrapolate left and up, if possible, so need to go backwards. */
   i = width * height - 1;
@@ -738,101 +738,20 @@ calculate_deltas(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       sparrow_corner_t *right = (x == width - 1) ? corner : corner + 1;
       sparrow_corner_t *down =  (y == height - 1) ? corner : corner + width;
       GST_DEBUG("i %d xy %d,%d width %d. in_xy %d,%d; down in_xy %d,%d; right in_xy %d,%d\n",
-          i, x, y, width, corner->in_x, corner->in_y, down->in_x,
-          down->in_y, right->in_x,  right->in_y);
+          i, x, y, width, corner->x, corner->y, down->x,
+          down->y, right->x,  right->y);
       if (corner->status != CORNER_UNUSED){
-        corner->dxr = (right->in_x - corner->in_x);
-        corner->dyr = (right->in_y - corner->in_y);
-        corner->dxd = (down->in_x -  corner->in_x);
-        corner->dyd = (down->in_y -  corner->in_y);
-      }
-      else {
-          /*copy from both right and down, if they both exist. */
-        struct {
-          int dxr;
-          int dyr;
-          int dxd;
-          int dyd;
-        } dividends = {0, 0, 0, 0};
-        struct {
-          int r;
-          int d;
-        } divisors = {0, 0};
-
-        if (right != corner){
-          if (right->dxr || right->dyr){
-            dividends.dxr += right->dxr;
-            dividends.dyr += right->dyr;
-            divisors.r++;
-          }
-          if (right->dxd || right->dyd){
-            dividends.dxd += right->dxd;
-            dividends.dyd += right->dyd;
-            divisors.d++;
-          }
-        }
-        if (down != corner){
-          if (down->dxr || down->dyr){
-            dividends.dxr += down->dxr;
-            dividends.dyr += down->dyr;
-            divisors.r++;
-          }
-          if (down->dxd || down->dyd){
-            dividends.dxd += down->dxd;
-            dividends.dyd += down->dyd;
-            divisors.d++;
-          }
-        }
-        corner->dxr = divisors.r ? dividends.dxr / divisors.r : 0;
-        corner->dyr = divisors.r ? dividends.dyr / divisors.r : 0;
-        corner->dxd = divisors.d ? dividends.dxd / divisors.d : 0;
-        corner->dyd = divisors.d ? dividends.dyd / divisors.d : 0;
-
-        /*now extrapolate position, preferably from both left and right */
-        if (right == corner){
-          if (down != corner){ /*use down only */
-            corner->in_x = down->in_x - corner->dxd;
-            corner->in_y = down->in_y - corner->dyd;
-          }
-          else {/*oh no*/
-            GST_DEBUG("can't reconstruct corner %d, %d: no useable neighbours\n", x, y);
-            /*it would be easy enough to look further, but hopefully of no
-              practical use */
-          }
-        }
-        else if (down == corner){ /*use right only */
-          corner->in_x = right->in_x - corner->dxr;
-          corner->in_y = right->in_y - corner->dyr;
-        }
-        else { /* use both */
-          corner->in_x = right->in_x - corner->dxr;
-          corner->in_y = right->in_y - corner->dyr;
-          corner->in_x += down->in_x - corner->dxd;
-          corner->in_y += down->in_y - corner->dyd;
-          corner->in_x >>= 1;
-          corner->in_y >>= 1;
-        }
-        corner->status = CORNER_PROJECTED;
+        corner->dxr = QUANTISE_DELTA(right->x - corner->x);
+        corner->dyr = QUANTISE_DELTA(right->y - corner->y);
+        corner->dxd = QUANTISE_DELTA(down->x -  corner->x);
+        corner->dyd = QUANTISE_DELTA(down->y -  corner->y);
       }
     }
   }
-  /*now quantise delta values.  It would be wrong to do it earlier, when they
-    are being used to calculate whole mesh jumps, but from now they are
-    primarily going to used for pixel (mesh / LINE_PERIOD) jumps. To do this in
-  corners_to_lut puts a whole lot of division in a tight loop.*/
-  for (i = 0; i < width * height; i++){
-    sparrow_corner_t *corner = &mesh[i];
-    corner->dxr = QUANTISE_DELTA(corner->dxr);
-    corner->dyr = QUANTISE_DELTA(corner->dyr);
-    corner->dxd = QUANTISE_DELTA(corner->dxd);
-    corner->dyd = QUANTISE_DELTA(corner->dyd);
-  }
-  DEBUG_FIND_LINES(fl);
   if (sparrow->debug){
     debug_corners_image(sparrow, fl);
   }
 }
-
 
 
 static void
