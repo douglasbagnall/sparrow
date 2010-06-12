@@ -70,7 +70,9 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 static void
 debug_map_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_map_lut_t *map_lut = sparrow->map_lut;
-  debug_frame(sparrow, (guint8*)map_lut, sparrow->out.width, sparrow->out.height, PIXSIZE);
+  if (sparrow->debug){
+    debug_frame(sparrow, (guint8*)map_lut, sparrow->out.width, sparrow->out.height, PIXSIZE);
+  }
 }
 
 
