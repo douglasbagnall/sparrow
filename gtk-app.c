@@ -215,14 +215,11 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
     /* "screen" is not the same thing as "monitor" */
     GdkScreen * screen = gdk_screen_get_default();
     int width = gdk_screen_get_width(screen);
-    //int monitor = gdk_screen_get_monitor_at_point(screen,
-    //    width / 2 + width * screen_no, 50);
-    gtk_window_move(GTK_WINDOW(window), (width / 2 * screen_no + 50), 50);
-
-
-    //GdkDisplay *display = gdk_display_get_default();
-    //GdkScreen *screen = gdk_display_get_screen(display, screen_no);
-    //gtk_window_set_screen(GTK_WINDOW(window), screen);
+    /* XXX window selection is specific to equally sized windows arranged
+       horizontally.  This could be generalised, perhaps using trial and
+       error */
+    gtk_window_move(GTK_WINDOW(window),
+        (width / 2 * screen_no + 50), 50);
   }
 
   // attach key press signal to key press callback
