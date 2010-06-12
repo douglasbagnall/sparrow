@@ -286,15 +286,17 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 }
 
 
-static inline void
-drop_cluster_voter(sparrow_cluster_t *cluster, int n)
+static inline int
+drop_cluster_voter(sparrow_voter_t *voters, int n, int k)
 {
-  if (n < cluster->n){
-    for (int i = n; i < cluster->n - 1; i++){
-      cluster->voters[i] = cluster->voters[i + 1];
+  int i;
+  if (k < n){
+    n--;
+    for (i = k; i < n; i++){
+      voters[i] = voters[i + 1];
     }
-    cluster->n--;
   }
+  return n;
 }
 
 static inline int sort_median(int *a, guint n)
@@ -321,31 +323,33 @@ static inline int sort_median(int *a, guint n)
 }
 
 #define EUCLIDEAN_D2(ax, ay, bx, by)((ax - bx) * (ax - bx) + (ay - by) * (ay - by))
-#define EUCLIDEAN_THRESHOLD 9
+#define EUCLIDEAN_THRESHOLD 7
 
-static inline void
-euclidean_discard_cluster_outliers(sparrow_cluster_t *cluster)
+static inline int
+euclidean_discard_cluster_outliers(sparrow_voter_t *voters, int n)
 {
   /* Calculate distance between each pair.  Discard points with maximum sum,
      then recalculate until all are within threshold.
  */
+  GST_DEBUG("cleansing a cluster of size %d using sum of distances", n);
   int i, j;
-  int dsums[CLUSTER_SIZE] = {0};
-  for (i = 0; i < cluster->n; i++){
-    for (j = i + 1; j < cluster->n; i++){
-      int d = EUCLIDEAN_D2(cluster->voters[i].x, cluster->voters[i].y,
-          cluster->voters[j].x, cluster->voters[j].y);
+  int dsums[n];
+  for (i = 0; i < n; i++){
+    dsums[i] = 0;
+    for (j = i + 1; j < n; j++){
+      int d = EUCLIDEAN_D2(voters[i].x, voters[i].y,
+          voters[j].x, voters[j].y);
       dsums[i] += d;
       dsums[j] += d;
     }
   }
 
   int worst_d, worst_i, threshold;
-  do {
-    threshold = EUCLIDEAN_THRESHOLD * cluster->n;
+  while (n > 1){
+    threshold = EUCLIDEAN_THRESHOLD * n;
     worst_i = 0;
     worst_d = 0;
-    for (i = 0; i < cluster->n; i++){
+    for (i = 0; i < n; i++){
       if (dsums[i] > worst_d){
         worst_d = dsums[i];
         worst_i = i;
@@ -354,35 +358,47 @@ euclidean_discard_cluster_outliers(sparrow_cluster_t *cluster)
     if (worst_d > threshold){
       GST_DEBUG("failing point %d, distance sq %d, threshold %d\n",
           worst_i, worst_d, threshold);
-      drop_cluster_voter(cluster, worst_i);
+      //subtract this one from the sums, or they'll all go
+      for (i = 0; i < n; i++){
+        dsums[i] -= EUCLIDEAN_D2(voters[i].x, voters[i].y,
+            voters[worst_i].x, voters[worst_i].y);
+      }
+      n = drop_cluster_voter(voters, n, worst_i);
     }
-  } while(worst_d > threshold && cluster->n);
+    else{
+      GST_DEBUG("worst %d, was only %d, threshold %d\n",
+          worst_i, worst_d, threshold);
+      break;
+    }
+  }
+  return n;
 }
 
-static inline void
-median_discard_cluster_outliers(sparrow_cluster_t *cluster)
+static inline int
+median_discard_cluster_outliers(sparrow_voter_t *voters, int n)
 {
-  int xvals[CLUSTER_SIZE];
-  int yvals[CLUSTER_SIZE];
+  int xvals[n];
+  int yvals[n];
   int i;
-  for (i = 0; i < cluster->n; i++){
+  for (i = 0; i < n; i++){
     /*XXX could sort here*/
-    xvals[i] = cluster->voters[i].x;
-    yvals[i] = cluster->voters[i].y;
+    xvals[i] = voters[i].x;
+    yvals[i] = voters[i].y;
   }
-  const int xmed = sort_median(xvals, cluster->n);
-  const int ymed = sort_median(yvals, cluster->n);
+  const int xmed = sort_median(xvals, n);
+  const int ymed = sort_median(yvals, n);
 
-  for (i = 0; i < cluster->n; i++){
-    int dx = cluster->voters[i].x - xmed;
-    int dy = cluster->voters[i].y - ymed;
+  for (i = 0; i < n; i++){
+    int dx = voters[i].x - xmed;
+    int dy = voters[i].y - ymed;
     if (dx * dx + dy * dy > OUTLIER_THRESHOLD){
-      drop_cluster_voter(cluster, i);
+      n = drop_cluster_voter(voters, n, i);
     }
   }
+  return n;
 }
 
-/*create the mesh */
+/* */
 static inline void
 make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   //DEBUG_FIND_LINES(fl);
@@ -399,14 +415,14 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       if (cluster->n == 0){
         continue;
       }
-#if 0
+#if 1
       /*discard outliers based on sum of squared distances: good points should
         be in a cluster, and have lowest sum*/
-      euclidean_discard_cluster_outliers(cluster);
+      cluster->n = euclidean_discard_cluster_outliers(cluster->voters, cluster->n);
 #else
       /*discard values away from median x, y values.
        (each dimension is calculated independently)*/
-      median_discard_cluster_outliers(cluster);
+      cluster->n = median_discard_cluster_outliers(cluster->voters, cluster->n);
 #endif
       /* now find a weighted average position */
       /*64 bit to avoid overflow -- should probably just use floating point
