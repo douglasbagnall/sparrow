@@ -656,7 +656,7 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
     sparrow->countdown = MAX(sparrow->lag, 1) + SAFETY_LAG;
     break;
   case EDGES_FIND_CORNERS:
-    sparrow->countdown = 4;
+    sparrow->countdown = 7;
     break;
   case EDGES_WAIT_FOR_PLAY:
     global_number_of_edge_finders--;
@@ -720,14 +720,17 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
 {
   sparrow->countdown--;
   switch(sparrow->countdown){
-  case 3:
+  case 4:
     make_clusters(sparrow, fl);
     break;
-  case 2:
+  case 3:
     make_corners(sparrow, fl);
     break;
-  case 1:
+  case 2:
     make_map(sparrow, fl);
+    break;
+  case 1:
+    fix_map(sparrow, fl);
     break;
   case 0:
 #if USE_FULL_LUT
@@ -739,7 +742,7 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
     break;
   default:
     GST_DEBUG("how did sparrow->countdown get to be %d?", sparrow->countdown);
-    sparrow->countdown = 4;
+    sparrow->countdown = 5;
   }
   return sparrow->countdown;
 }
@@ -775,8 +778,9 @@ mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
       return SPARROW_NEXT_STATE;
     }
     break;
-  case EDGES_NEXT_STATE:
-    break; /*shush gcc */
+  default:
+    GST_WARNING("strange state in mode_find_edges: %d", fl->state);
+    memset(out, 0, sparrow->out.size);
   }
   return SPARROW_STATUS_QUO;
 }
