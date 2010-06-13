@@ -236,6 +236,7 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
 static GOptionEntry entries[] =
 {
   { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
+  { "fps", 'p', 0, G_OPTION_ARG_INT, &option_fps, "speed (Frames per second)", "FPS" },
   { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
   { "first-screen", 0, 0, G_OPTION_ARG_INT, &option_first_screen, "Start with this screen", "S" },
   { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
