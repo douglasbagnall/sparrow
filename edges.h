@@ -15,8 +15,6 @@
 #define COLOUR_QUANT  1
 #define COLOUR_MASK  (0xff >> COLOUR_QUANT)
 
-/*XXX should dither */
-
 typedef enum corner_status {
   CORNER_UNUSED,
   CORNER_PROJECTED,
@@ -129,6 +127,7 @@ typedef struct sparrow_find_lines_s {
   sparrow_corner_t *mesh;
   sparrow_corner_t *mesh_next;
   sparrow_cluster_t *clusters;
+  double *dither;
   IplImage *debug;
   IplImage *threshold;
   IplImage *working;
@@ -137,38 +136,40 @@ typedef struct sparrow_find_lines_s {
 } sparrow_find_lines_t;
 
 
-#define DEBUG_FIND_LINES(fl)GST_DEBUG(          \
-  "fl:\n"                                       \
-  "  sparrow_line_t *h_lines: %p\n"             \
-  "  sparrow_line_t *v_lines: %p\n"             \
-  "  sparrow_line_t **shuffled_lines: %p\n"     \
-  "  int current: %d\n"                         \
-  "  int n_lines: %d\n"                         \
-  "  int n_vlines: %d\n"                        \
-  "  int n_hlines: %d\n"                        \
-  "  gint shift1: %d\n"                         \
-  "  gint shift2: %d\n"                         \
-  "  sparrow_intersect_t *map: %p\n"            \
-  "  sparrow_corner_t *mesh: %p\n"              \
-  "  sparrow_cluster_t *clusters: %p\n"         \
-  "  IplImage *debug: %p\n"                     \
-  "  IplImage *threshold: %p\n"                 \
-  "  IplImage *working: %p\n"                   \
-  "  IplImage *input: %p\n"                     \
-  "  edges_state_t state: %d\n"                 \
-  ,                                             \
-  (fl)->h_lines,                                  \
-  (fl)->v_lines,                                  \
-  (fl)->shuffled_lines,                           \
-  (fl)->current,                                  \
-  (fl)->n_lines,                                  \
-  (fl)->n_vlines,                                 \
-  (fl)->n_hlines,                                 \
-  (fl)->shift1,                                   \
-  (fl)->shift2,                                   \
-  (fl)->map,                                      \
-  (fl)->mesh,                                     \
-  (fl)->clusters,                                 \
+#define DEBUG_FIND_LINES(fl)GST_DEBUG(             \
+    "fl:\n"                                        \
+  "  sparrow_line_t *h_lines: %p\n"                \
+  "  sparrow_line_t *v_lines: %p\n"                \
+  "  sparrow_line_t **shuffled_lines: %p\n"        \
+  "  int current: %d\n"                            \
+  "  int n_lines: %d\n"                            \
+  "  int n_vlines: %d\n"                           \
+  "  int n_hlines: %d\n"                           \
+  "  gint shift1: %d\n"                            \
+  "  gint shift2: %d\n"                            \
+  "  sparrow_intersect_t *map: %p\n"               \
+  "  sparrow_corner_t *mesh: %p\n"                 \
+  "  sparrow_cluster_t *clusters: %p\n"            \
+  "  double *dither: %p \n"                        \
+  "  IplImage *debug: %p\n"                        \
+  "  IplImage *threshold: %p\n"                    \
+  "  IplImage *working: %p\n"                      \
+  "  IplImage *input: %p\n"                        \
+  "  edges_state_t state: %d\n"                    \
+  ,                                                \
+  (fl)->h_lines,                                   \
+  (fl)->v_lines,                                   \
+  (fl)->shuffled_lines,                            \
+  (fl)->current,                                   \
+  (fl)->n_lines,                                   \
+  (fl)->n_vlines,                                  \
+  (fl)->n_hlines,                                  \
+  (fl)->shift1,                                    \
+  (fl)->shift2,                                    \
+  (fl)->map,                                       \
+  (fl)->mesh,                                      \
+  (fl)->clusters,                                  \
+  (fl)->dither,                                    \
   (fl)->debug,                                    \
   (fl)->threshold,                                \
   (fl)->working,                                  \

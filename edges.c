@@ -88,8 +88,20 @@ coord_to_int_clamp(coord_t x, const int max_plus_one){
     return 0;
   if (x >= max_plus_one - 1.5)
     return max_plus_one - 1;
-  return (int)(x);
+  return (int)(x + 0.5);
 }
+
+static inline int
+coord_to_int_clamp_dither(sparrow_find_lines_t *fl, coord_t x,
+    const int max_plus_one, const int i){
+  if (x < 0)
+    return 0;
+  x += fl->dither[i];
+  if (x >= max_plus_one)
+    return max_plus_one - 1;
+  return (int)x;
+}
+
 
 static inline int
 coord_in_range(coord_t x, const int max_plus_one){
@@ -150,8 +162,8 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         coord_t iy = mesh_square->y + mmy * mesh_square->dyd;
         coord_t ix = mesh_square->x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
-          int ixx = coord_to_int_clamp(ix, sparrow->in.width);
-          int iyy = coord_to_int_clamp(iy, sparrow->in.height);
+          int ixx = coord_to_int_clamp_dither(fl, ix, sparrow->in.width, i);
+          int iyy = coord_to_int_clamp_dither(fl, iy, sparrow->in.height, i);
           if(sparrow->screenmask[iyy * sparrow->in.width + ixx]){
             map_lut[i].x = ixx;
             map_lut[i].y = iyy;
@@ -1095,6 +1107,7 @@ finalise_find_edges(GstSparrow *sparrow){
   free(fl->map);
   free(fl->mesh_mem);
   free(fl->clusters);
+  free(fl->dither);
   cvReleaseImage(&fl->threshold);
   cvReleaseImage(&fl->working);
   cvReleaseImageHeader(&fl->input);
@@ -1130,6 +1143,11 @@ init_find_edges(GstSparrow *sparrow){
   gint v_lines = (sparrow->out.width + LINE_PERIOD - 1) / LINE_PERIOD;
   gint n_lines_max = (h_lines + v_lines);
   gint n_corners = (h_lines * v_lines);
+
+  /*set up dither here, rather than in the busy time */
+  fl->dither = malloc_aligned_or_die(sparrow->out.pixcount * sizeof(double));
+  dsfmt_fill_array_close_open(sparrow->dsfmt, fl->dither, sparrow->out.pixcount);
+
   fl->n_hlines = h_lines;
   fl->n_vlines = v_lines;
 
