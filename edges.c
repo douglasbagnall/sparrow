@@ -447,10 +447,11 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       cluster->n = median_discard_cluster_outliers(cluster->voters, cluster->n);
 #endif
       /* now find a weighted average position */
-      /*64 bit to avoid overflow -- should probably just use floating point
+      /*With int coord_t, coord_sum_t is
+        64 bit to avoid overflow -- should probably just use floating point
         (or reduce signal)*/
-      guint64 xsum, ysum;
-      guint xmean, ymean;
+      coord_sum_t xsum, ysum;
+      coord_t xmean, ymean;
       guint64 votes;
       int j;
       xsum = 0;
@@ -462,8 +463,8 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
       if (votes){
-        xmean = INT_TO_COORD(xsum) / votes;
-        ymean = INT_TO_COORD(ysum) / votes;
+        xmean = xsum / votes;
+        ymean = ysum / votes;
       }
       else {
         GST_WARNING("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
@@ -679,10 +680,11 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
           double ratio = distance12 / distance23;
           /*so here's the estimate!*/
-          coord_t dx = (coord_t) dx12 * ratio + 0.5;
-          coord_t dy = (coord_t) dy12 * ratio + 0.5;
-          coord_t ex = x1 + dx;
-          coord_t ey = y1 + dy;
+          coord_t dx = dx12 * ratio;
+          coord_t dy = dy12 * ratio;
+          coord_t ex = c1->x + dx;
+          coord_t ey = c1->y + dy;
+
 #if 0
           GST_DEBUG("dx, dy: %d,%d, ex, ey: %d,%d\n"
               "dx raw:  %0.3f,%0.3f,  x1, x2: %0.3f,%0.3f,\n"
