@@ -34,7 +34,13 @@ typedef enum edges_state {
   EDGES_NEXT_STATE,
 } edges_state_t;
 
+#define USE_FLOAT_COORDS 1
+
+#if USE_FLOAT_COORDS
+typedef float coord_t;
+#else
 typedef int coord_t;
+#endif
 
 typedef struct sparrow_estimator_s {
   int x1;

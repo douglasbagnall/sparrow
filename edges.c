@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "cv.h"
+#include "median.h"
 
 static int global_number_of_edge_finders = 0;
 
@@ -75,6 +76,27 @@ debug_map_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
+#if USE_FLOAT_COORDS
+
+#define COORD_TO_INT(x)((int)((x) + 0.5))
+#define COORD_TO_FLOAT(x)((double)(x))
+#define INT_TO_COORD(x)((coord_t)(x))
+
+static inline int
+coord_to_int_clamp(coord_t x, const int max_plus_one){
+  if (x < 0)
+    return 0;
+  if (x >= max_plus_one - 1.5)
+    return max_plus_one - 1;
+  return (int)(x);
+}
+
+static inline int
+coord_in_range(coord_t x, const int max_plus_one){
+  return x >= 0 && (x + 0.5 < max_plus_one);
+}
+
+#else
 
 #define COORD_TO_INT(x)((x) / (1 << SPARROW_FIXED_POINT))
 #define COORD_TO_FLOAT(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
@@ -91,16 +113,20 @@ coord_to_int_clamp(coord_t x, const int max_plus_one){
 }
 
 static inline int
+coord_in_range(coord_t x, const int max_plus_one){
+  return x >= 0 && (x < max_plus_one << SPARROW_FIXED_POINT);
+}
+
+#endif
+
+//these ones are common
+static inline int
 coords_to_index(coord_t x, coord_t y, int w, int h){
   int iy = coord_to_int_clamp(y, h);
   int ix = coord_to_int_clamp(x, w);
   return iy * w + ix;
 }
 
-static inline int
-coord_in_range(coord_t x, const int max_plus_one){
-  return x >= 0 && (x < max_plus_one << SPARROW_FIXED_POINT);
-}
 
 
 static void
@@ -199,8 +225,8 @@ debug_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     colour = colours[i % 5];
     sparrow_voter_t *v = clusters[i].voters;
     for (j = 0; j < clusters[i].n; j++){
-      data[v[j].y * sparrow->in.width +
-          v[j].x] = (colour * (v[j].signal / 2)) / 256;
+      data[coords_to_index(v[j].x, v[j].y,
+            sparrow->in.width, sparrow->in.height)] = (colour * (v[j].signal / 2)) / 256;
     }
   }
   MAYBE_DEBUG_IPL(fl->debug);
@@ -252,20 +278,20 @@ make_clusters(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       }
 
       if (n < CLUSTER_SIZE){
-        voters[n].x = x;
-        voters[n].y = y;
+        voters[n].x = INT_TO_COORD(x);
+        voters[n].y = INT_TO_COORD(y);
         voters[n].signal = signal;
         cluster->n++;
       }
       else {
         /*duplicate x, y, signal, so they aren't mucked up */
         guint ts = signal;
-        int tx = x;
-        int ty = y;
+        coord_t tx = x;
+        coord_t ty = y;
         /*replaced one ends up here */
-        int ts2;
-        int tx2;
-        int ty2;
+        guint ts2;
+        coord_t tx2;
+        coord_t ty2;
         for (int j = 0; j < CLUSTER_SIZE; j++){
           if (voters[j].signal < ts){
             ts2 = voters[j].signal;
@@ -304,21 +330,21 @@ drop_cluster_voter(sparrow_voter_t *voters, int n, int k)
   return n;
 }
 
-static inline int sort_median(int *a, guint n)
+static inline int sort_median(coord_t *a, guint n)
 {
   guint i, j;
   /*stupid sort, but n is very small*/
   for (i = 0; i <  n; i++){
     for (j = i + 1; j < n; j++){
       if (a[i] > a[j]){
-        int tmp = a[j];
+        coord_t tmp = a[j];
         a[j] = a[i];
         a[i] = tmp;
       }
     }
   }
   guint middle = n / 2;
-  int answer = a[middle];
+  coord_t answer = a[middle];
 
   if ((n & 1) == 0){
     answer += a[middle - 1];
@@ -338,18 +364,19 @@ euclidean_discard_cluster_outliers(sparrow_voter_t *voters, int n)
  */
   GST_DEBUG("cleansing a cluster of size %d using sum of distances", n);
   int i, j;
-  int dsums[n];
+  coord_t dsums[n];
   for (i = 0; i < n; i++){
     dsums[i] = 0;
     for (j = i + 1; j < n; j++){
-      int d = EUCLIDEAN_D2(voters[i].x, voters[i].y,
+      coord_t d = EUCLIDEAN_D2(voters[i].x, voters[i].y,
           voters[j].x, voters[j].y);
       dsums[i] += d;
       dsums[j] += d;
     }
   }
 
-  int worst_d, worst_i, threshold;
+  int worst_i;
+  coord_t worst_d, threshold;
   while (n > 1){
     threshold = EUCLIDEAN_THRESHOLD * n;
     worst_i = 0;
@@ -382,20 +409,20 @@ euclidean_discard_cluster_outliers(sparrow_voter_t *voters, int n)
 static inline int
 median_discard_cluster_outliers(sparrow_voter_t *voters, int n)
 {
-  int xvals[n];
-  int yvals[n];
+  coord_t xvals[n];
+  coord_t yvals[n];
   int i;
   for (i = 0; i < n; i++){
     /*XXX could sort here*/
     xvals[i] = voters[i].x;
     yvals[i] = voters[i].y;
   }
-  const int xmed = sort_median(xvals, n);
-  const int ymed = sort_median(yvals, n);
+  const coord_t xmed = sort_median(xvals, n);
+  const coord_t ymed = sort_median(yvals, n);
 
   for (i = 0; i < n; i++){
-    int dx = voters[i].x - xmed;
-    int dy = voters[i].y - ymed;
+    coord_t dx = voters[i].x - xmed;
+    coord_t dy = voters[i].y - ymed;
     if (dx * dx + dy * dy > OUTLIER_THRESHOLD){
       n = drop_cluster_voter(voters, n, i);
     }
@@ -465,6 +492,25 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
+static sparrow_voter_t
+median_centre(sparrow_voter_t *estimates, int n){
+  /*X and Y arevcalculated independently, which is really not right.
+    on the other hand, it probably works. */
+  int i;
+  sparrow_voter_t result;
+  coord_t vals[n];
+  for (i = 0; i < n; i++){
+    vals[i] = estimates[i].x;
+  }
+  result.x = coord_median(vals, n);
+
+  for (i = 0; i < n; i++){
+    vals[i] = estimates[i].y;
+  }
+  result.y = coord_median(vals, n);
+  return result;
+}
+
 static const sparrow_estimator_t base_estimators[] = {
   { 0, 1,     0, 2,    0, 3},
   { 0, 2,     0, 4,    0, 6},
@@ -523,9 +569,7 @@ calculate_estimator_tables(sparrow_estimator_t *estimators){
   missing points */
 static void
 complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  //linear regression?
-  //slopes and lines
-  sparrow_voter_t estimates[ESTIMATORS];
+  sparrow_voter_t estimates[ESTIMATORS + 1];
   sparrow_estimator_t estimators[ESTIMATORS];
   calculate_estimator_tables(estimators);
 
@@ -658,6 +702,30 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         if(! k){
           continue;
         }
+        coord_t guess_x;
+        coord_t guess_y;
+
+#if 1
+        /*now find median values.  If the number is even, add a copy of either
+          the original value, or a random element. */
+        if (! k & 1){
+          if (corner->status != CORNER_UNUSED){
+            estimates[k].x = corner->x;
+            estimates[k].y = corner->y;
+          }
+          else {
+            int r = RANDINT(sparrow, 0, r);
+            estimates[k].x = estimates[r].x;
+            estimates[k].y = estimates[r].y;
+          }
+          k++;
+        }
+        sparrow_voter_t centre = median_centre(estimates, k);
+        guess_x = centre.x;
+        guess_y = centre.y;
+
+#else
+
         k = euclidean_discard_cluster_outliers(estimates, k);
         if (sparrow->debug){
           for (int j = 0; j < k; j++){
@@ -667,15 +735,18 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         }
         GST_DEBUG("After discard, left with %d estimates", k);
         /*now what? the mean? yes.*/
-        int sumx = k / 2;
-        int sumy = k / 2;
+        coord_t sumx = 0;
+        coord_t sumy = 0;
         for (int j = 0; j < k; j++){
           sumx += estimates[j].x;
           sumy += estimates[j].y;
         }
-        int guess_x = sumx / k;
-        int guess_y = sumy / k;
-        GST_DEBUG("estimating %d,%d", guess_x, guess_y);
+        guess_x = sumx / k;
+        guess_y = sumy / k;
+
+#endif
+
+        GST_INFO("estimating %d,%d", C2I(guess_x), C2I(guess_y));
 
         if (corner->status == CORNER_EXACT){
           GST_DEBUG("exact corner");
