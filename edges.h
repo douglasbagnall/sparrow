@@ -37,8 +37,17 @@ typedef enum edges_state {
 
 #if USE_FLOAT_COORDS
 typedef float coord_t;
+typedef float coord_sum_t;
+#define QUANTISE_DELTA(d)((d) / LINE_PERIOD)
+
 #else
+/* the mesh is stored in a fixed point notation.*/
+#define SPARROW_FIXED_POINT 9
+
 typedef int coord_t;
+typedef gint64 coord_sum_t;
+#define QUANTISE_DELTA(d)(((d) + LINE_PERIOD / 2) / LINE_PERIOD)
+
 #endif
 
 typedef struct sparrow_estimator_s {

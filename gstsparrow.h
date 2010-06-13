@@ -133,11 +133,6 @@ typedef enum sparrow_axis_s {
 } sparrow_axis_t;
 
 
-/* a mesh of these contains the mapping from input to output.
-   stored in a fixed point notation.
-*/
-#define SPARROW_FIXED_POINT 9
-
 typedef struct sparrow_map_path_s {
   int dx;
   int dy;

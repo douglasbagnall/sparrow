@@ -591,7 +591,6 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           GST_DEBUG("ignoring settled corner %d, %d", x, y);
           continue;
         }
-        //memset(estimates, 0, sizeof(estimates));
         int k = 0;
         for (guint j = 0; j < ESTIMATORS; j++){
           sparrow_estimator_t *e = &estimators[j];
@@ -773,11 +772,10 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             debug[coords_to_index(corner->x, corner->y,
                   sparrow->in.width, sparrow->in.height)] = 0xffff3300;
           }
-          GST_DEBUG("exact corner");
-          if (abs(corner->x - guess_x) < 2){
+          if (abs(corner->x - guess_x) < 3){
             guess_x = corner->x;
           }
-          if (abs(corner->y - guess_y) < 2){
+          if (abs(corner->y - guess_y) < 3){
             guess_y = corner->y;
           }
         }
