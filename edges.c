@@ -150,7 +150,7 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         coord_t iy = mesh_square->y + mmy * mesh_square->dyd;
         coord_t ix = mesh_square->x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
-          int ixx = coord_to_int_clamp(iy, sparrow->in.width);
+          int ixx = coord_to_int_clamp(ix, sparrow->in.width);
           int iyy = coord_to_int_clamp(iy, sparrow->in.height);
           if(sparrow->screenmask[iyy * sparrow->in.width + ixx]){
             map_lut[i].x = ixx;
