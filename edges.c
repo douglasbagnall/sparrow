@@ -772,10 +772,10 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             debug[coords_to_index(corner->x, corner->y,
                   sparrow->in.width, sparrow->in.height)] = 0xffff3300;
           }
-          if (abs(corner->x - guess_x) < 3){
+          if ((guess_x - corner->x) * (guess_x - corner->x) +
+              (guess_y - corner->y) * (guess_y - corner->y)
+              < CORNER_EXACT_THRESHOLD){
             guess_x = corner->x;
-          }
-          if (abs(corner->y - guess_y) < 3){
             guess_y = corner->y;
             corner->status = CORNER_SETTLED;
             GST_INFO("using exact reading %0.3f, %0.3f", C2F(corner->x), C2F(corner->y));
