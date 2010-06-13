@@ -154,9 +154,12 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
   int y = H_LINE_OFFSET;
   sparrow_corner_t *mesh_row = mesh;
+  int *prefetch = sparrow->in_prefetch;
 
   for(mcy = 0; mcy < mesh_h - 1; mcy++){
     for (mmy = 0; mmy < LINE_PERIOD; mmy++, y++){
+      int pfi = 0; /*prefetch index*/
+      int old_ipp = 0;
       sparrow_corner_t *mesh_square = mesh_row;
       int i = y * sparrow->out.width + V_LINE_OFFSET;
       for(mcx = 0; mcx < mesh_w - 1; mcx++){
@@ -165,9 +168,16 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
           int ixx = coord_to_int_clamp_dither(fl, ix, sparrow->in.width, i);
           int iyy = coord_to_int_clamp_dither(fl, iy, sparrow->in.height, i);
-          if(sparrow->screenmask[iyy * sparrow->in.width + ixx]){
+          int ipp = iyy * sparrow->in.width + ixx;
+          if(sparrow->screenmask[ipp]){
             map_lut[i].x = ixx;
             map_lut[i].y = iyy;
+            if (abs(ipp - old_ipp) > IMAGINED_CACHE_SIZE / PIXSIZE &&
+                pfi < CACHE_PREFETCH_PER_ROW){
+              prefetch[y * CACHE_PREFETCH_PER_ROW + pfi] = ipp;
+              old_ipp = ipp;
+              pfi++;
+            }
           }
           ix += mesh_square->dxr;
           iy += mesh_square->dyr;

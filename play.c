@@ -121,9 +121,18 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   GST_DEBUG("in %p out %p", in, out);
 
   guint8 *jpeg_row = player->image_row;
+  int *prefetch = sparrow->in_prefetch;
   i = 0;
+
   for (oy = 0; oy < sparrow->out.height; oy++){
-    //GST_DEBUG("about to read line to %p", jpeg_row);
+    /*prefetch the points y increases or deceeases */
+    for (int j = 0; j < CACHE_PREFETCH_PER_ROW; j++){
+      if (! prefetch[j])
+        break;
+      __builtin_prefetch(in + prefetch[j], 0, 3);
+    }
+    prefetch += CACHE_PREFETCH_PER_ROW;
+
     read_one_line(sparrow, jpeg_row);
     for (ox = 0; ox < sparrow->out.width; ox++, i++){
       int x = sparrow->map_lut[i].x;
