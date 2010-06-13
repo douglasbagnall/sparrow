@@ -5,6 +5,7 @@
 static gboolean option_fullscreen = FALSE;
 static gint option_debug = -1;
 static gint option_screens = 1;
+static guint option_first_screen = 0;
 static char **option_reload = NULL;
 static char **option_save = NULL;
 

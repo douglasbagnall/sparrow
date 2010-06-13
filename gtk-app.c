@@ -211,7 +211,7 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
 
   /*if more than one screen is requested, set the screen number.
     otherwise let it fall were it falls */
-  if (option_screens > 1){
+  if (option_screens > 1 || option_first_screen){
     /* "screen" is not the same thing as "monitor" */
     GdkScreen * screen = gdk_screen_get_default();
     int width = gdk_screen_get_width(screen);
@@ -219,7 +219,7 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
        horizontally.  This could be generalised, perhaps using trial and
        error */
     gtk_window_move(GTK_WINDOW(window),
-        (width / 2 * screen_no + 50), 50);
+        (width / 2 * screen_no + 400) % width, 50);
   }
 
   // attach key press signal to key press callback
@@ -237,6 +237,7 @@ static GOptionEntry entries[] =
 {
   { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
   { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
+  { "first-screen", 0, 0, G_OPTION_ARG_INT, &option_first_screen, "Start with this screen", "S" },
   { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
   { "reload", 'r', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_reload,
     "load calibration data from FILE (one per screen)", "FILE" },
@@ -279,7 +280,7 @@ gint main (gint argc, gchar *argv[])
         G_CALLBACK(video_widget_realize_cb), &windows);
     /* set up sink here */
     GstElement *sink = gst_element_factory_make("ximagesink", NULL);
-    set_up_window(loop, window, i);
+    set_up_window(loop, window, i + option_first_screen);
     windows.gtk_windows[i] = window;
     windows.sinks[i] = sink;
   }
