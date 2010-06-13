@@ -15,6 +15,21 @@
 #define COLOUR_QUANT  1
 #define COLOUR_MASK  (0xff >> COLOUR_QUANT)
 
+/*if squared error between observed error and predicted error exceeds this,
+  ignore the observation */
+#define CORNER_EXACT_THRESHOLD 16
+
+/*a corner based on fewer than this number of projects cannot be considered
+  settled */
+#define MIN_CORNER_ESTIMATES 5
+
+/* nice big word. acos(1.0 - MAX_NONCOLLINEARITY) = angle of deviation.  This
+   is used when lining up known points to estimte the position of lost ones.
+   0.005: 5.7 degrees, 0.01: 8.1, 0.02: 11.5, 0.04: 16.3, 0.08: 23.1
+   1 pixel deviation in 32 -> ~ 1/33 == 0.03 (if I understand correctly)
+*/
+#define MAX_NONCOLLINEARITY 0.02
+
 typedef enum corner_status {
   CORNER_UNUSED,
   CORNER_PROJECTED,

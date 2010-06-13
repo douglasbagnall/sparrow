@@ -140,6 +140,7 @@ coords_to_index(coord_t x, coord_t y, int w, int h){
 }
 
 #define C2I COORD_TO_INT
+#define C2F COORD_TO_FLOAT
 
 /********************************************/
 
@@ -562,17 +563,12 @@ calculate_estimator_tables(sparrow_estimator_t *estimators){
   }
 }
 
-/* nice big word. acos(1.0 - MAX_NONCOLLINEARITY) = angle of deviation.
-   0.005: 5.7 degrees, 0.01: 8.1, 0.02: 11.5, 0.04: 16.3, 0.08: 23.1
-   1 pixel deviation in 32 -> ~ 1/33 == 0.03 (if I understand correctly)
-*/
-#define MAX_NONCOLLINEARITY 0.02
 
 /*the map made above is likely to be full of errors. Fix them, and add in
   missing points */
 static void
 complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  sparrow_voter_t estimates[ESTIMATORS + 1];
+  sparrow_voter_t estimates[ESTIMATORS + 1]; /* 1 extra for trick simplifying median */
   sparrow_estimator_t estimators[ESTIMATORS];
   calculate_estimator_tables(estimators);
 
@@ -665,8 +661,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           double dp = dx12 * dx23 + dy12 * dy23;
 
           double distances = distance12 * distance23;
-#if 0
-          GST_DEBUG("mesh points: %d,%d, %d,%d, %d,%d\n"
+
+          GST_LOG("mesh points: %d,%d, %d,%d, %d,%d\n"
               "map points: %d,%d, %d,%d,  %d,%d\n"
               "diffs: 12: %0.3f,%0.3f,  23: %0.3f,%0.3f, \n"
               "distances: 12: %0.3f,   32: %0.3f\n",
@@ -674,9 +670,6 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
               C2I(c1->x), C2I(c1->y), C2I(c2->x), C2I(c2->y), C2I(c3->x), C2I(c3->y),
               dx12, dy12, dx23, dy23, distance12, distance23
           );
-
-
-#endif
 
           if (distances == 0.0){
             GST_INFO("at least two points out of %d,%d, %d,%d, %d,%d are the same!",
@@ -689,7 +682,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
                 x1, y1, x2, y2, x3, y3, line_error);
             continue;
           }
-          //GST_DEBUG("GOOD collinearity: %3f", line_error);
+          GST_LOG("GOOD collinearity: %3f", line_error);
 
 
           double ratio = distance12 / distance23;
@@ -699,15 +692,13 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           coord_t ex = c1->x + dx;
           coord_t ey = c1->y + dy;
 
-#if 0
-          GST_DEBUG("dx, dy: %d,%d, ex, ey: %d,%d\n"
+          GST_LOG("dx, dy: %d,%d, ex, ey: %d,%d\n"
               "dx raw:  %0.3f,%0.3f,  x1, x2: %0.3f,%0.3f,\n"
               "distances: 12: %0.3f,   32: %0.3f\n"
               "ratio: %0.3f\n",
               C2I(dx), C2I(dy), C2I(ex), C2I(ey),
               dx, dy, ex, ey, ratio
           );
-#endif
 
           if (! coord_in_range(ey, screen_height) ||
               ! coord_in_range(ex, screen_width)){
@@ -715,10 +706,10 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
                 x, y, C2I(ex), C2I(ey));
             continue;
           }
-          /*
-          GST_DEBUG("estimator %d,%d SUCCESSFULLY estimated that %d, %d will be %d, %d",
+
+          GST_LOG("estimator %d,%d SUCCESSFULLY estimated that %d, %d will be %d, %d",
               x1, x2, x, y, C2I(ex), C2I(ey));
-          */
+
           estimates[k].x = ex;
           estimates[k].y = ey;
           if (sparrow->debug){
@@ -755,7 +746,6 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         guess_y = centre.y;
 
 #else
-
         k = euclidean_discard_cluster_outliers(estimates, k);
         if (sparrow->debug){
           for (int j = 0; j < k; j++){
@@ -773,13 +763,11 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         }
         guess_x = sumx / k;
         guess_y = sumy / k;
-
 #endif
 
         GST_INFO("estimating %d,%d", C2I(guess_x), C2I(guess_y));
 
         if (corner->status == CORNER_EXACT){
-          GST_INFO("using exact reading %d,%d", C2I(corner->x), C2I(corner->y));
           if (sparrow->debug){
             debug[coords_to_index(corner->x, corner->y,
                   sparrow->in.width, sparrow->in.height)] = 0xffff3300;
@@ -789,10 +777,18 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           }
           if (abs(corner->y - guess_y) < 3){
             guess_y = corner->y;
+            corner->status = CORNER_SETTLED;
+            GST_INFO("using exact reading %0.3f, %0.3f", C2F(corner->x), C2F(corner->y));
+          }
+          else{
+            GST_INFO("REJECTING exact reading %0.3f,%0.3f: too far from median %0.3f,%0.3f",
+                C2F(corner->x), C2F(corner->y), C2F(corner->x), C2F(corner->y));
+            corner->status = CORNER_PROJECTED;
           }
         }
-        if (k < 5){
-          GST_DEBUG("weak evidence, mark corner PROJECTED");
+        else if (k < MIN_CORNER_ESTIMATES){
+          GST_INFO("weak evidence (%d estimates) for corner %d,%d, marking it PROJECTED",
+              k, x, y);
           corner->status = CORNER_PROJECTED;
           if (sparrow->debug){
             debug[coords_to_index(guess_x, guess_y,
@@ -800,7 +796,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           }
         }
         else{
-          GST_DEBUG("corner is SETTLED");
+          GST_DEBUG("corner %d, %d is SETTLED", x, y);
           corner->status = CORNER_SETTLED;
           settled ++;
           if (sparrow->debug){
