@@ -576,9 +576,12 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int screen_width = sparrow->in.width;
   int screen_height = sparrow->in.height;
   sparrow_corner_t *mesh = fl->mesh;
+  sparrow_corner_t *mesh_next = fl->mesh_next;
 
+  memset(estimates, 0, sizeof(estimates)); /*just for clarity in debugging */
   int prev_settled = 0;
   while (1){
+    memcpy(mesh_next, mesh, width * height * sizeof(sparrow_corner_t));
     int settled = 0;
     for (y = 0; y < height; y++){
       for (x = 0; x < width; x++){
@@ -805,7 +808,12 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       break;
     }
     prev_settled = settled;
+    sparrow_corner_t *tmp = mesh_next;
+    mesh_next = mesh;
+    mesh = tmp;
   }
+  fl->mesh = mesh;
+  fl->mesh_next = mesh_next;
   MAYBE_DEBUG_IPL(fl->debug);
 }
 
@@ -1083,7 +1091,7 @@ finalise_find_edges(GstSparrow *sparrow){
   free(fl->h_lines);
   free(fl->shuffled_lines);
   free(fl->map);
-  free(fl->mesh);
+  free(fl->mesh_mem);
   free(fl->clusters);
   cvReleaseImage(&fl->threshold);
   cvReleaseImage(&fl->working);
@@ -1130,7 +1138,9 @@ init_find_edges(GstSparrow *sparrow){
   GST_DEBUG("map is going to be %d * %d \n", sizeof(sparrow_intersect_t), sparrow->in.pixcount);
   fl->map = zalloc_aligned_or_die(sizeof(sparrow_intersect_t) * sparrow->in.pixcount);
   fl->clusters = zalloc_or_die(n_corners * sizeof(sparrow_cluster_t));
-  fl->mesh = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t));
+  fl->mesh_mem = zalloc_aligned_or_die(n_corners * sizeof(sparrow_corner_t) * 2);
+  fl->mesh = fl->mesh_mem;
+  fl->mesh_next = fl->mesh + n_corners;
 
   sparrow_line_t *line = fl->h_lines;
   sparrow_line_t **sline = fl->shuffled_lines;

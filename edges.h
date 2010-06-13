@@ -16,7 +16,6 @@
 #define COLOUR_MASK  (0xff >> COLOUR_QUANT)
 
 /*XXX should dither */
-#define QUANTISE_DELTA(d)(((d) + LINE_PERIOD / 2) / LINE_PERIOD)
 
 typedef enum corner_status {
   CORNER_UNUSED,
@@ -112,7 +111,9 @@ typedef struct sparrow_find_lines_s {
   gint shift1;
   gint shift2;
   sparrow_intersect_t *map;
+  sparrow_corner_t *mesh_mem;
   sparrow_corner_t *mesh;
+  sparrow_corner_t *mesh_next;
   sparrow_cluster_t *clusters;
   IplImage *debug;
   IplImage *threshold;
