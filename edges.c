@@ -127,7 +127,9 @@ coords_to_index(coord_t x, coord_t y, int w, int h){
   return iy * w + ix;
 }
 
+#define C2I COORD_TO_INT
 
+/********************************************/
 
 static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
@@ -173,7 +175,7 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint w = fl->debug->width;
   guint h = fl->debug->height;
   memset(data, 0, sparrow->in.size);
-  guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xcccccccc};
+  guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xffffffff};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
     sparrow_corner_t *c = &mesh[i];
     coord_t x = c->x;
@@ -188,21 +190,9 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       tyr += c->dyr * 2;
       tyd += c->dyd * 2;
       guint hl = coords_to_index(txr, tyr, w, h);
-      if (hl < sparrow->in.pixcount){
-        data[hl] = 0x88000088;
-      }
-      else{
-        GST_WARNING("overflow in debug_corners: hl %d, txr %d tyr %d",
-            hl, txr, tyr);
-      }
+      data[hl] = 0x88000088;
       guint vl = coords_to_index(txd, tyd, w, h);
-      if (vl < sparrow->in.pixcount){
-        data[vl] = 0x00663300;
-      }
-      else{
-        GST_WARNING("overflow in debug_corners: vl %d, txd %d tyd %d",
-            vl, txd, tyd);
-      }
+      data[vl] = 0x00663300;
     }
     data[coords_to_index(x, y, w, h)] = colours[c->status];
   }
@@ -389,7 +379,7 @@ euclidean_discard_cluster_outliers(sparrow_voter_t *voters, int n)
     }
     if (worst_d > threshold){
       GST_DEBUG("failing point %d, distance sq %d, threshold %d\n",
-          worst_i, worst_d, threshold);
+          worst_i, C2I(worst_d), C2I(threshold));
       //subtract this one from the sums, or they'll all go
       for (i = 0; i < n; i++){
         dsums[i] -= EUCLIDEAN_D2(voters[i].x, voters[i].y,
@@ -399,7 +389,7 @@ euclidean_discard_cluster_outliers(sparrow_voter_t *voters, int n)
     }
     else{
       GST_DEBUG("worst %d, was only %d, threshold %d\n",
-          worst_i, worst_d, threshold);
+          worst_i, C2I(worst_d), C2I(threshold));
       break;
     }
   }
@@ -481,7 +471,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       }
 
       GST_DEBUG("corner %d: %d voters, %d votes, sum %d,%d, mean %d,%d\n",
-          i, cluster->n, votes, xsum, ysum, xmean, ymean);
+          i, cluster->n, votes, C2I(xsum), C2I(ysum), C2I(xmean), C2I(ymean));
 
       mesh[i].x = xmean;
       mesh[i].y = ymean;
@@ -660,8 +650,21 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           double dp = dx12 * dx23 + dy12 * dy23;
 
           double distances = distance12 * distance23;
+#if 0
+          GST_DEBUG("mesh points: %d,%d, %d,%d, %d,%d\n"
+              "map points: %d,%d, %d,%d,  %d,%d\n"
+              "diffs: 12: %0.3f,%0.3f,  23: %0.3f,%0.3f, \n"
+              "distances: 12: %0.3f,   32: %0.3f\n",
+              x1, y1, x2, y2, x3, y3,
+              C2I(c1->x), C2I(c1->y), C2I(c2->x), C2I(c2->y), C2I(c3->x), C2I(c3->y),
+              dx12, dy12, dx23, dy23, distance12, distance23
+          );
+
+
+#endif
+
           if (distances == 0.0){
-            GST_DEBUG("at least two points out of %d,%d, %d,%d, %d,%d are the same!",
+            GST_INFO("at least two points out of %d,%d, %d,%d, %d,%d are the same!",
                 x1, y1, x2, y2, x3, y3);
             continue;
           }
@@ -671,7 +674,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
                 x1, y1, x2, y2, x3, y3, line_error);
             continue;
           }
-          GST_DEBUG("GOOD collinearity: %3f", line_error);
+          //GST_DEBUG("GOOD collinearity: %3f", line_error);
 
 
           double ratio = distance12 / distance23;
@@ -680,15 +683,26 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           coord_t dy = (coord_t) dy12 * ratio + 0.5;
           coord_t ex = x1 + dx;
           coord_t ey = y1 + dy;
+#if 0
+          GST_DEBUG("dx, dy: %d,%d, ex, ey: %d,%d\n"
+              "dx raw:  %0.3f,%0.3f,  x1, x2: %0.3f,%0.3f,\n"
+              "distances: 12: %0.3f,   32: %0.3f\n"
+              "ratio: %0.3f\n",
+              C2I(dx), C2I(dy), C2I(ex), C2I(ey),
+              dx, dy, ex, ey, ratio
+          );
+#endif
 
           if (! coord_in_range(ey, screen_height) ||
               ! coord_in_range(ex, screen_width)){
-            GST_DEBUG("rejecting estimate for %d, %d, due to ex, ey being %d, %d", x, y, ex, ey);
+            GST_DEBUG("rejecting estimate for %d, %d, due to ex, ey being %d, %d",
+                x, y, C2I(ex), C2I(ey));
             continue;
           }
+          /*
           GST_DEBUG("estimator %d,%d SUCCESSFULLY estimated that %d, %d will be %d, %d",
-              x1, x2, x, y, ex, ey);
-
+              x1, x2, x, y, C2I(ex), C2I(ey));
+          */
           estimates[k].x = ex;
           estimates[k].y = ey;
           if (sparrow->debug){
@@ -698,7 +712,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         }
         /*now there is an array of estimates.
           The *_discard_cluster_outliers functions should fit here */
-        GST_DEBUG("got %d estimates for %d,%d", k, x, y);
+        GST_INFO("got %d estimates for %d,%d", k, x, y);
         if(! k){
           continue;
         }
@@ -733,7 +747,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
                   sparrow->in.width, sparrow->in.height)] = 0x00ffff00;
           }
         }
-        GST_DEBUG("After discard, left with %d estimates", k);
+        GST_INFO("After discard, left with %d estimates", k);
         /*now what? the mean? yes.*/
         coord_t sumx = 0;
         coord_t sumy = 0;
@@ -749,7 +763,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         GST_INFO("estimating %d,%d", C2I(guess_x), C2I(guess_y));
 
         if (corner->status == CORNER_EXACT){
-          GST_DEBUG("exact corner");
+          GST_INFO("using exact reading %d,%d", C2I(corner->x), C2I(corner->y));
           if (sparrow->debug){
             debug[coords_to_index(corner->x, corner->y,
                   sparrow->in.width, sparrow->in.height)] = 0xffff3300;
@@ -783,8 +797,9 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         corner->y = guess_y;
       }
     }
-    if (settled == width * height ||
-        settled == prev_settled){
+    GST_INFO("settled %d in that round. %d left to go",
+        settled - prev_settled, width * height - settled);
+    if (settled == width * height || settled == prev_settled){
       break;
     }
     prev_settled = settled;
@@ -813,8 +828,8 @@ calculate_deltas(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       sparrow_corner_t *right = (x == width - 1) ? corner : corner + 1;
       sparrow_corner_t *down =  (y == height - 1) ? corner : corner + width;
       GST_DEBUG("i %d xy %d,%d width %d. in_xy %d,%d; down in_xy %d,%d; right in_xy %d,%d\n",
-          i, x, y, width, corner->x, corner->y, down->x,
-          down->y, right->x,  right->y);
+          i, x, y, width, C2I(corner->x), C2I(corner->y), C2I(down->x),
+          C2I(down->y), C2I(right->x),  C2I(right->y));
       if (corner->status != CORNER_UNUSED){
         corner->dxr = QUANTISE_DELTA(right->x - corner->x);
         corner->dyr = QUANTISE_DELTA(right->y - corner->y);
@@ -1170,7 +1185,7 @@ init_find_edges(GstSparrow *sparrow){
 
   if (sparrow->reload){
     if (access(sparrow->reload, R_OK)){
-      GST_DEBUG("sparrow>reload is '%s' and it is UNREADABLE\n", sparrow->reload);
+      GST_DEBUG("sparrow->reload is '%s' and it is UNREADABLE\n", sparrow->reload);
       exit(1);
     }
     read_edges_info(sparrow, fl, sparrow->reload);
