@@ -78,6 +78,11 @@ typedef struct sparrow_voter_s {
   guint32 signal;
 } sparrow_voter_t;
 
+typedef struct sparrow_point_s {
+  coord_t x;
+  coord_t y;
+} sparrow_point_t;
+
 typedef struct sparrow_cluster_s {
   int n;
   sparrow_voter_t voters[8];

@@ -483,12 +483,12 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   }
 }
 
-static sparrow_voter_t
+static sparrow_point_t
 median_centre(sparrow_voter_t *estimates, int n){
   /*X and Y arevcalculated independently, which is really not right.
     on the other hand, it probably works. */
   int i;
-  sparrow_voter_t result;
+  sparrow_point_t result;
   coord_t vals[n];
   for (i = 0; i < n; i++){
     vals[i] = estimates[i].x;
@@ -738,7 +738,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           }
           k++;
         }
-        sparrow_voter_t centre = median_centre(estimates, k);
+        sparrow_point_t centre = median_centre(estimates, k);
         guess_x = centre.x;
         guess_y = centre.y;
 
