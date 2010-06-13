@@ -76,6 +76,33 @@ debug_map_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 }
 
 
+#define COORD_TO_INT(x)((x) / (1 << SPARROW_FIXED_POINT))
+#define COORD_TO_FLOAT(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
+#define INT_TO_COORD(x)((x) * (1 << SPARROW_FIXED_POINT))
+
+static inline int
+coord_to_int_clamp(coord_t x, const int max_plus_one){
+  if (x < 0)
+    return 0;
+  x >>= SPARROW_FIXED_POINT;
+  if (x >= max_plus_one)
+    return max_plus_one - 1;
+  return x;
+}
+
+static inline int
+coords_to_index(coord_t x, coord_t y, int w, int h){
+  int iy = coord_to_int_clamp(y, h);
+  int ix = coord_to_int_clamp(x, w);
+  return iy * w + ix;
+}
+
+static inline int
+coord_in_range(coord_t x, const int max_plus_one){
+  return x >= 0 && (x < max_plus_one << SPARROW_FIXED_POINT);
+}
+
+
 static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   DEBUG_FIND_LINES(fl);
@@ -86,19 +113,17 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
   int y = H_LINE_OFFSET;
   sparrow_corner_t *mesh_row = mesh;
-  int max_x = sparrow->in.width - 1;
-  int max_y = sparrow->in.height - 1;
 
   for(mcy = 0; mcy < mesh_h - 1; mcy++){
     for (mmy = 0; mmy < LINE_PERIOD; mmy++, y++){
       sparrow_corner_t *mesh_square = mesh_row;
       int i = y * sparrow->out.width + V_LINE_OFFSET;
       for(mcx = 0; mcx < mesh_w - 1; mcx++){
-        int iy = mesh_square->y + mmy * mesh_square->dyd;
-        int ix = mesh_square->x + mmy * mesh_square->dxd;
+        coord_t iy = mesh_square->y + mmy * mesh_square->dyd;
+        coord_t ix = mesh_square->x + mmy * mesh_square->dxd;
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
-          int ixx = CLAMP(ix >> SPARROW_FIXED_POINT, 0, max_x);
-          int iyy = CLAMP(iy >> SPARROW_FIXED_POINT, 0, max_y);
+          int ixx = coord_to_int_clamp(iy, sparrow->in.width);
+          int iyy = coord_to_int_clamp(iy, sparrow->in.height);
           if(sparrow->screenmask[iyy * sparrow->in.width + ixx]){
             map_lut[i].x = ixx;
             map_lut[i].y = iyy;
@@ -115,19 +140,6 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   debug_map_lut(sparrow, fl);
 }
 
-#define INTXY(x)((x) / (1 << SPARROW_FIXED_POINT))
-#define FLOATXY(x)(((double)(x)) / (1 << SPARROW_FIXED_POINT))
-
-static inline int
-clamp_intxy(int x, const int max_plus_one){
-  if (x < 0)
-    return 0;
-  x >>= SPARROW_FIXED_POINT;
-  if (x >= max_plus_one)
-    return max_plus_one - 1;
-  return x;
-}
-
 static void
 debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_corner_t *mesh = fl->mesh;
@@ -138,25 +150,18 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   guint32 colours[4] = {0xff0000ff, 0x00ff0000, 0x0000ff00, 0xcccccccc};
   for (int i = 0; i < fl->n_vlines * fl->n_hlines; i++){
     sparrow_corner_t *c = &mesh[i];
-    int x = c->x;
-    int y = c->y;
-    /*
-    GST_DEBUG("i %d status %d x: %f, y: %f  dxr %f dyr %f dxd %f dyd %f\n"
-        "int x, y %d,%d (raw %d,%d) data %p\n",
-        i, c->status, FLOATXY(x), FLOATXY(y),
-        FLOATXY(c->dxr), FLOATXY(c->dyr), FLOATXY(c->dxd), FLOATXY(c->dyd),
-        INTXY(x), INTXY(y), x, y, data);
-    */
-    int txr = x;
-    int txd = x;
-    int tyr = y;
-    int tyd = y;
+    coord_t x = c->x;
+    coord_t y = c->y;
+    coord_t txr = x;
+    coord_t txd = x;
+    coord_t tyr = y;
+    coord_t tyd = y;
     for (int j = 1; j < LINE_PERIOD; j+= 2){
       txr += c->dxr * 2;
       txd += c->dxd * 2;
       tyr += c->dyr * 2;
       tyd += c->dyd * 2;
-      guint hl = clamp_intxy(tyr, h) * w + clamp_intxy(txr, w);
+      guint hl = coords_to_index(txr, tyr, w, h);
       if (hl < sparrow->in.pixcount){
         data[hl] = 0x88000088;
       }
@@ -164,7 +169,7 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         GST_WARNING("overflow in debug_corners: hl %d, txr %d tyr %d",
             hl, txr, tyr);
       }
-      guint vl = clamp_intxy(tyd, h) * w + clamp_intxy(txd, w);
+      guint vl = coords_to_index(txd, tyd, w, h);
       if (vl < sparrow->in.pixcount){
         data[vl] = 0x00663300;
       }
@@ -173,7 +178,7 @@ debug_corners_image(GstSparrow *sparrow, sparrow_find_lines_t *fl){
             vl, txd, tyd);
       }
     }
-    data[clamp_intxy(y, h) * w + clamp_intxy(x, w)] = colours[c->status];
+    data[coords_to_index(x, y, w, h)] = colours[c->status];
   }
   MAYBE_DEBUG_IPL(fl->debug);
 }
@@ -440,8 +445,8 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         xsum += cluster->voters[j].x * cluster->voters[j].signal;
       }
       if (votes){
-        xmean = (xsum << SPARROW_FIXED_POINT) / votes;
-        ymean = (ysum << SPARROW_FIXED_POINT) / votes;
+        xmean = INT_TO_COORD(xsum) / votes;
+        ymean = INT_TO_COORD(ysum) / votes;
       }
       else {
         GST_WARNING("corner %d, %d voters, sum %d,%d, somehow has no votes\n",
@@ -455,7 +460,7 @@ make_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl){
       mesh[i].y = ymean;
       mesh[i].status = CORNER_EXACT;
       GST_DEBUG("found corner %d at (%3f, %3f)\n",
-          i, FLOATXY(xmean), FLOATXY(ymean));
+          i, COORD_TO_FLOAT(xmean), COORD_TO_FLOAT(ymean));
     }
   }
 }
@@ -533,8 +538,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   int x, y;
   int width = fl->n_vlines;
   int height = fl->n_hlines;
-  int screen_width = sparrow->in.width << SPARROW_FIXED_POINT;
-  int screen_height = sparrow->in.height << SPARROW_FIXED_POINT;
+  int screen_width = sparrow->in.width;
+  int screen_height = sparrow->in.height;
   sparrow_corner_t *mesh = fl->mesh;
 
   int prev_settled = 0;
@@ -627,23 +632,23 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
           double ratio = distance12 / distance23;
           /*so here's the estimate!*/
-          int dx = (int) dx12 * ratio + 0.5;
-          int dy = (int) dy12 * ratio + 0.5;
-          int ex = x1 + dx;
-          int ey = y1 + dy;
-          if(ey < 0 || ey >= screen_height ||
-              ex < 0 || ex >= screen_width){
+          coord_t dx = (coord_t) dx12 * ratio + 0.5;
+          coord_t dy = (coord_t) dy12 * ratio + 0.5;
+          coord_t ex = x1 + dx;
+          coord_t ey = y1 + dy;
+
+          if (! coord_in_range(ey, screen_height) ||
+              ! coord_in_range(ex, screen_width)){
             GST_DEBUG("rejecting estimate for %d, %d, due to ex, ey being %d, %d", x, y, ex, ey);
             continue;
           }
           GST_DEBUG("estimator %d,%d SUCCESSFULLY estimated that %d, %d will be %d, %d",
               x1, x2, x, y, ex, ey);
 
-          estimates[k].x = x1 + dx;
-          estimates[k].y = y1 + dy;
+          estimates[k].x = ex;
+          estimates[k].y = ey;
           if (sparrow->debug){
-            debug[clamp_intxy(estimates[k].y, sparrow->in.height) * sparrow->in.width +
-                clamp_intxy(estimates[k].x, sparrow->in.width)] = 0x00aa7700;
+            debug[coords_to_index(ex, ey, sparrow->in.width, sparrow->in.height)] = 0x00aa7700;
           }
           k++;
         }
@@ -656,8 +661,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         k = euclidean_discard_cluster_outliers(estimates, k);
         if (sparrow->debug){
           for (int j = 0; j < k; j++){
-            debug[clamp_intxy(estimates[j].y, sparrow->in.height) * sparrow->in.width +
-                clamp_intxy(estimates[j].x, sparrow->in.width)] = 0x00ffff00;
+            debug[coords_to_index(estimates[j].x, estimates[j].y,
+                  sparrow->in.width, sparrow->in.height)] = 0x00ffff00;
           }
         }
         GST_DEBUG("After discard, left with %d estimates", k);
@@ -675,9 +680,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         if (corner->status == CORNER_EXACT){
           GST_DEBUG("exact corner");
           if (sparrow->debug){
-            debug[clamp_intxy(corner->y, sparrow->in.height) * sparrow->in.width +
-                clamp_intxy(corner->x, sparrow->in.width)] = 0xffff3300;
-
+            debug[coords_to_index(corner->x, corner->y,
+                  sparrow->in.width, sparrow->in.height)] = 0xffff3300;
           }
           GST_DEBUG("exact corner");
           if (abs(corner->x - guess_x) < 2){
@@ -691,8 +695,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           GST_DEBUG("weak evidence, mark corner PROJECTED");
           corner->status = CORNER_PROJECTED;
           if (sparrow->debug){
-            debug[clamp_intxy(guess_y, sparrow->in.height) * sparrow->in.width +
-                clamp_intxy(guess_x, sparrow->in.width)] = 0xff0000ff;
+            debug[coords_to_index(guess_x, guess_y,
+                  sparrow->in.width, sparrow->in.height)] = 0xff0000ff;
           }
         }
         else{
@@ -700,8 +704,8 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           corner->status = CORNER_SETTLED;
           settled ++;
           if (sparrow->debug){
-            debug[clamp_intxy(guess_y, sparrow->in.height) * sparrow->in.width +
-                clamp_intxy(guess_x, sparrow->in.width)] = 0xffffffff;
+            debug[coords_to_index(guess_x, guess_y,
+                  sparrow->in.width, sparrow->in.height)] = 0xffffffff;
           }
         }
         corner->x = guess_x;

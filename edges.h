@@ -34,6 +34,8 @@ typedef enum edges_state {
   EDGES_NEXT_STATE,
 } edges_state_t;
 
+typedef int coord_t;
+
 typedef struct sparrow_estimator_s {
   int x1;
   int y1;
@@ -45,20 +47,20 @@ typedef struct sparrow_estimator_s {
 } sparrow_estimator_t;
 
 typedef struct sparrow_corner_s {
-  int x;
-  int y;
+  coord_t x;
+  coord_t y;
   /*dyr -> dy to next point right
    dxd ->dx to next point down */
-  int dxr;
-  int dyr;
-  int dxd;
-  int dyd;
+  coord_t dxr;
+  coord_t dyr;
+  coord_t dxd;
+  coord_t dyd;
   corner_status_t status;
 } sparrow_corner_t;
 
 typedef struct sparrow_voter_s {
-  int x;
-  int y;
+  coord_t x;
+  coord_t y;
   guint32 signal;
 } sparrow_voter_t;
 
