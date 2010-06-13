@@ -171,8 +171,8 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
     /* time to look and see if the screen is there.
        Look at the histogram of a single channel. */
     green = extract_green_channel(sparrow, finder, in);
-    MAYBE_DEBUG_IPL(green);
     cvCanny(green, mask, 100, 170, 3);
+    cvDilate(mask, mask, NULL, 1);
     MAYBE_DEBUG_IPL(mask);
     goto black;
   case 1:
@@ -190,6 +190,7 @@ mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
 #if STUPID_DEBUG_TRICK
     cvErode(mask, mask, NULL, 9);
 #endif
+    cvDilate(mask, mask, NULL, 1);
     MAYBE_DEBUG_IPL(mask);
     goto finish;
   default:
