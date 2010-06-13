@@ -839,10 +839,14 @@ calculate_deltas(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           i, x, y, width, C2I(corner->x), C2I(corner->y), C2I(down->x),
           C2I(down->y), C2I(right->x),  C2I(right->y));
       if (corner->status != CORNER_UNUSED){
-        corner->dxr = QUANTISE_DELTA(right->x - corner->x);
-        corner->dyr = QUANTISE_DELTA(right->y - corner->y);
-        corner->dxd = QUANTISE_DELTA(down->x -  corner->x);
-        corner->dyd = QUANTISE_DELTA(down->y -  corner->y);
+        if (right->status != CORNER_UNUSED){
+          corner->dxr = QUANTISE_DELTA(right->x - corner->x);
+          corner->dyr = QUANTISE_DELTA(right->y - corner->y);
+        }
+        if (down->status != CORNER_UNUSED){
+          corner->dxd = QUANTISE_DELTA(down->x -  corner->x);
+          corner->dyd = QUANTISE_DELTA(down->y -  corner->y);
+        }
       }
     }
   }
