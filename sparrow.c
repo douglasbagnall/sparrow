@@ -185,10 +185,6 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
   sparrow->map_lut = zalloc_aligned_or_die(lutsize);
 
-  size_t pfsize = sizeof(int) * (sparrow->in.height + 4) * CACHE_PREFETCH_PER_ROW;
-  sparrow->in_prefetch = zalloc_aligned_or_die(pfsize);
-
-
   sparrow->timer_start.tv_sec = 0;
   sparrow->timer_stop.tv_sec = 0;
 

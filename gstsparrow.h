@@ -211,12 +211,8 @@ struct _GstSparrow
   sparrow_map_lut_t *map_lut;
   /*for jpeg decompression*/
   struct jpeg_decompress_struct *cinfo;
-
-  int *in_prefetch;
 };
 
-#define CACHE_PREFETCH_PER_ROW 64
-#define IMAGINED_CACHE_SIZE 64
 
 struct _GstSparrowClass
 {
