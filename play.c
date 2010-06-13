@@ -115,7 +115,7 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   sparrow_play_t *player = sparrow->helper_struct;
   guint i;
   int ox, oy;
-  //guint32 *out32 = (guint32 *)out;
+  guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
   set_up_jpeg(sparrow, player);
   GST_DEBUG("in %p out %p", in, out);
@@ -134,6 +134,9 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
             &out[i * PIXSIZE],
             inpix,
             &jpeg_row[ox * PIXSIZE]);
+      }
+      else {
+        out32[i] = 0;
       }
     }
   }
