@@ -252,7 +252,7 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
        horizontally.  This could be generalised, perhaps using trial and
        error */
     gtk_window_move(GTK_WINDOW(window),
-        (width / 2 * screen_no + 400) % width, 50);
+        (width / 2 * screen_no + 200) % width, 50);
   }
 
   // attach key press signal to key press callback
