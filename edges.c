@@ -533,7 +533,7 @@ static const sparrow_estimator_t base_estimators[] = {
 #define BASE_ESTIMATORS (sizeof(base_estimators) / sizeof(sparrow_estimator_t))
 #define ESTIMATORS  (BASE_ESTIMATORS * 4)
 
-static inline void
+static inline guint
 calculate_estimator_tables(sparrow_estimator_t *estimators){
   guint i, j;
   sparrow_estimator_t *e = estimators;
@@ -561,6 +561,7 @@ calculate_estimator_tables(sparrow_estimator_t *estimators){
       e++;
     }
   }
+  return e - estimators;
 }
 
 
@@ -570,8 +571,8 @@ static void
 complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   sparrow_voter_t estimates[ESTIMATORS + 1]; /* 1 extra for trick simplifying median */
   sparrow_estimator_t estimators[ESTIMATORS];
-  calculate_estimator_tables(estimators);
-
+  guint est_count = calculate_estimator_tables(estimators);
+  GST_DEBUG("made %d estimators", est_count);
   guint32 *debug = NULL;
   if (sparrow->debug){
     debug = (guint32*)fl->debug->imageData;
@@ -600,7 +601,7 @@ complete_map(GstSparrow *sparrow, sparrow_find_lines_t *fl){
           continue;
         }
         int k = 0;
-        for (guint j = 0; j < ESTIMATORS; j++){
+        for (guint j = 0; j < est_count; j++){
           sparrow_estimator_t *e = &estimators[j];
           int x3, y3, x2, y2, x1, y1;
           y3 = y + e->y3;
