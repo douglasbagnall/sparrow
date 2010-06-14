@@ -19,6 +19,34 @@ static void hide_mouse(GtkWidget *widget){
 }
 
 static void
+mjpeg_branch(GstPipeline *pipeline, GstElement *tee)
+{
+  /* ! jpegenc ! avimux ! filesink location=mjpeg.avi */
+  GstElement *queue = gst_element_factory_make("queue", NULL);
+  GstElement *jpegenc = gst_element_factory_make("jpegenc", NULL);
+  GstElement *avimux = gst_element_factory_make("avimux", NULL);
+  GstElement *filesink = gst_element_factory_make("filesink", NULL);
+  GstElement *cs = gst_element_factory_make("ffmpegcolorspace", NULL);
+  g_object_set(G_OBJECT(filesink),
+      "location", option_avi,
+      NULL);
+  gst_bin_add_many(GST_BIN(pipeline),
+      queue,
+      cs,
+      jpegenc,
+      avimux,
+      filesink,
+      NULL);
+  gst_element_link_many(tee,
+      queue,
+      cs,
+      jpegenc,
+      avimux,
+      filesink,
+      NULL);
+}
+
+static void
 post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
     int rngseed, int colour, int timer, int debug, char *save, char *reload){
   GstElement *queue = gst_element_factory_make("queue", NULL);
@@ -128,6 +156,11 @@ make_multi_pipeline(windows_t *windows, int count)
     }
     post_tee_pipeline(pipeline, tee, sink, i, i + 1, i == 0, debug, save, reload);
   }
+  if (option_avi){
+    /*add a branch saving the video to a file */
+    mjpeg_branch(pipeline, tee);
+  }
+
   return pipeline;
 }
 
@@ -244,6 +277,8 @@ static GOptionEntry entries[] =
     "load calibration data from FILE (one per screen)", "FILE" },
   { "save", 'S', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_save,
     "save calibration data to FILE (one per screen)", "FILE" },
+  { "avi", 'a', 0, G_OPTION_ARG_FILENAME, &option_avi,
+    "save mjpeg video to FILE", "FILE" },
   //  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
   { NULL, 0, 0, 0, NULL, NULL, NULL }
 };
