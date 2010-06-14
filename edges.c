@@ -953,7 +953,7 @@ jump_state(GstSparrow *sparrow, sparrow_find_lines_t *fl, edges_state_t state){
   }
   switch (fl->state){
   case EDGES_FIND_NOISE:
-    sparrow->countdown = MAX(sparrow->lag, 1) + SAFETY_LAG;
+    sparrow->countdown = MAX(sparrow->lag, 1) + SAFETY_LAG + CAMERA_ADJUST_TIME;
     break;
   case EDGES_FIND_LINES:
     sparrow->countdown = MAX(sparrow->lag, 1) + SAFETY_LAG;

@@ -1,7 +1,9 @@
 #ifndef __SPARROW_EDGES_H__
 #define __SPARROW_EDGES_H__
 
-#define SAFETY_LAG 3;
+/* CAMERA_ADJUST_TIME to  wair for iris to adjust after find screen flash */
+#define CAMERA_ADJUST_TIME 10
+#define SAFETY_LAG 3
 #define SIG_WEIGHT 2
 
 /* for discarding outliers */
