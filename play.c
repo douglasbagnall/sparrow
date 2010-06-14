@@ -41,33 +41,52 @@ negate(sparrow_play_t *player, guint8 in){
   return player->lut[in];
 }
 
-static void set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
+static void
+set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
   /*XXX pick a jpeg, somehow*/
-  sparrow_frame_t *frame = &sparrow->shared->index[player->jpeg_index];
-  GST_DEBUG("set up jpeg shared->index is %p, offset %d, frame %p\n",
-      sparrow->shared->index, player->jpeg_index, frame);
-  guint8 *src = sparrow->shared->jpeg_blob + frame->offset;
+  /*first, chance of random jump anywhere. */
+  if (rng_uniform(sparrow) < 1.0 / 500){
+    player->jpeg_index = RANDINT(sparrow, 0, sparrow->shared->image_count);
+    GST_DEBUG("CHANGE_SHOT: random jump: %d to %d", player->jpeg_index, player->jpeg_index);
+  }
+  else {
+    sparrow_frame_t *old_frame = &sparrow->shared->index[player->jpeg_index];
+    int next = old_frame->successors[0];
+    if (!next){
+      int i = RANDINT(sparrow, 1, 8);
+      next = old_frame->successors[i];
+      GST_DEBUG("CHANGE_SHOT: %d to %d (option %d)", player->jpeg_index, next, i);
+    }
+    player->jpeg_index = next;
+  }
 
+  sparrow_frame_t *frame = &sparrow->shared->index[player->jpeg_index];
+  guint8 *src = sparrow->shared->jpeg_blob + frame->offset;
   guint size = frame->jpeg_size;
   GST_DEBUG("blob is %p, offset %d, src %p, size %d\n",
       sparrow->shared->jpeg_blob, frame->offset, src, size);
 
   begin_reading_jpeg(sparrow, src, size);
-  player->jpeg_index++;
-  if (player->jpeg_index == sparrow->shared->image_count){
-    player->jpeg_index = 0;
-  }
 }
 
 
 static inline guint8 one_subpixel(sparrow_play_t *player, guint8 inpix, guint8 jpegpix){
-  /* simplest possible */
+  //jpeg is target.
+  //there is diff. (in gamma space)
+  // compensate for diff (only).
+  // if the pixel needs to be darker, send nothing
+  // if it needs to be brighter, send difference.
+  //XXX difference needs gamma scaling
+#if 1
+  int diff = jpegpix - inpix;
+  if (diff < 0)
+    return 0;
+  return diff;
+#else
+  /* simplest possible (average)*/
   guint sum = player->lut[inpix] + jpegpix;
-  //int diff = jpegpix - inpix;
-
-
   return sum >> 1;
-  //return jpegpix;
+#endif
 }
 
 static inline void
