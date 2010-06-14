@@ -211,6 +211,7 @@ struct _GstSparrow
   sparrow_map_lut_t *map_lut;
   /*for jpeg decompression*/
   struct jpeg_decompress_struct *cinfo;
+  int jpeg_colourspace;
 };
 
 

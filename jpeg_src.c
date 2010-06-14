@@ -169,7 +169,7 @@ begin_reading_jpeg(GstSparrow *sparrow, guint8* src, int size){
 
   jpeg_read_header(cinfo, TRUE);
   jpeg_start_decompress(cinfo);
-  cinfo->out_color_space = COLOURSPACE;
+  cinfo->out_color_space = sparrow->jpeg_colourspace;
   if (cinfo->output_width != (guint)sparrow->out.width ||
       cinfo->output_height != (guint)sparrow->out.height){
     GST_ERROR("jpeg sizes are wrong! %dx%d, should be %dx%d.\n"
@@ -203,7 +203,23 @@ init_jpeg_src(GstSparrow *sparrow){
   sparrow->cinfo = zalloc_or_die(sizeof(struct jpeg_decompress_struct));
   struct jpeg_error_mgr *jerr = zalloc_or_die(sizeof(struct jpeg_error_mgr));
   sparrow->cinfo->err = jpeg_std_error(jerr);
-  sparrow->cinfo->out_color_space = COLOURSPACE;
+  /*rshift is little-endian, jpg enums big-endian */
+  switch (sparrow->out.rshift){
+  case 0:
+    sparrow->jpeg_colourspace = JCS_EXT_RGBX;
+    break;
+  case 8:
+    sparrow->jpeg_colourspace = JCS_EXT_XRGB;
+    break;
+  case 16:
+    sparrow->jpeg_colourspace = JCS_EXT_BGRX;
+    break;
+  case 24:
+    sparrow->jpeg_colourspace = JCS_EXT_XBGR;
+    break;
+  default:
+    GST_WARNING("No discernable colorspace! rshift is %d", sparrow->out.rshift);
+  }
 }
 
 INVISIBLE void
