@@ -179,6 +179,15 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   int ox, oy;
   guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
+  GstBuffer *oldbuf = player->old_frames[player->old_frames_tail];
+  guint8 *old_frame;
+  if (oldbuf){
+    old_frame = (guint8 *)GST_BUFFER_DATA(oldbuf);
+  }
+  else { /*boot strapping: use current frame */
+    old_frame = out;
+  }
+
   set_up_jpeg(sparrow, player);
   GST_DEBUG("in %p out %p", in, out);
 
@@ -218,11 +227,8 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
 static void
 store_old_frame(GstSparrow *sparrow, GstBuffer *outbuf){
   sparrow_play_t *player = sparrow->helper_struct;
-  GstBuffer *head = player->old_frames[player->old_frames_head];
-  if (head){
-    head = outbuf;
-    gst_buffer_ref(head);
-  }
+  player->old_frames[player->old_frames_head] = outbuf;
+  gst_buffer_ref(outbuf);
   player->old_frames_head++;
   player->old_frames_head %= OLD_FRAMES;
 }
@@ -277,6 +283,8 @@ INVISIBLE void init_play(GstSparrow *sparrow){
   init_jpeg_src(sparrow);
   sparrow_play_t *player = zalloc_aligned_or_die(sizeof(sparrow_play_t));
   player->image_row = zalloc_aligned_or_die(sparrow->out.width * PIXSIZE);
+  player->old_frames_head = MIN(sparrow->lag, OLD_FRAMES - 1) || 1;
+  GST_INFO("using old frame lag of %d\n", player->old_frames_head);
   sparrow->helper_struct = player;
   init_gamma_lut(player);
   GST_DEBUG("finished init_play\n");
