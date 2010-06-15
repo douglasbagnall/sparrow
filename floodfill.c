@@ -150,7 +150,9 @@ check_for_signal(GstSparrow *sparrow, sparrow_find_screen_t *finder, guint8 *in)
 /* a minature state progression within this one, in case the processing is too
    much for one frame.*/
 INVISIBLE sparrow_state
-mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out){
+mode_find_screen(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
+  guint8 *in = GST_BUFFER_DATA(inbuf);
+  guint8 *out = GST_BUFFER_DATA(outbuf);
   sparrow->countdown--;
   GST_DEBUG("in find_screen with countdown %d\n", sparrow->countdown);
   sparrow_find_screen_t *finder = (sparrow_find_screen_t *)sparrow->helper_struct;

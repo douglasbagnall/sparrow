@@ -168,7 +168,10 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
 
 
 INVISIBLE sparrow_state
-mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out){
+mode_play(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
+  guint8 *in = GST_BUFFER_DATA(inbuf);
+  guint8 *out = GST_BUFFER_DATA(outbuf);
+
   play_from_full_lut(sparrow, in, out);
   return SPARROW_STATUS_QUO;
 }

@@ -1062,7 +1062,9 @@ wait_for_play(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 }
 
 INVISIBLE sparrow_state
-mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out){
+mode_find_edges(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
+  guint8 *in = GST_BUFFER_DATA(inbuf);
+  guint8 *out = GST_BUFFER_DATA(outbuf);
   sparrow_find_lines_t *fl = (sparrow_find_lines_t *)sparrow->helper_struct;
   switch (fl->state){
   case EDGES_FIND_NOISE:

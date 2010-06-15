@@ -278,19 +278,16 @@ gst_sparrow_set_caps (GstBaseTransform * base, GstCaps * incaps, GstCaps * outca
 
 
 static GstFlowReturn
-gst_sparrow_transform (GstBaseTransform * base, GstBuffer * inbuf,
-    GstBuffer * outbuf)
+gst_sparrow_transform (GstBaseTransform * base, GstBuffer *inbuf, GstBuffer *outbuf)
 {
   GstSparrow *sparrow = GST_SPARROW(base);
-  guint8 *indata = GST_BUFFER_DATA(inbuf);
-  guint8 *outdata = GST_BUFFER_DATA(outbuf);
   guint insize = GST_BUFFER_SIZE(inbuf);
   guint outsize = GST_BUFFER_SIZE(outbuf);
 
   if (insize != sparrow->in.size || outsize != sparrow->out.size)
     goto wrong_size;
 
-  sparrow_transform(sparrow, indata, outdata);
+  sparrow_transform(sparrow, inbuf, outbuf);
   return GST_FLOW_OK;
 
   /* ERRORS */

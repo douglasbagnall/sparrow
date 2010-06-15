@@ -260,7 +260,10 @@ record_calibration(GstSparrow *sparrow, gint32 offset, int signal){
 
 
 INVISIBLE sparrow_state
-mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out){
+mode_find_self(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
+  guint8 *in = GST_BUFFER_DATA(inbuf);
+  guint8 *out = GST_BUFFER_DATA(outbuf);
+
   int ret = SPARROW_STATUS_QUO;
   guint32 i;
   guint32 *frame = (guint32 *)in;

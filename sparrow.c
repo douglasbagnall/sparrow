@@ -281,7 +281,7 @@ change_state(GstSparrow *sparrow, sparrow_state state)
 }
 
 
-/*called by gst_sparrow_transform_ip every frame.
+/*called by gst_sparrow_transform every frame.
 
   decide what to do based on sparrow->state. All the processing is done in a
   "mode_*" function, which returns a state or SPARROW_STATUS_QUO.  If a state
@@ -289,25 +289,24 @@ change_state(GstSparrow *sparrow, sparrow_state state)
   it is the current state (so states can use this to reset).
 */
 void INVISIBLE
-sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out)
-{
+sparrow_transform(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   sparrow_state new_state;
 #if TIME_TRANSFORM
   TIMER_START(sparrow);
 #endif
-  //GST_DEBUG("in %p, out %p\n", in, out);
+  //GST_DEBUG("in %p, out %p\n", inbuf, outbuf);
   switch(sparrow->state){
   case SPARROW_FIND_SELF:
-    new_state = mode_find_self(sparrow, in, out);
+    new_state = mode_find_self(sparrow, inbuf, outbuf);
     break;
   case SPARROW_FIND_SCREEN:
-    new_state = mode_find_screen(sparrow, in, out);
+    new_state = mode_find_screen(sparrow, inbuf, outbuf);
     break;
   case SPARROW_FIND_EDGES:
-    new_state = mode_find_edges(sparrow, in, out);
+    new_state = mode_find_edges(sparrow, inbuf, outbuf);
     break;
   case SPARROW_PLAY:
-    new_state = mode_play(sparrow, in, out);
+    new_state = mode_play(sparrow, inbuf, outbuf);
     break;
   default:
     GST_DEBUG("unknown state:%d\n", sparrow->state);

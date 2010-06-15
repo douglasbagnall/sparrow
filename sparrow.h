@@ -24,29 +24,29 @@
 
 /* calibrate.c */
 INVISIBLE void init_find_self(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_self(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf);
 INVISIBLE void finalise_find_self(GstSparrow *sparrow);
 
 /* edges.c */
 INVISIBLE void init_find_edges(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_edges(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf);
 INVISIBLE void finalise_find_edges(GstSparrow *sparrow);
 
 /* floodfill.c */
 INVISIBLE void init_find_screen(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_find_screen(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf);
 INVISIBLE void finalise_find_screen(GstSparrow *sparrow);
 
 /* play.c */
 INVISIBLE void init_play(GstSparrow *sparrow);
-INVISIBLE sparrow_state mode_play(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE sparrow_state mode_play(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf);
 INVISIBLE void finalise_play(GstSparrow *sparrow);
 
 /* sparrow.c */
 INVISIBLE void debug_frame(GstSparrow *sparrow, guint8 *data, guint32 width, guint32 height, int pixsize);
 INVISIBLE void sparrow_pre_init(GstSparrow *sparrow);
 INVISIBLE gboolean sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps);
-INVISIBLE void sparrow_transform(GstSparrow *sparrow, guint8 *in, guint8 *out);
+INVISIBLE void sparrow_transform(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf);
 INVISIBLE void sparrow_finalise(GstSparrow *sparrow);
 INVISIBLE void ppm_dump(sparrow_format *rgb, guint8 *data, guint32 width, guint32 height, const char *name);
 INVISIBLE void pgm_dump(guint8 *data, guint32 width, guint32 height, const char *name);
