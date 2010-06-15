@@ -197,10 +197,9 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
     //GST_DEBUG("about to read line to %p", jpeg_row);
     read_one_line(sparrow, jpeg_row);
     for (ox = 0; ox < sparrow->out.width; ox++, i++){
-      int x = sparrow->map_lut[i].x;
-      int y = sparrow->map_lut[i].y;
-      if (x || y){
-        guint8 *inpix = (guint8*)&in32[y * sparrow->in.width + x];
+      guint inpos = sparrow->map_lut[i];
+      if (inpos){
+        guint8 *inpix = (guint8 *)&in32[inpos];
         /*do_one_pixel(sparrow,
             &out[i * PIXSIZE],
             inpix,

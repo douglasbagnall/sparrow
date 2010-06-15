@@ -140,11 +140,6 @@ typedef struct sparrow_map_path_s {
 }sparrow_map_path_t;
 
 
-typedef struct sparrow_map_lut_s{
-  guint16 x;
-  guint16 y;
-} sparrow_map_lut_t;
-
 typedef struct sparrow_frame_s {
   gint32 offset;
   guint32 jpeg_size;
@@ -208,7 +203,7 @@ struct _GstSparrow
   guint32 lag;
   guint8 *screenmask;
   /*full sized LUT */
-  sparrow_map_lut_t *map_lut;
+  guint32 *map_lut;
   /*for jpeg decompression*/
   struct jpeg_decompress_struct *cinfo;
   int jpeg_colourspace;

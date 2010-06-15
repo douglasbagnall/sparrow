@@ -70,7 +70,7 @@ static void read_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const
 
 static void
 debug_map_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
-  sparrow_map_lut_t *map_lut = sparrow->map_lut;
+  guint32 *map_lut = sparrow->map_lut;
   if (sparrow->debug){
     debug_frame(sparrow, (guint8*)map_lut, sparrow->out.width, sparrow->out.height, PIXSIZE);
   }
@@ -148,7 +148,7 @@ static void
 corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   DEBUG_FIND_LINES(fl);
   sparrow_corner_t *mesh = fl->mesh;   /*maps regular points in ->out to points in ->in */
-  sparrow_map_lut_t *map_lut = sparrow->map_lut;
+  guint32 *map_lut = sparrow->map_lut;
   int mesh_w = fl->n_vlines;
   int mesh_h = fl->n_hlines;
   int mcy, mmy, mcx, mmx; /*Mesh Corner|Modulus X|Y*/
@@ -165,9 +165,9 @@ corners_to_full_lut(GstSparrow *sparrow, sparrow_find_lines_t *fl){
         for (mmx = 0; mmx < LINE_PERIOD; mmx++, i++){
           int ixx = coord_to_int_clamp_dither(fl, ix, sparrow->in.width, i);
           int iyy = coord_to_int_clamp_dither(fl, iy, sparrow->in.height, i);
-          if(sparrow->screenmask[iyy * sparrow->in.width + ixx]){
-            map_lut[i].x = ixx;
-            map_lut[i].y = iyy;
+          guint32 inpos = iyy * sparrow->in.width + ixx;
+          if(sparrow->screenmask[inpos]){
+            map_lut[i] = inpos;
           }
           ix += mesh_square->dxr;
           iy += mesh_square->dyr;

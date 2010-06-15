@@ -182,7 +182,7 @@ sparrow_init(GstSparrow *sparrow, GstCaps *incaps, GstCaps *outcaps){
   sparrow->dsfmt = zalloc_aligned_or_die(sizeof(dsfmt_t));
   sparrow->screenmask = malloc_aligned_or_die(in->pixcount);
 
-  size_t lutsize = sizeof(sparrow_map_lut_t) * sparrow->out.pixcount;
+  size_t lutsize = sizeof(guint32) * sparrow->out.pixcount;
   sparrow->map_lut = zalloc_aligned_or_die(lutsize);
 
   sparrow->timer_start.tv_sec = 0;
