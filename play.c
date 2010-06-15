@@ -255,8 +255,8 @@ mode_play(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   return SPARROW_STATUS_QUO;
 }
 
-static const double GAMMA = 1.5;
-static const double INV_GAMMA = 1.0 / 1.5;
+static const double GAMMA = 2.0;
+static const double INV_GAMMA = 1.0 / 2.0;
 static const double FALSE_CEILING = 275;
 
 static void
@@ -267,14 +267,18 @@ init_gamma_lut(sparrow_play_t *player){
        2. negate
        3 undo gamma.
      */
-    double x;
+    double x, y;
     x = i / 255.01;
-    x = 1 - pow(x, INV_GAMMA);
-    x = pow(x, GAMMA) * FALSE_CEILING;
+    y = pow(x, INV_GAMMA) *255;
+    x = pow(x, GAMMA) * 255;
     if (x > 255){
       x = 255;
     }
-    player->lut[i] = (guint8)x;
+    if (y > 255){
+      y = 255;
+    }
+    player->lut_hi[i] = (guint8)x;
+    player->lut_lo[i] = (guint8)y;
   }
 }
 
