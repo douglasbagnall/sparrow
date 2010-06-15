@@ -26,20 +26,20 @@
 #define INITIAL_BLACK 32
 #define MIN_BLACK 0
 #define MAX_BLACK 160
+#define OLD_FRAMES 4
 
 
 typedef struct sparrow_play_s{
-  guint8 lut[256];
+  guint8 lut_hi[256];
+  guint8 lut_lo[256];
   guint8 *image_row;
   guint8 black_level;
   guint jpeg_index;
+  GstBuffer *old_frames[OLD_FRAMES];
+  int old_frames_head;
+  int old_frames_tail;
 } sparrow_play_t;
 
-
-static inline guint8
-negate(sparrow_play_t *player, guint8 in){
-  return player->lut[in];
-}
 
 static void
 set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
@@ -166,13 +166,37 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
   }
 }
 
+static void
+store_old_frame(GstSparrow *sparrow, GstBuffer *outbuf){
+  sparrow_play_t *player = sparrow->helper_struct;
+  GstBuffer *head = player->old_frames[player->old_frames_head];
+  if (head){
+    head = outbuf;
+    gst_buffer_ref(head);
+  }
+  player->old_frames_head++;
+  player->old_frames_head %= OLD_FRAMES;
+}
+
+static void
+drop_old_frame(GstSparrow *sparrow, GstBuffer *outbuf){
+  sparrow_play_t *player = sparrow->helper_struct;
+  GstBuffer *tail = player->old_frames[player->old_frames_tail];
+  if (tail){
+    gst_buffer_unref(tail);
+  }
+  player->old_frames_tail++;
+  player->old_frames_tail %= OLD_FRAMES;
+}
+
 
 INVISIBLE sparrow_state
 mode_play(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   guint8 *in = GST_BUFFER_DATA(inbuf);
   guint8 *out = GST_BUFFER_DATA(outbuf);
-
+  store_old_frame(sparrow, outbuf);
   play_from_full_lut(sparrow, in, out);
+  drop_old_frame(sparrow, outbuf);
   return SPARROW_STATUS_QUO;
 }
 
