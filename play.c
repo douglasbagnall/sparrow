@@ -21,20 +21,18 @@
 
 #include <string.h>
 #include <math.h>
+#include "play_core.h"
 
-#define DEBUG_PLAY 0
-#define OLD_FRAMES 4
+#define one_subpixel one_subpixel_clamp
 
-
-typedef struct sparrow_play_s{
-  guint8 lut_hi[256];
-  guint8 lut_lo[256];
-  guint8 *image_row;
-  guint jpeg_index;
-  GstBuffer *old_frames[OLD_FRAMES];
-  int old_frames_head;
-  int old_frames_tail;
-} sparrow_play_t;
+static inline void
+do_one_pixel(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpegpix,
+    guint8 *oldframe){
+  outpix[0] = one_subpixel(player, inpix[0], jpegpix[0], oldframe[0]);
+  outpix[1] = one_subpixel(player, inpix[1], jpegpix[1], oldframe[1]);
+  outpix[2] = one_subpixel(player, inpix[2], jpegpix[2], oldframe[2]);
+  outpix[3] = one_subpixel(player, inpix[3], jpegpix[3], oldframe[3]);
+}
 
 
 static void
@@ -66,147 +64,28 @@ set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
 }
 
 
-static inline guint8 one_subpixel(sparrow_play_t *player, guint8 inpix, guint8 jpegpix){
-  //jpeg is target.
-  //there is diff. (in gamma space)
-  // compensate for diff (only).
-  // if the pixel needs to be darker, send nothing
-  // if it needs to be brighter, send difference.
-  //XXX difference needs gamma scaling
-#if 0
-  /*clamp in pseudo gamma space*/
-  int gj = player->lut_hi[jpegpix];
-  int gi = player->lut_hi[inpix];
-  int diff = gj - gi;
-  if (diff < 0)
-    return 0;
-  return player->lut_lo[diff];
-#endif
-#if 1
-  /*clamp */
-  int diff = jpegpix - inpix;
-  if (diff < 0)
-    return 0;
-  return diff;
-#endif
-#if 0
-  /*full mirror */
-  int diff = jpegpix - inpix;
-  if (diff < 0)
-    return -diff; /*or -diff /2 */
-  return diff;
-#endif
-#if 0
-  /* simplest possible (average)*/
-  guint sum = player->lut_hi[inpix] + jpegpix;
-  return sum >> 1;
-#endif
-}
-
-
-UNUSED static inline void
-do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix){
-  /* rather than cancel the whole other one, we need to calculate the
-     difference from the desired image, and only compensate by that
-     amount.  If a lot of negative compensation (i.e, trying to blacken)
-     is needed, then it is time to raise the black level for the next
-     round (otherwise, lower the black level). Use sum of
-     compensations?, or count? or thresholded? or squared (via LUT)?
-
-     How are relative calculations calculated via LUT?
-
-     1. pre scale
-     2. combine
-     3. re scale
-
-  */
-  sparrow_play_t *player = sparrow->helper_struct;
-  outpix[0] = one_subpixel(player, inpix[0], jpegpix[0]);
-  outpix[1] = one_subpixel(player, inpix[1], jpegpix[1]);
-  outpix[2] = one_subpixel(player, inpix[2], jpegpix[2]);
-  outpix[3] = one_subpixel(player, inpix[3], jpegpix[3]);
-}
-
-#define GENTLE 1
-#if GENTLE
-static inline guint8 one_subpixel_lagged(sparrow_play_t *player, guint8 inpix,
-    guint8 jpegpix, guint8 oldpix){
-  /*clamp */
-  int error = MAX(inpix - oldpix, 0) >> 1;
-  int diff = jpegpix - error;
-  if (diff < 0)
-    return 0;
-  return diff;
-}
-
-#else
-static inline guint8 one_subpixel_lagged(sparrow_play_t *player, guint8 inpix,
-    guint8 jpegpix, guint8 oldpix){
-  /*clamp */
-  //jpegpix -= oldpix >> 1;
-  //inpix += oldpix;
-  int target = 2 * jpegpix - oldpix;
-  int diff = (target - inpix) >> 1;
-  if (diff < 0)
-    return 0;
-  if (diff > 255)
-    return 255;
-  return diff;
-}
-#endif
-
-static inline void
-do_one_pixel_lagged(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpegpix,
-    guint8 *oldframe){
-  outpix[0] = one_subpixel_lagged(player, inpix[0], jpegpix[0], oldframe[0]);
-  outpix[1] = one_subpixel_lagged(player, inpix[1], jpegpix[1], oldframe[1]);
-  outpix[2] = one_subpixel_lagged(player, inpix[2], jpegpix[2], oldframe[2]);
-  outpix[3] = one_subpixel_lagged(player, inpix[3], jpegpix[3], oldframe[3]);
-}
-
-
-
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
-  GST_DEBUG("play_from_full_lut\n");
-#if 0
-  memset(out, 0, sparrow->out.size); /*is this necessary? (only for outside
-                                       screen map, maybe in-loop might be
-                                       quicker) */
-#endif
   sparrow_play_t *player = sparrow->helper_struct;
   guint i;
   int ox, oy;
   guint32 *out32 = (guint32 *)out;
   guint32 *in32 = (guint32 *)in;
   GstBuffer *oldbuf = player->old_frames[player->old_frames_tail];
-  guint8 *old_frame;
-  if (oldbuf){
-    old_frame = (guint8 *)GST_BUFFER_DATA(oldbuf);
-  }
-  else { /*boot strapping: use current frame */
-    old_frame = out;
-  }
+  guint8 *old_frame = (oldbuf) ? (guint8 *)GST_BUFFER_DATA(oldbuf) : out;
 
   set_up_jpeg(sparrow, player);
-  GST_DEBUG("in %p out %p", in, out);
 
   guint8 *jpeg_row = player->image_row;
   i = 0;
   for (oy = 0; oy < sparrow->out.height; oy++){
-    //GST_DEBUG("about to read line to %p", jpeg_row);
     read_one_line(sparrow, jpeg_row);
     for (ox = 0; ox < sparrow->out.width; ox++, i++){
       guint inpos = sparrow->map_lut[i];
       if (inpos){
-        guint8 *inpix = (guint8 *)&in32[inpos];
-        /*do_one_pixel(sparrow,
+        do_one_pixel(player,
             &out[i * PIXSIZE],
-            inpix,
-            &jpeg_row[ox * PIXSIZE]);*/
-        do_one_pixel_lagged(player,
-            &out[i * PIXSIZE],
-            inpix,
+            (guint8 *)&in32[inpos],
             &jpeg_row[ox * PIXSIZE],
             &old_frame[i * PIXSIZE]
         );
