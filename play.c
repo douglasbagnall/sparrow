@@ -23,9 +23,6 @@
 #include <math.h>
 
 #define DEBUG_PLAY 0
-#define INITIAL_BLACK 32
-#define MIN_BLACK 0
-#define MAX_BLACK 160
 #define OLD_FRAMES 4
 
 
@@ -33,7 +30,6 @@ typedef struct sparrow_play_s{
   guint8 lut_hi[256];
   guint8 lut_lo[256];
   guint8 *image_row;
-  guint8 black_level;
   guint jpeg_index;
   GstBuffer *old_frames[OLD_FRAMES];
   int old_frames_head;
@@ -77,19 +73,38 @@ static inline guint8 one_subpixel(sparrow_play_t *player, guint8 inpix, guint8 j
   // if the pixel needs to be darker, send nothing
   // if it needs to be brighter, send difference.
   //XXX difference needs gamma scaling
+#if 0
+  /*clamp in pseudo gamma space*/
+  int gj = player->lut_hi[jpegpix];
+  int gi = player->lut_hi[inpix];
+  int diff = gj - gi;
+  if (diff < 0)
+    return 0;
+  return player->lut_lo[diff];
+#endif
 #if 1
+  /*clamp */
   int diff = jpegpix - inpix;
   if (diff < 0)
     return 0;
   return diff;
-#else
+#endif
+#if 0
+  /*full mirror */
+  int diff = jpegpix - inpix;
+  if (diff < 0)
+    return -diff; /*or -diff /2 */
+  return diff;
+#endif
+#if 0
   /* simplest possible (average)*/
-  guint sum = player->lut[inpix] + jpegpix;
+  guint sum = player->lut_hi[inpix] + jpegpix;
   return sum >> 1;
 #endif
 }
 
-static inline void
+
+UNUSED static inline void
 do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix){
   /* rather than cancel the whole other one, we need to calculate the
      difference from the desired image, and only compensate by that
@@ -106,21 +121,49 @@ do_one_pixel(GstSparrow *sparrow, guint8 *outpix, guint8 *inpix, guint8 *jpegpix
 
   */
   sparrow_play_t *player = sparrow->helper_struct;
-  //guint8 black = player->black_level;
-  /*
-    int r = ib[sparrow->in.rbyte];
-    int g = ib[sparrow->in.gbyte];
-    int b = ib[sparrow->in.bbyte];
-  */
-  //outpix[0] = player->lut[inpix[0]];
-  //outpix[1] = player->lut[inpix[1]];
-  //outpix[2] = player->lut[inpix[2]];
-  //outpix[3] = player->lut[inpix[3]];
   outpix[0] = one_subpixel(player, inpix[0], jpegpix[0]);
   outpix[1] = one_subpixel(player, inpix[1], jpegpix[1]);
   outpix[2] = one_subpixel(player, inpix[2], jpegpix[2]);
   outpix[3] = one_subpixel(player, inpix[3], jpegpix[3]);
 }
+
+#define GENTLE 1
+#if GENTLE
+static inline guint8 one_subpixel_lagged(sparrow_play_t *player, guint8 inpix,
+    guint8 jpegpix, guint8 oldpix){
+  /*clamp */
+  int error = MAX(inpix - oldpix, 0) >> 1;
+  int diff = jpegpix - error;
+  if (diff < 0)
+    return 0;
+  return diff;
+}
+
+#else
+static inline guint8 one_subpixel_lagged(sparrow_play_t *player, guint8 inpix,
+    guint8 jpegpix, guint8 oldpix){
+  /*clamp */
+  //jpegpix -= oldpix >> 1;
+  //inpix += oldpix;
+  int target = 2 * jpegpix - oldpix;
+  int diff = (target - inpix) >> 1;
+  if (diff < 0)
+    return 0;
+  if (diff > 255)
+    return 255;
+  return diff;
+}
+#endif
+
+static inline void
+do_one_pixel_lagged(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpegpix,
+    guint8 *oldframe){
+  outpix[0] = one_subpixel_lagged(player, inpix[0], jpegpix[0], oldframe[0]);
+  outpix[1] = one_subpixel_lagged(player, inpix[1], jpegpix[1], oldframe[1]);
+  outpix[2] = one_subpixel_lagged(player, inpix[2], jpegpix[2], oldframe[2]);
+  outpix[3] = one_subpixel_lagged(player, inpix[3], jpegpix[3], oldframe[3]);
+}
+
 
 
 static void
@@ -149,10 +192,16 @@ play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
       int y = sparrow->map_lut[i].y;
       if (x || y){
         guint8 *inpix = (guint8*)&in32[y * sparrow->in.width + x];
-        do_one_pixel(sparrow,
+        /*do_one_pixel(sparrow,
             &out[i * PIXSIZE],
             inpix,
-            &jpeg_row[ox * PIXSIZE]);
+            &jpeg_row[ox * PIXSIZE]);*/
+        do_one_pixel_lagged(player,
+            &out[i * PIXSIZE],
+            inpix,
+            &jpeg_row[ox * PIXSIZE],
+            &old_frame[i * PIXSIZE]
+        );
       }
       else {
         out32[i] = 0;
@@ -228,7 +277,6 @@ INVISIBLE void init_play(GstSparrow *sparrow){
   init_jpeg_src(sparrow);
   sparrow_play_t *player = zalloc_aligned_or_die(sizeof(sparrow_play_t));
   player->image_row = zalloc_aligned_or_die(sparrow->out.width * PIXSIZE);
-  player->black_level = INITIAL_BLACK;
   sparrow->helper_struct = player;
   init_gamma_lut(player);
   GST_DEBUG("finished init_play\n");
