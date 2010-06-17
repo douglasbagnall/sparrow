@@ -17,7 +17,6 @@ static char **option_reload = NULL;
 static char **option_save = NULL;
 static char *option_avi = NULL;
 
-//static gboolean option_overlay = FALSE;
 
 #define MAX_SCREENS 2
 
@@ -41,7 +40,6 @@ static GOptionEntry entries[] =
     "save calibration data to FILE (one per screen)", "FILE" },
   { "avi", 'a', 0, G_OPTION_ARG_FILENAME, &option_avi,
     "save mjpeg video to FILE", "FILE" },
-  //  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
   { NULL, 0, 0, 0, NULL, NULL, NULL }
 };
 
