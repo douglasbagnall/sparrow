@@ -883,18 +883,26 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
     signal = (((colour >> fl->shift1) & COLOUR_MASK) +
             ((colour >> fl->shift2) & COLOUR_MASK));
     if (signal){
-      if (fl->map[i].lines[line->dir]){
-        /*assume the pixel is on for everyone and will just confuse
-          matters. ignore it.
-        */
-
-        if (fl->map[i].lines[line->dir] != BAD_PIXEL){
+      int antisignal = (((colour >> fl->unshift1) & COLOUR_MASK) +
+          ((colour >> fl->unshift2) & COLOUR_MASK));
+      GST_DEBUG("colour is %x. signal %x antisignal %x", colour, signal, antisignal);
+      if (antisignal >= signal){
+        GST_DEBUG("got signal %d and antisignal %d. ignore it");
+        continue;
+      }
+      if (fl->map[i].lines[line->dir] &&
+          signal < 2 * fl->map[i].signal[line->dir]){
+        if (fl->map[i].lines[line->dir] != BAD_PIXEL &&
+            signal * 2 < fl->map[i].signal[line->dir]){
+          /*assume the pixel is on for everyone and will just confuse
+            matters. ignore it.
+          */
           /*
-          GST_DEBUG("HEY, expected point %d to be in line %d (dir %d) "
-              "and thus empty, but it is also in line %d\n"
-              "old signal %d, new signal %d, marking as BAD\n",
-              i, line->index, line->dir, fl->map[i].lines[line->dir],
-              fl->map[i].signal[line->dir], signal);
+            GST_DEBUG("HEY, expected point %d to be in line %d (dir %d) "
+            "and thus empty, but it is also in line %d\n"
+            "old signal %d, new signal %d, marking as BAD\n",
+            i, line->index, line->dir, fl->map[i].lines[line->dir],
+            fl->map[i].signal[line->dir], signal);
           */
           fl->map[i].lines[line->dir] = BAD_PIXEL;
           fl->map[i].signal[line->dir] = 0;
@@ -1124,10 +1132,16 @@ setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   case SPARROW_GREEN:
     fl->shift1 = sparrow->in.gshift + COLOUR_QUANT;
     fl->shift2 = sparrow->in.gshift + COLOUR_QUANT;
+    GST_DEBUG("using green shift: %d, %d", fl->shift1, fl->shift2);
+    fl->unshift1 = sparrow->in.rshift + COLOUR_QUANT;
+    fl->unshift2 = sparrow->in.bshift + COLOUR_QUANT;
     break;
   case SPARROW_MAGENTA:
     fl->shift1 = sparrow->in.rshift + COLOUR_QUANT;
     fl->shift2 = sparrow->in.bshift + COLOUR_QUANT;
+    GST_DEBUG("using magenta shift: %d, %d", fl->shift1, fl->shift2);
+    fl->unshift1 = sparrow->in.gshift + COLOUR_QUANT;
+    fl->unshift2 = sparrow->in.gshift + COLOUR_QUANT;
     break;
   }
 }

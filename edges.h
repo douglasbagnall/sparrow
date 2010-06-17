@@ -139,6 +139,8 @@ typedef struct sparrow_find_lines_s {
   int n_hlines;
   gint shift1;
   gint shift2;
+  gint unshift1;
+  gint unshift2;
   sparrow_intersect_t *map;
   sparrow_corner_t *mesh_mem;
   sparrow_corner_t *mesh;
@@ -164,6 +166,8 @@ typedef struct sparrow_find_lines_s {
   "  int n_hlines: %d\n"                           \
   "  gint shift1: %d\n"                            \
   "  gint shift2: %d\n"                            \
+  "  gint unshift1: %d\n"                            \
+  "  gint unshift2: %d\n"                            \
   "  sparrow_intersect_t *map: %p\n"               \
   "  sparrow_corner_t *mesh: %p\n"                 \
   "  sparrow_cluster_t *clusters: %p\n"            \
@@ -183,6 +187,8 @@ typedef struct sparrow_find_lines_s {
   (fl)->n_hlines,                                  \
   (fl)->shift1,                                    \
   (fl)->shift2,                                    \
+  (fl)->unshift1,                                    \
+  (fl)->unshift2,                                    \
   (fl)->map,                                       \
   (fl)->mesh,                                      \
   (fl)->clusters,                                  \
