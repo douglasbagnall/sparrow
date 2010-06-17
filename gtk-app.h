@@ -8,6 +8,7 @@ static gint option_timer = -1;
 static gint option_screens = 1;
 static gint option_fps = 20;
 static guint option_first_screen = 0;
+static guint option_serial = 0;
 static char **option_reload = NULL;
 static char **option_save = NULL;
 static char *option_avi = NULL;

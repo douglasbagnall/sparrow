@@ -193,6 +193,7 @@ struct _GstSparrow
 
   const char *reload;
   const char *save;
+  gboolean serial;
 
   /*debug timer */
   struct timeval timer_start;
@@ -236,7 +237,8 @@ enum
   PROP_RNG_SEED,
   PROP_COLOUR,
   PROP_RELOAD,
-  PROP_SAVE
+  PROP_SAVE,
+  PROP_SERIAL
 };
 
 #define DEFAULT_PROP_CALIBRATE TRUE
@@ -246,6 +248,7 @@ enum
 #define DEFAULT_PROP_COLOUR SPARROW_GREEN
 #define DEFAULT_PROP_RELOAD ""
 #define DEFAULT_PROP_SAVE ""
+#define DEFAULT_PROP_SERIAL FALSE
 
 #define QUOTE_(x) #x
 #define QUOTE(x) QUOTE_(x)

@@ -41,6 +41,7 @@ typedef enum corner_status {
 
 typedef enum edges_state {
   EDGES_FIND_NOISE,
+  EDGES_WAIT_FOR_LINES_LOCK,
   EDGES_FIND_LINES,
   EDGES_FIND_CORNERS,
   EDGES_WAIT_FOR_PLAY,

@@ -28,6 +28,8 @@
 #include "cv.h"
 #include "median.h"
 
+static GStaticMutex serial_mutex = G_STATIC_MUTEX_INIT;
+
 static int global_number_of_edge_finders = 0;
 
 static void dump_edges_info(GstSparrow *sparrow, sparrow_find_lines_t *fl, const char *filename){
@@ -999,6 +1001,9 @@ draw_lines(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *in, guint8 *ou
     }
     fl->current++;
     if (fl->current == fl->n_lines){
+      if (sparrow->serial){
+        g_static_mutex_unlock(&serial_mutex);
+      }
       jump_state(sparrow, fl, EDGES_NEXT_STATE);
     }
     else{
@@ -1069,6 +1074,17 @@ wait_for_play(GstSparrow *sparrow, sparrow_find_lines_t *fl){
   return FALSE;
 }
 
+
+static inline void
+wait_for_lines_lock(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+  if (! sparrow->serial){
+    jump_state(sparrow, fl, EDGES_NEXT_STATE);
+  }
+  else if (g_static_mutex_trylock(&serial_mutex)){
+    jump_state(sparrow, fl, EDGES_NEXT_STATE);
+  }
+}
+
 INVISIBLE sparrow_state
 mode_find_edges(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   guint8 *in = GST_BUFFER_DATA(inbuf);
@@ -1077,6 +1093,9 @@ mode_find_edges(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   switch (fl->state){
   case EDGES_FIND_NOISE:
     find_threshold(sparrow, fl, in, out);
+    break;
+  case EDGES_WAIT_FOR_LINES_LOCK:
+    wait_for_lines_lock(sparrow, fl);
     break;
   case EDGES_FIND_LINES:
     draw_lines(sparrow, fl, in, out);

@@ -63,6 +63,7 @@ post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
       "debug", debug,
       "rngseed", rngseed,
       "colour", colour,
+      "serial", option_serial,
       NULL);
   if (reload){
     g_object_set(G_OBJECT(sparrow),
@@ -275,6 +276,8 @@ static GOptionEntry entries[] =
   { "first-screen", 0, 0, G_OPTION_ARG_INT, &option_first_screen, "Start with this screen", "S" },
   { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
   { "timer", 't', 0, G_OPTION_ARG_INT, &option_timer, "Log frame times in /tmp/timer.log", "SCREEN" },
+  { "serial-calibration", 'c', 0, G_OPTION_ARG_NONE, &option_serial,
+    "calibrate projections one at a time, not together", NULL },
   { "reload", 'r', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_reload,
     "load calibration data from FILE (one per screen)", "FILE" },
   { "save", 'S', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_save,

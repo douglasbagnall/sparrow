@@ -155,6 +155,11 @@ gst_sparrow_class_init (GstSparrowClass * g_class)
       g_param_spec_string ("save", "Save", "save calibration details to this file [None]",
           DEFAULT_PROP_SAVE, G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class, PROP_SERIAL,
+      g_param_spec_boolean("serial", "Serial calibration",
+          "Calibrate the projectors one after another, rather than both at once",
+          DEFAULT_PROP_SERIAL, G_PARAM_READWRITE));
+
   trans_class->set_caps = GST_DEBUG_FUNCPTR (gst_sparrow_set_caps);
   trans_class->transform = GST_DEBUG_FUNCPTR (gst_sparrow_transform);
   GST_INFO("gst class init\n");
@@ -222,6 +227,10 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       set_string_prop(value, &sparrow->save);
       GST_DEBUG("save is %s\n", sparrow->save);
       break;
+    case PROP_SERIAL:
+      sparrow->serial = g_value_get_boolean(value);
+      GST_DEBUG("serial is %d\n", sparrow->serial);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -256,6 +265,9 @@ gst_sparrow_get_property (GObject * object, guint prop_id, GValue * value,
       break;
     case PROP_SAVE:
       g_value_set_string(value, sparrow->save);
+      break;
+    case PROP_SERIAL:
+      g_value_set_boolean(value, sparrow->serial);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
