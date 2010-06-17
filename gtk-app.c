@@ -10,128 +10,6 @@ http://tristanswork.blogspot.com/2008/09/fullscreen-video-in-gstreamer-with-gtk.
 #include "gtk-app.h"
 
 
-static void hide_mouse(GtkWidget *widget){
-  GdkWindow *w = GDK_WINDOW(widget->window);
-  GdkDisplay *display = gdk_display_get_default();
-  GdkCursor *cursor = gdk_cursor_new_for_display(display, GDK_BLANK_CURSOR);
-  gdk_window_set_cursor(w, cursor);
-  gdk_cursor_unref (cursor);
-}
-
-static void
-mjpeg_branch(GstPipeline *pipeline, GstElement *tee)
-{
-  /* ! jpegenc ! avimux ! filesink location=mjpeg.avi */
-  GstElement *queue = gst_element_factory_make("queue", NULL);
-  GstElement *jpegenc = gst_element_factory_make("jpegenc", NULL);
-  GstElement *avimux = gst_element_factory_make("avimux", NULL);
-  GstElement *filesink = gst_element_factory_make("filesink", NULL);
-  GstElement *cs = gst_element_factory_make("ffmpegcolorspace", NULL);
-  g_object_set(G_OBJECT(filesink),
-      "location", option_avi,
-      NULL);
-  gst_bin_add_many(GST_BIN(pipeline),
-      queue,
-      cs,
-      jpegenc,
-      avimux,
-      filesink,
-      NULL);
-  gst_element_link_many(tee,
-      queue,
-      cs,
-      jpegenc,
-      avimux,
-      filesink,
-      NULL);
-}
-
-static void
-post_tee_pipeline(GstPipeline *pipeline, GstElement *tee, GstElement *sink,
-    int rngseed, int colour, int timer, int debug, char *save, char *reload){
-  GstElement *queue = gst_element_factory_make("queue", NULL);
-  GstElement *sparrow = gst_element_factory_make("sparrow", NULL);
-  GstElement *caps_posteriori = gst_element_factory_make("capsfilter", NULL);
-  GstElement *cs_posteriori = gst_element_factory_make("ffmpegcolorspace", NULL);
-
-  g_object_set(G_OBJECT(caps_posteriori), "caps",
-      gst_caps_new_simple ("video/x-raw-rgb",
-          COMMON_CAPS), NULL);
-
-  g_object_set(G_OBJECT(sparrow),
-      "timer", timer,
-      "debug", debug,
-      "rngseed", rngseed,
-      "colour", colour,
-      "serial", option_serial,
-      NULL);
-  if (reload){
-    g_object_set(G_OBJECT(sparrow),
-        "reload", reload,
-        NULL);
-  }
-  if (save){
-    g_object_set(G_OBJECT(sparrow),
-        "save", save,
-        NULL);
-  }
-
-  gst_bin_add_many (GST_BIN(pipeline),
-      queue,
-      sparrow,
-      caps_posteriori,
-      cs_posteriori,
-      sink,
-      NULL);
-
-  gst_element_link_many(tee,
-      queue,
-      sparrow,
-      caps_posteriori,
-      cs_posteriori,
-      sink,
-      NULL);
-}
-
-static GstElement *
-pre_tee_pipeline(GstPipeline *pipeline){
-  if (pipeline == NULL){
-    pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
-  }
-  char * src_name = (option_fake) ? "videotestsrc" : "v4l2src";
-  GstElement *src = gst_element_factory_make(src_name, NULL);
-  GstElement *caps_priori = gst_element_factory_make("capsfilter", NULL);
-  GstElement *cs_priori = gst_element_factory_make("ffmpegcolorspace", NULL);
-  GstElement *caps_interiori = gst_element_factory_make("capsfilter", NULL);
-  GstElement *tee = gst_element_factory_make ("tee", NULL);
-
-  g_object_set(G_OBJECT(caps_priori), "caps",
-      gst_caps_new_simple ("video/x-raw-yuv",
-          "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC('Y', 'U', 'Y', '2'),
-          COMMON_CAPS), NULL);
-
-  g_object_set(G_OBJECT(caps_interiori), "caps",
-      gst_caps_new_simple ("video/x-raw-rgb",
-          COMMON_CAPS), NULL);
-
-  gst_bin_add_many(GST_BIN(pipeline),
-      src,
-      caps_priori,
-      cs_priori,
-      //caps_interiori,
-      tee,
-      NULL);
-
-  gst_element_link_many(src,
-      caps_priori,
-      cs_priori,
-      //caps_interiori,
-      tee,
-      NULL);
-  return tee;
-}
-
-
 static GstPipeline *
 make_multi_pipeline(windows_t *windows, int count)
 {
@@ -248,12 +126,9 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
   /*if more than one screen is requested, set the screen number.
     otherwise let it fall were it falls */
   if (option_screens > 1 || option_first_screen){
-    /* "screen" is not the same thing as "monitor" */
     GdkScreen * screen = gdk_screen_get_default();
     int width = gdk_screen_get_width(screen);
-    /* XXX window selection is specific to equally sized windows arranged
-       horizontally.  This could be generalised, perhaps using trial and
-       error */
+    /* XXX placment heuristic is crap */
     gtk_window_move(GTK_WINDOW(window),
         (width / 2 * screen_no + 200) % width, 50);
   }
@@ -320,3 +195,5 @@ gint main (gint argc, gchar *argv[])
   gst_object_unref (pipeline);
   return 0;
 }
+
+

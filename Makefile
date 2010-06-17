@@ -257,6 +257,14 @@ gtk-app::
 	$(CC)  -g $(ALL_CFLAGS) $(CPPFLAGS) $(CV_LINKS) $(INCLUDES) $(GTK_INCLUDES)\
 	  $(GTK_LINKS) -o $@ $(GTK_APP)
 
+gtksparrow::
+	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(GTK_CLUTTER_LINKS) $(INCLUDES) $(GTK_CLUTTER_INCLUDES) \
+		 -o $@ gtksparrow.c
+
+gtk-xoverlay::
+	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(GTK_CLUTTER_LINKS) $(INCLUDES) $(GTK_CLUTTER_INCLUDES) \
+		 -o $@ gtk-xoverlay.c
+
 gtk-clutter-app::
 	$(CC)  $(ALL_CFLAGS) $(CPPFLAGS) $(GTK_CLUTTER_LINKS) $(INCLUDES) $(GTK_CLUTTER_INCLUDES) \
 		 -o $@ gtk-clutter-app.c
