@@ -154,6 +154,7 @@ decompress_buffer(struct jpeg_decompress_struct *cinfo, guint8* src, int size, g
     row += stride * read;
   }
   jpeg_finish_decompress(cinfo);
+  jpeg_destroy_decompress(cinfo);
 }
 
 
@@ -195,6 +196,7 @@ read_one_line(GstSparrow *sparrow, guint8* dest){
 INVISIBLE void
 finish_reading_jpeg(GstSparrow *sparrow){
   jpeg_finish_decompress(sparrow->cinfo);
+  jpeg_destroy_decompress(sparrow->cinfo);
 }
 
 
