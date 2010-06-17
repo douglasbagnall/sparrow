@@ -206,7 +206,13 @@ gst_sparrow_set_property (GObject * object, guint prop_id, const GValue * value,
       if (val < SPARROW_LAST_COLOUR){
         sparrow->colour = val;
       }
-      GST_DEBUG("colour is %d\n", sparrow->rng_seed);
+      GST_DEBUG("colour is %d\n", sparrow->colour);
+      if(sparrow->colour == SPARROW_GREEN)
+        GST_DEBUG("green!");
+      else if(sparrow->colour == SPARROW_MAGENTA)
+        GST_DEBUG("magenta!");
+      else
+        GST_DEBUG("UNKNOWN COLOUR");
       break;
     case PROP_RELOAD:
       set_string_prop(value, &sparrow->reload);
