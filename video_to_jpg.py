@@ -36,7 +36,7 @@ def random_selection(dest, sf=0.5, df=0.1):
             os.link(ALL_DF_MJPEG_DIR + f, MJPEG_DIR + 'df+' + f)
 
 
-#random_selection(MJPEG_DIR, 0.2, 0.05)
+#random_selection(MJPEG_DIR, 0.35, 0.09)
 split_directory(MJPEG_DIR, JPEG_DIR)            
 
 
