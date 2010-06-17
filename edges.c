@@ -883,15 +883,9 @@ look_for_line(GstSparrow *sparrow, guint8 *in, sparrow_find_lines_t *fl,
   for (i = 0; i < sparrow->in.pixcount; i++){
     colour = in32[i] & cmask;
     signal = (((colour >> fl->shift1) & COLOUR_MASK) +
-            ((colour >> fl->shift2) & COLOUR_MASK));
+        ((colour >> fl->shift2) & COLOUR_MASK));
+
     if (signal){
-      int antisignal = (((colour >> fl->unshift1) & COLOUR_MASK) +
-          ((colour >> fl->unshift2) & COLOUR_MASK));
-      GST_DEBUG("colour is %x. signal %x antisignal %x", colour, signal, antisignal);
-      if (antisignal >= signal){
-        GST_DEBUG("got signal %d and antisignal %d. ignore it");
-        continue;
-      }
       if (fl->map[i].lines[line->dir] &&
           signal < 2 * fl->map[i].signal[line->dir]){
         if (fl->map[i].lines[line->dir] != BAD_PIXEL &&
@@ -1049,11 +1043,7 @@ find_corners(GstSparrow *sparrow, sparrow_find_lines_t *fl)
     calculate_deltas(sparrow, fl);
     break;
   case 0:
-#if USE_FULL_LUT
     corners_to_full_lut(sparrow, fl);
-#else
-    corners_to_lut(sparrow, fl);
-#endif
     jump_state(sparrow, fl, EDGES_NEXT_STATE);
     break;
   default:
@@ -1152,15 +1142,11 @@ setup_colour_shifts(GstSparrow *sparrow, sparrow_find_lines_t *fl){
     fl->shift1 = sparrow->in.gshift + COLOUR_QUANT;
     fl->shift2 = sparrow->in.gshift + COLOUR_QUANT;
     GST_DEBUG("using green shift: %d, %d", fl->shift1, fl->shift2);
-    fl->unshift1 = sparrow->in.rshift + COLOUR_QUANT;
-    fl->unshift2 = sparrow->in.bshift + COLOUR_QUANT;
     break;
   case SPARROW_MAGENTA:
     fl->shift1 = sparrow->in.rshift + COLOUR_QUANT;
     fl->shift2 = sparrow->in.bshift + COLOUR_QUANT;
     GST_DEBUG("using magenta shift: %d, %d", fl->shift1, fl->shift2);
-    fl->unshift1 = sparrow->in.gshift + COLOUR_QUANT;
-    fl->unshift2 = sparrow->in.gshift + COLOUR_QUANT;
     break;
   }
 }
