@@ -42,7 +42,7 @@ SUBPIXEL(clamp){
 }
 
 SUBPIXEL(full_mirror){
-  /*full mirror */
+  /*full mirror -SEGFAULTS  */
   int diff = jpegpix - inpix;
   if (diff < 0)
     return -diff; /*or -diff /2 */

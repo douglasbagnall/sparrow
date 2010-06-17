@@ -23,7 +23,7 @@
 #include <math.h>
 #include "play_core.h"
 
-#define one_subpixel one_subpixel_clamp
+#define one_subpixel one_subpixel_gamma_clamp_oldpix
 
 static inline void
 do_one_pixel(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpegpix,
