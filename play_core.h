@@ -6,10 +6,16 @@
 #define DEBUG_PLAY 0
 #define OLD_FRAMES 4
 
+static const double GAMMA = 2.0;
+static const double INV_GAMMA = 1.0 / 2.0;
+#define GAMMA_UNIT_LIMIT 1024
+#define GAMMA_INVERSE_LIMIT 1024
+#define GAMMA_TABLE_TOP 2048
+
 
 typedef struct sparrow_play_s{
-  guint8 lut_hi[256];
-  guint8 lut_lo[256];
+  guint16 lut_f[256];
+  guint8 lut_b[GAMMA_TABLE_TOP];
   guint8 *image_row;
   guint jpeg_index;
   GstBuffer *old_frames[OLD_FRAMES];
@@ -24,12 +30,12 @@ typedef struct sparrow_play_s{
 
 SUBPIXEL(gamma_clamp){
   /*clamp in pseudo gamma space*/
-  int gj = player->lut_hi[jpegpix];
-  int gi = player->lut_hi[inpix];
+  int gj = player->lut_f[jpegpix];
+  int gi = player->lut_f[inpix];
   int diff = gj - gi;
   if (diff < 0)
     return 0;
-  return player->lut_lo[diff];
+  return player->lut_b[diff];
 }
 
 
@@ -55,8 +61,8 @@ SUBPIXEL(sum){
 }
 
 SUBPIXEL(gamma_avg){
-  int sum = player->lut_hi[jpegpix] + player->lut_hi[255 - inpix];
-  return player->lut_lo[sum >> 1];
+  int sum = player->lut_f[jpegpix] + player->lut_f[255 - inpix];
+  return player->lut_b[sum >> 1];
 }
 
 SUBPIXEL(simple){
@@ -100,39 +106,39 @@ SUBPIXEL(inverse_clamp){
 
 SUBPIXEL(gamma_oldpix){
   /*clamp in pseudo gamma space*/
-  int jpeg_gamma = player->lut_lo[jpegpix];
-  int in_gamma = player->lut_lo[inpix];
-  int old_gamma = player->lut_lo[oldpix];
+  int jpeg_gamma = player->lut_b[jpegpix];
+  int in_gamma = player->lut_b[inpix];
+  int old_gamma = player->lut_b[oldpix];
   int error = (in_gamma - old_gamma) >> 1;
   int diff = jpeg_gamma - error;
   if (diff < 0)
     return 0;
-  return player->lut_hi[diff];
+  return player->lut_f[diff];
 }
 
 
 SUBPIXEL(gamma_clamp_oldpix_gentle){
   /*clamp in pseudo gamma space*/
-  int jpeg_gamma = player->lut_hi[jpegpix];
-  int in_gamma = player->lut_hi[inpix];
-  int old_gamma = player->lut_hi[oldpix];
+  int jpeg_gamma = player->lut_f[jpegpix];
+  int in_gamma = player->lut_f[inpix];
+  int old_gamma = player->lut_f[oldpix];
   int error = MAX(in_gamma - old_gamma, 0) >> 1;
   int diff = jpeg_gamma - error;
   if (diff < 0)
     return 0;
-  return player->lut_lo[diff];
+  return player->lut_b[diff];
 }
 
 SUBPIXEL(gamma_clamp_oldpix){
   /*clamp in pseudo gamma space*/
-  int jpeg_gamma = player->lut_hi[jpegpix];
-  int in_gamma = player->lut_hi[inpix];
-  int old_gamma = player->lut_hi[oldpix];
+  int jpeg_gamma = player->lut_f[jpegpix];
+  int in_gamma = player->lut_f[inpix];
+  int old_gamma = player->lut_f[oldpix];
   int error = MAX(in_gamma - old_gamma, 0);
   int diff = jpeg_gamma - error;
   if (diff < 0)
     return 0;
-  return player->lut_lo[diff];
+  return player->lut_b[diff];
 }
 
 

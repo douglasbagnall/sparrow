@@ -179,30 +179,36 @@ mode_play(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
   return SPARROW_STATUS_QUO;
 }
 
-static const double GAMMA = 2.0;
-static const double INV_GAMMA = 1.0 / 2.0;
-static const double FALSE_CEILING = 275;
 
 static void
 init_gamma_lut(sparrow_play_t *player){
+  /* for each colour:
+     1. perform inverse gamma calculation (-> linear colour space)
+     2. negate
+     3 undo gamma.
+  */
   for (int i = 0; i < 256; i++){
-    /* for each colour:
-       1. perform inverse gamma calculation (-> linear colour space)
-       2. negate
-       3 undo gamma.
-     */
-    double x, y;
-    x = i / 255.01;
-    y = pow(x, INV_GAMMA) *255;
-    x = pow(x, GAMMA) * 255;
+    double x;
+    x = (double)i / 255;
+    x = pow(x, GAMMA) * (GAMMA_UNIT_LIMIT - 1);
+    if (x >= GAMMA_UNIT_LIMIT){
+      x = GAMMA_UNIT_LIMIT - 1;
+    }
+    player->lut_f[i] = (guint16)x;
+  }
+  for (int i = 0; i < GAMMA_UNIT_LIMIT; i++){
+    double x;
+    x = (double)i / (GAMMA_UNIT_LIMIT - 1);
+    x = pow(x, INV_GAMMA) * 255 + 0.5;
     if (x > 255){
       x = 255;
     }
-    if (y > 255){
-      y = 255;
-    }
-    player->lut_hi[i] = (guint8)x;
-    player->lut_lo[i] = (guint8)y;
+    player->lut_b[i] = (guint8)x;
+  }
+  /*add some extra on the table to catch overflow -- should perhaps ramp
+    toward 255, if the top is not that high*/
+  for (int i = GAMMA_UNIT_LIMIT; i < GAMMA_TABLE_TOP; i++){
+    player->lut_b[i] = 255;
   }
 }
 
