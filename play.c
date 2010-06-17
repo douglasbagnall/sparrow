@@ -34,6 +34,48 @@ do_one_pixel(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpeg
   outpix[3] = one_subpixel(player, inpix[3], jpegpix[3], oldframe[3]);
 }
 
+static inline int
+select_jpeg_adaptive(GstSparrow *sparrow, sparrow_play_t *player){
+  /*
+  GST_DEBUG("in select_jpeg_adaptive, starting at %d", player->jpeg_index);
+  GstBuffer *oldbuf = player->old_frames[player->old_frames_tail];
+  if (! oldbuf){
+    GST_DEBUG("old buffer is not there! using random jump: %d to %d",
+        player->jpeg_index, player->jpeg_index);
+    return RANDINT(sparrow, 0, sparrow->shared->image_count);
+  }
+  guint8 *old_frame = (guint8 *)GST_BUFFER_DATA(oldbuf);
+
+  cvResize( const CvArr* src, CvArr* dst, CV_INTER_LINEAR)
+
+  int x, y;
+  guint32 summary[6 * 8 * PIXSIZE] = {0};
+  int xdiv = sparrow->out.width / 8;
+  int ydiv = sparrow->out.height / 6;
+  int y2 = 0;
+  int x2 = 0;
+  for (y2 = 0; y2 < 6; y2++){
+    for (y = y2 * ydiv; y < (y2 + 1) * ydiv; y += 4){
+      for (x2 = 0; x2 < 8; x2++){
+        for (x = x2 * xdiv; x < (x2 + 1) * xdiv; x++){
+          int i2 = y2 * 8 + x2;
+          int i = y * sparrow->out.width + x;
+
+          summary[i2 + ] += old_frame[];
+        }
+      }
+    }
+
+    for (x = 0; x < sparrow->out.width; x++){
+
+
+
+
+  GST_DEBUG("in select_jpeg_adaptive");
+  */
+  return RANDINT(sparrow, 0, sparrow->shared->image_count);
+}
+
 
 static void
 set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
@@ -48,8 +90,13 @@ set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
     int next = old_frame->successors[0];
     if (!next){
       int i = RANDINT(sparrow, 1, 8);
-      next = old_frame->successors[i];
-      GST_DEBUG("CHANGE_SHOT: %d to %d (option %d)", player->jpeg_index, next, i);
+      if (i < 8){
+        next = old_frame->successors[i];
+        GST_DEBUG("CHANGE_SHOT: %d to %d (option %d)", player->jpeg_index, next, i);
+      }
+      else{
+        next = select_jpeg_adaptive(sparrow, player);
+      }
     }
     player->jpeg_index = next;
   }
@@ -62,7 +109,6 @@ set_up_jpeg(GstSparrow *sparrow, sparrow_play_t *player){
 
   begin_reading_jpeg(sparrow, src, size);
 }
-
 
 static void
 play_from_full_lut(GstSparrow *sparrow, guint8 *in, guint8 *out){
