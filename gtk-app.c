@@ -144,6 +144,7 @@ make_multi_pipeline(windows_t *windows, int count)
     //(pipeline, tee, sink, int rngseed, int colour, timer flag, int debug flag)
     /* timer should only run on one of them. colour >= 3 is undefined */
     int debug = option_debug == i;
+    int timer = option_timer == i;
     if (option_reload != NULL){
       if (option_reload[i] == NULL){
         g_critical("You can't reload some screens and not others!");
@@ -154,7 +155,7 @@ make_multi_pipeline(windows_t *windows, int count)
     if (option_save && option_save[i]){
       save = option_save[i];
     }
-    post_tee_pipeline(pipeline, tee, sink, i, i + 1, i == 0, debug, save, reload);
+    post_tee_pipeline(pipeline, tee, sink, i, i + 1, timer, debug, save, reload);
   }
   if (option_avi){
     /*add a branch saving the video to a file */
@@ -273,6 +274,7 @@ static GOptionEntry entries[] =
   { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
   { "first-screen", 0, 0, G_OPTION_ARG_INT, &option_first_screen, "Start with this screen", "S" },
   { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
+  { "timer", 't', 0, G_OPTION_ARG_INT, &option_timer, "Log frame times in /tmp/timer.log", "SCREEN" },
   { "reload", 'r', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_reload,
     "load calibration data from FILE (one per screen)", "FILE" },
   { "save", 'S', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_save,

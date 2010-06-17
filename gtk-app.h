@@ -4,6 +4,7 @@
 
 static gboolean option_fullscreen = FALSE;
 static gint option_debug = -1;
+static gint option_timer = -1;
 static gint option_screens = 1;
 static gint option_fps = 20;
 static guint option_first_screen = 0;
