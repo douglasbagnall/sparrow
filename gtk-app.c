@@ -269,29 +269,6 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
 }
 
 
-static GOptionEntry entries[] =
-{
-  { "fake-source", 0, 0, G_OPTION_ARG_NONE, &option_fake,
-    "use videotestsrc, not v4l2src (mostly won't work)", NULL },
-  { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
-  { "fps", 'p', 0, G_OPTION_ARG_INT, &option_fps, "speed (Frames per second)", "FPS" },
-  { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },
-  { "first-screen", 0, 0, G_OPTION_ARG_INT, &option_first_screen, "Start with this screen", "S" },
-  { "debug", 'd', 0, G_OPTION_ARG_INT, &option_debug, "Save screen's debug images in /tmp", "SCREEN" },
-  { "timer", 't', 0, G_OPTION_ARG_INT, &option_timer, "Log frame times in /tmp/timer.log", "SCREEN" },
-  { "serial-calibration", 'c', 0, G_OPTION_ARG_NONE, &option_serial,
-    "calibrate projections one at a time, not together", NULL },
-  { "reload", 'r', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_reload,
-    "load calibration data from FILE (one per screen)", "FILE" },
-  { "save", 'S', 0, G_OPTION_ARG_FILENAME_ARRAY, &option_save,
-    "save calibration data to FILE (one per screen)", "FILE" },
-  { "avi", 'a', 0, G_OPTION_ARG_FILENAME, &option_avi,
-    "save mjpeg video to FILE", "FILE" },
-  //  { "overlay", 'o', 0, G_OPTION_ARG_NONE, &option_overlay, "Use some kind of overlay", NULL },
-  { NULL, 0, 0, 0, NULL, NULL, NULL }
-};
-
-
 gint main (gint argc, gchar *argv[])
 {
   //initialise threads before any gtk stuff (because not using gtk_init)
