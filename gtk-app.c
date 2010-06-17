@@ -98,7 +98,8 @@ pre_tee_pipeline(GstPipeline *pipeline){
   if (pipeline == NULL){
     pipeline = GST_PIPELINE(gst_pipeline_new("sparrow_pipeline"));
   }
-  GstElement *src = gst_element_factory_make("v4l2src", NULL);
+  char * src_name = (option_fake) ? "videotestsrc" : "v4l2src";
+  GstElement *src = gst_element_factory_make(src_name, NULL);
   GstElement *caps_priori = gst_element_factory_make("capsfilter", NULL);
   GstElement *cs_priori = gst_element_factory_make("ffmpegcolorspace", NULL);
   GstElement *caps_interiori = gst_element_factory_make("capsfilter", NULL);
@@ -270,6 +271,8 @@ set_up_window(GMainLoop *loop, GtkWidget *window, int screen_no){
 
 static GOptionEntry entries[] =
 {
+  { "fake-source", 0, 0, G_OPTION_ARG_NONE, &option_fake,
+    "use videotestsrc, not v4l2src (mostly won't work)", NULL },
   { "full-screen", 'f', 0, G_OPTION_ARG_NONE, &option_fullscreen, "run full screen", NULL },
   { "fps", 'p', 0, G_OPTION_ARG_INT, &option_fps, "speed (Frames per second)", "FPS" },
   { "screens", 's', 0, G_OPTION_ARG_INT, &option_screens, "Use this many screens", "S" },

@@ -2,6 +2,7 @@
 #define HEIGHT 600
 //#define FPS    20
 
+static gboolean option_fake = FALSE;
 static gboolean option_fullscreen = FALSE;
 static gint option_debug = -1;
 static gint option_timer = -1;
