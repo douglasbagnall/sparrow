@@ -24,6 +24,7 @@
 #include "play_core.h"
 
 #define one_subpixel one_subpixel_gamma_clamp_oldpix
+//#define one_subpixel one_subpixel_clamp
 
 static inline void
 do_one_pixel(sparrow_play_t *player, guint8 *outpix, guint8 *inpix, guint8 *jpegpix,
@@ -196,9 +197,9 @@ init_gamma_lut(sparrow_play_t *player){
     }
     player->lut_f[i] = (guint16)x;
   }
-  for (int i = 0; i < GAMMA_UNIT_LIMIT; i++){
+  for (int i = GAMMA_FLOOR; i < GAMMA_UNIT_LIMIT; i++){
     double x;
-    x = (double)i / (GAMMA_UNIT_LIMIT - 1);
+    x = (double)i / (GAMMA_UNIT_LIMIT - GAMMA_FLOOR - 1);
     x = pow(x, INV_GAMMA) * 255 + 0.5;
     if (x > 255){
       x = 255;
@@ -206,7 +207,8 @@ init_gamma_lut(sparrow_play_t *player){
     player->lut_b[i] = (guint8)x;
   }
   /*add some extra on the table to catch overflow -- should perhaps ramp
-    toward 255, if the top is not that high*/
+    toward 255, if the top is not that high
+  XXX current implemetation doesn't use this*/
   for (int i = GAMMA_UNIT_LIMIT; i < GAMMA_TABLE_TOP; i++){
     player->lut_b[i] = 255;
   }

@@ -11,10 +11,12 @@ static const double INV_GAMMA = 1.0 / 2.0;
 #define GAMMA_UNIT_LIMIT 1024
 #define GAMMA_INVERSE_LIMIT 1024
 #define GAMMA_TABLE_TOP 2048
-
+#define GAMMA_TABLE_BASEMENT 1024
+#define GAMMA_FLOOR -64
 
 typedef struct sparrow_play_s{
   guint16 lut_f[256];
+  guint8 lut_b_basement[GAMMA_TABLE_BASEMENT]; /*rather than if x < 0 return 0 */
   guint8 lut_b[GAMMA_TABLE_TOP];
   guint8 *image_row;
   guint jpeg_index;
@@ -136,9 +138,7 @@ SUBPIXEL(gamma_clamp_oldpix){
   int old_gamma = player->lut_f[oldpix];
   int error = MAX(in_gamma - old_gamma, 0);
   int diff = jpeg_gamma - error;
-  if (diff < 0)
-    return 0;
-  return player->lut_b[diff];
+  return player->lut_b[diff];  /*diff range: -1023 to 1023*/
 }
 
 
