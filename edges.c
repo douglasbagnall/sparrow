@@ -1066,7 +1066,8 @@ wait_for_play(GstSparrow *sparrow, sparrow_find_lines_t *fl){
 
 
 static inline void
-wait_for_lines_lock(GstSparrow *sparrow, sparrow_find_lines_t *fl){
+wait_for_lines_lock(GstSparrow *sparrow, sparrow_find_lines_t *fl, guint8 *out){
+  memset(out, 0, sparrow->out.size);
   if (! sparrow->serial){
     jump_state(sparrow, fl, EDGES_NEXT_STATE);
   }
@@ -1085,7 +1086,7 @@ mode_find_edges(GstSparrow *sparrow, GstBuffer *inbuf, GstBuffer *outbuf){
     find_threshold(sparrow, fl, in, out);
     break;
   case EDGES_WAIT_FOR_LINES_LOCK:
-    wait_for_lines_lock(sparrow, fl);
+    wait_for_lines_lock(sparrow, fl, out);
     break;
   case EDGES_FIND_LINES:
     draw_lines(sparrow, fl, in, out);
