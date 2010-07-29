@@ -1,7 +1,7 @@
 #!/bin/bash
 #0 get in place
 
-sleep 20
+sleep 30
 
 cd /home/douglas/sparrow
 [[ "$DISPLAY" ]] || export DISPLAY=:0
