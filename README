@@ -55,7 +55,12 @@ streams into the correct format.
 
 TODO: provide images, instructions.
 
-License
-=======
+Copyright and License
+=====================
 
-LGPL.
+Copyright 2010 Douglas Bagnall
+
+Portions copyright Gstreamer developers.
+
+Licensed under the Gnu Lesser General Public License Version 2.1 or
+greater.  See COPYING for license details.
