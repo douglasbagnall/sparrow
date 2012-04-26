@@ -29,7 +29,7 @@ static const char *JPEG_BLOB_NAME = "/home/douglas/sparrow/content/jpeg.blob";
 static const char *JPEG_INDEX_NAME = "/home/douglas/sparrow/content/jpeg.index";
 
 INVISIBLE sparrow_shared_t *
-sparrow_get_shared(){
+sparrow_get_shared(void){
   static sparrow_shared_t shared;
   return &shared;
 }

@@ -104,7 +104,7 @@ set_up_window(GMainLoop *loop, GtkWidget *window){
 
 
 ClutterActor *
-new_stage(){
+new_stage(void){
   static const ClutterColor black = {0, 0, 0, 255};
   ClutterActor *stage = clutter_stage_get_default();
   clutter_stage_set_color(CLUTTER_STAGE(stage), &black);

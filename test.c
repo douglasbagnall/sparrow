@@ -6,7 +6,7 @@
 
 
 static void
-test_popcount64()
+test_popcount64(void)
 {
   guint64 tests[] = {0xf0f0f0f0f0f0f0f0, 0x0001111116000000,
                      0x123456789abcdef0, 0x0fedcba987654321,
@@ -19,7 +19,7 @@ test_popcount64()
 }
 
 static void
-test_hamming_distance64()
+test_hamming_distance64(void)
 {
   guint64 tests[] = {0xf0f0f0f0f0f0f0f0, 0xf0f0f0f0f0f0f0f0, 0xffffffffffffffff,
                      0xf0f0f0f0f0f0f0f0, 0xffffffffffffffff, 0xffffffffffffffff,

@@ -1,7 +1,7 @@
 Libgstsparrow
 =============
 
-Libgstsparrow  is a Gstreamer plug-in that obliterates everything it sees,
+Libgstsparrow is a Gstreamer plug-in that obliterates everything it sees,
 replacing it with images of sparrows.
 
 It is designed to be used with a camera and projector pointed at the

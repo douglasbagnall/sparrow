@@ -18,7 +18,7 @@ int64_to_binary_string(char *s, guint64 n){
 }
 
 static void
-test_shifts()
+test_shifts(void)
 {
   static char s[65];
   guint64 x = 1;
