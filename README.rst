@@ -32,17 +32,18 @@ Gstreamer, including dev packages.
 OpenCV. On 32 bit x86 it is worth compiling it yourself for the SSE2
 speed up.  That comes for free with AMD64.
 
-libjpeg-turbo. http://libjpeg-turbo.virtualgl.org.  You might need to
-symlink /usr/lib/libjpeg* to their counterparts in /opt/libjpeg-turbo
-(I mean, I did, but I can't recall whether it was necessary in the
-end).
+libjpeg-turbo. http://libjpeg-turbo.virtualgl.org.  In modern distros
+it is already the default. In the old days you had to compile it
+yourself and possibly symlink ``/usr/lib/libjpeg*`` to their
+counterparts in ``/opt/libjpeg-turbo`` (I mean, I did, but I can't
+recall whether it was necessary in the end).
 
 
 Compiling
 =========
 
-Try `make && make test`.  There isn't an "install" target.
-(`make test` uses "gst-launch-0.10 --gst-plugin-path=.").
+Try ``make && make test``.  There isn't an ``install`` target.
+(``make test`` uses ``gst-launch-0.10 --gst-plugin-path=.``).
 
 
 Importing images
